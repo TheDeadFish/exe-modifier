@@ -1,0 +1,1 @@
+MEMHOOK(0x10017ED, _CalcWndProc_hook@16, _CalcWndProc@16)
