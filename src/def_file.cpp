@@ -284,24 +284,37 @@ void memPatch(bool hookMode)
 	}
 }
 
-retpair<bool, int>
-	callPatchCore(Void ptr, bool absOnly)
+struct callPatchCore_t {
+	bool relative;
+	byte addrType;
+	WORD reserved;
+	int patchOffset;
+};
+
+callPatchCore_t callPatchCore(
+	Void ptr, bool create)
 {
-	bool relative = true;
-	int patchOffset = 1;
+	callPatchCore_t ret = { 
+		true, 1, 0, 2};
 	
 	// 0x25FF: jmp indirect
 	if( ptr.word() == 0x25FF ) 
 	{ 
 		ptr.word() = 0xE990;
-		patchOffset = 2; 
 	}	
 
 	// 0x15FF: call indirect
 	ei( ptr.word() == 0x15FF ) 
 	{
 		ptr.word() = 0xE890;
-		patchOffset = 2; 
+	}
+	
+	// 0xA1: move eax, [address]
+	ei((ptr[0] == 0xA1))
+	{
+		ptr[0] = 0xB8;
+		ret.patchOffset = 1;
+		ret.relative = false;
 	}
 	
 	// 0x??8B: move ea?, [address]
@@ -309,25 +322,32 @@ retpair<bool, int>
 	{
 		int r = (ptr.word() >> 11);
 		ptr.word() = 0xB890 + (r << 8);
-		relative = false;
-		patchOffset = 2; 
+		ret.relative = false;
 	}
 	
 	// 0x8X0F: conditional
 	ei((ptr.word() & 0xF0FF) == 0x800F)
 	{
-		patchOffset = 2; 
+		ret.addrType = 2;
 	}
-		
-	// !0xE8: call relative
-	// !0xE9: jump relative	
-	ei((absOnly == false)
-	&&(ptr[0] != 0xE8 )&&(ptr[0] != 0xE9 ))
-	{
-		ptr[0] = 0xE9;
+	
+	// 0xE8: call relative
+	// 0xE9: jump relative	
+	ei((ptr[0] == 0xE8 )
+	&&(ptr[0] == 0xE9 )) {
+		ret.patchOffset = 1;
+		ret.addrType = 2;
 	}
-	return retpair<bool, int>(
-		relative, patchOffset);
+	
+	// anything else
+	else {
+		ret.patchOffset = 1;
+		ret.addrType = 0;
+		if(create == true)
+			ptr[0] = 0xE9;
+	}
+	
+	return ret;
 }
 
 void callPatch(bool hookMode)
@@ -336,38 +356,35 @@ void callPatch(bool hookMode)
 	Void ptr = PeFile::patchChk(addr, 5);
 	if(ptr == NULL)
 		fatal_error("def file: bad patch address at line %d\n", lineNo);
-	bool relative = true;
-	int patchOffset = 1;
-	getpair(relative, patchOffset,
-		callPatchCore(ptr, false));
+	auto cp = callPatchCore(ptr, true);
 	
 	// implement hook mode
-	Void patchPtr = ptr+patchOffset;
+	Void patchPtr = ptr+cp.patchOffset;
 	if(hookMode == true) {
 		if(isAddress(arg2) == true)
 			fatal_error("def file: CALLHOOK must be symbol at line %d\n", lineNo);
-		if((patchOffset > 1)&&(*ptr != 0x0F))
+		if(cp.addrType != 2)
 			fatal_error("def file: CALLHOOK must be relative at line %d\n", lineNo);
-		DWORD oldCall = patchPtr.dword()+addr+patchOffset+4;
+		DWORD oldCall = patchPtr.dword()+addr+cp.patchOffset+4;
 		Linker::addSymbol(arg2, Linker::Type_Relocate, -1, oldCall);
 		arg2 = symbcat(arg2, "_hook");
 	} SCOPE_EXIT(if(hookMode == true) free(arg2););
 	
 	// apply patch
 	int rva = PeFile::addrToRva(addr);
-	PeFile::Relocs_Remove(rva, patchOffset+4);	
+	PeFile::Relocs_Remove(rva, cp.patchOffset+4);	
 	DWORD symbol = getSymbol(arg2, patchPtr);
 	if(symbol != DWORD(-1)) {
-		Linker::addReloc(relative ? Linker::Type_REL32 : Linker::Type_DIR32,
-			-1, rva+patchOffset, symbol);
+		Linker::addReloc(cp.relative ? Linker::Type_REL32 : Linker::Type_DIR32,
+			-1, rva+cp.patchOffset, symbol);
 	} else {
-		int patchAddr = addr+patchOffset;
+		int patchAddr = addr+cp.patchOffset;
 		int callAddr = getNumber(arg2);
-		if( relative == true ) {
+		if( cp.relative == true ) {
 			patchPtr.dword() = callAddr-(patchAddr+4);
 		} else {
 			patchPtr.dword() = PeFile::addrToRva(callAddr);
-			PeFile::Relocs_Add(rva+patchOffset);
+			PeFile::Relocs_Add(rva+cp.patchOffset);
 		}
 	}
 }
@@ -407,18 +424,18 @@ void importHook(void)
 	for(DWORD patchPos : Range(patchList, patchCount)) 
 	{
 		DWORD addr = patchPos+PeFile::baseAddr();
-		Void ptr = PeFile::patchChk(addr-2, 6);
+		int ofs = 2;
+	RETRY_PATCH:
+		Void ptr = PeFile::patchChk(addr-ofs, 6);
 		if(ptr == NULL) fatal_error(
 			"def file: bad reloc/hook address at line %d\n", lineNo);
-		bool relative; int patchOffset;
-		getpair(relative, patchOffset,
-			callPatchCore(ptr, true));
-		if(patchOffset != 2) fatal_error(
-			"def file: IMPORTHOOK failed (%X), at line %d\n", addr, lineNo);
+		auto cp = callPatchCore(ptr, false);	
+		if(cp.addrType != 1) { if(--ofs) goto RETRY_PATCH; fatal_error(
+			"def file: IMPORTHOOK failed (%X), at line %d\n", addr, lineNo); }
 		PeFile::Relocs_Remove(patchPos, 4);
-		(ptr+2).dword() = symbOffset;
-		Linker::addReloc(relative ? Linker::Type_REL32 
-			: Linker::Type_DIR32, -1, patchPos, symbol);		
+		(ptr+ofs).dword() = symbOffset;
+		Linker::addReloc(cp.relative ? Linker::Type_REL32 
+			: Linker::Type_DIR32, -1, patchPos, symbol);
 	}
 }
 
@@ -497,14 +514,12 @@ void codeMove(void)
 			int offset = */
 			
 		// apply fixup to near jump
-		bool relative; int patchOffset;
-		getpair(relative, patchOffset,
-			callPatchCore(fixupPtr, true));
-		if(relative == false) { fatal_error(
+		auto cp = callPatchCore(fixupPtr, false);
+		if(cp.addrType != 2) { fatal_error(
 			"def file: CODEMOVE fixup must be relative at line %d\n", lineNo); }
-		DWORD& fixupRef = (fixupPtr+patchOffset).dword();
+		DWORD& fixupRef = (fixupPtr+cp.patchOffset).dword();
 		if(target == 0) { fixupRef += start-dst; }
-		else { fixupRef = target - (fixDst + patchOffset + 4); }
+		else { fixupRef = target - (fixDst + cp.patchOffset + 4); }
 	}
 }
 

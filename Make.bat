@@ -8,6 +8,4 @@ if exist %PROGRAMS%\progs\exe_mod (
   copy /Y bin\libmisc.a %PROGRAMS%\progs\exe_mod
   copy /Y bin\exe_mod.cfg %PROGRAMS%\progs\exe_mod
   copy /Y bin\setup.vbs %PROGRAMS%\progs\exe_mod
-  copy /Y bin\Bind.exe %PROGRAMS%\progs\exe_mod  
-  copy /Y bin\bind_exe.bat %PROGRAMS%\progs\exe_mod  
 )
