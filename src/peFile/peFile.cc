@@ -179,9 +179,11 @@ const char* load(const char* fileName)
 		ei(!strcmp(sect.name(), ".reloc"))
 			relocSection = &sect;
 		else {
-			if(rsrcSection || relocSection)
-				ERROR_RETURN( Unsupported_Layout );
-			extndSection = &sect;
+			if(rsrcSection || relocSection) {
+				printf("warning, unsupported layout\n");
+			} else {
+				extndSection = &sect;
+			}
 		}
 	}
 
