@@ -334,7 +334,7 @@ callPatchCore_t callPatchCore(
 	// 0xE8: call relative
 	// 0xE9: jump relative	
 	ei((ptr[0] == 0xE8 )
-	&&(ptr[0] == 0xE9 )) {
+	||(ptr[0] == 0xE9 )) {
 		ret.patchOffset = 1;
 		ret.addrType = 2;
 	}
