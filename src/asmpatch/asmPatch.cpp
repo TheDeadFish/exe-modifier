@@ -60,7 +60,7 @@ struct AsmArg
 		char* numPos = curPos;
 		if(!defFileIsAddress(curPos))
 			numPos = defFileGetNumPos(curPos);
-		if(*numPos) { auto result = defFileGetNumber(numPos);
+		if(numPos) { auto result = defFileGetNumber(numPos);
 			if(result.b) return 0; offset = result.a; *numPos = '\0'; }
 		if(*curPos) symbol = curPos;
 		
@@ -177,7 +177,8 @@ struct DefFileAsmPatch
 int* DefFileAsmPatch::findLabel(char* label)
 {
 	if(label[0] == '.') { int symb = Linker::findSymbol(label+1);
-		if(symb < 0) return NULL; return (int*)&Linker::symbols[symb].value; 
+		if(!Linker::isUndefSymb(symb)) return NULL; 
+		return (int*)&Linker::symbols[symb].value; 
 	} else {
 		for(auto& l : labelLst) if(!strcmp(l.name, label))
 		  return &l.value; error("undefined label: ", label);
@@ -224,35 +225,21 @@ bool DefFileAsmPatch::jumpCall(char* opcode)
 
 bool DefFileAsmPatch::normalOpcode(char* opcode)
 {
-	/* dtermin
-
-
-
-
+	/* dtermine best matching opcode
 	int bestOpcode = -1; int score = 0;
 	for(int i = 0; i < ARRAYSIZE(x86InsInfo); i++) {
 		if((stricmp(x86InsInfo[i].name, opcode))||
 		(x86InsInfo[i].nOps() != nArgs)) continue;
 		
-		// calculate score
-		
-		
-		
-		
-		
-		
-	
-		
+		// check for size matches
+		for(int j = 0; j < nArgs; j++) { if((args[j].size 
+			&& args[j].size != x86InsInfo[i].size))
+	} */
 	
 	
-	
-	}
-	
-	*/
-	return false;
-
-
-
+	if(!stricmp(opcode, "nop")) { initInst(1,
+		false, MODE_NONE, 0, 0)[0] = 0x90; return true; }
+	return false; 
 }
 
 int DefFileAsmPatch::getFixupValue(AsmOutput& out, int index)
@@ -298,8 +285,9 @@ char* DefFileAsmPatch::encodeFixup(char* curPos,
 		if(!is_one_of(out.mode[index], MODE_REL32, MODE_DIR32))
 		  error("invalid fixup for undefined extern symbol: ", out.symbol[index]);
 		int symb = Linker::addSymbol(out.symbol[index]+1, Linker::Type_Undefined, 0, 0);
-		Linker::addReloc(out.mode[index] == MODE_REL32 ? Linker::Type_DIR32 : Linker::Type_REL32,
-			-1, PeFile:: addrToRva(addr)-PeFile::imageData, symb);
+		Linker::addReloc(out.mode[index] == MODE_REL32 ? Linker::Type_REL32 
+			: Linker::Type_DIR32, -1, curPos-PeFile::imageData, symb);
+		*(u32*)curPos = 0; return curPos+4;
 	} else {
 		if(out.mode[index] == MODE_DIR8) { *(u8*)curPos = offset; return curPos+1; }
 		if(out.mode[index] == MODE_DIR16) { *(u16*)curPos = offset; return curPos+2; }
@@ -364,7 +352,8 @@ void DefFileAsmPatch::run(DWORD addr, char* str)
 	char* curPos = PeFile::patchChk(addr, length);
 	for(auto& out : asmOutput) {
 	  if(out.type == TYPE_INST) { memcpy(curPos, out.opcode, out.opLen);
-		encodeFixup(encodeFixup(curPos + out.opLen, addr, out, 0), addr, out, 1); 
+		curPos = encodeFixup(encodeFixup(curPos + 
+			out.opLen, addr, out, 0), addr, out, 1); 
 		addr += out.totLen; }
 	}
 }

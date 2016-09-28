@@ -39,6 +39,8 @@ extern DWORD nSymbols;
 int findSymbol(const char* name); int symbolRva(int symbol);
 int addSymbol(const char* name, DWORD section, DWORD weakSym, DWORD value);
 int addImport(const char* Name, const char* dllName, const char* importName);
+static inline bool isUndefSymb(int symb) { return (symb < 0)
+	|| (symbols[symb].section == Type_Undefined); }
 
 // reloc interace
 enum {

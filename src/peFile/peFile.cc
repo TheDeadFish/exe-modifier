@@ -194,9 +194,11 @@ const char* load(const char* fileName)
 	validateDirectory(rsrcSection, IDE_RESOURCE);
 	validateDirectory(relocSection, IDE_BASERELOC);
 
+	printf("%X\n", virtualPos);
+	
 	// read the sections
-	if(virtualPos > ALLOC_LIMIT)
-		ERROR_RETURN( Corrupt_TooLarge1 );
+	//if(virtualPos > ALLOC_LIMIT)
+	//	ERROR_RETURN( Corrupt_TooLarge1 );
 	peRealloc(virtualPos);
 	virtualPos = MAX_HEADER_SIZE;
 	
