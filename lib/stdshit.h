@@ -483,9 +483,9 @@ return size_t(a)>=size_t(b);}
 #define SHITCALL2 __fastcall
 #define SHITCALL __stdcall
 #define SHITSTATIC __stdcall static
-#define ARRAYSIZE(a) \
-  ((sizeof(a) / sizeof(*(a))) / \
-  static_cast<size_t>(!(sizeof(a) % sizeof(*(a)))))
+#ifndef ARRAYSIZE
+#define ARRAYSIZE(A) (sizeof(A)/sizeof((A)[0]))
+#endif
 #define ZINIT memset(this, 0, sizeof(*this))
 #define ei else if
 #define THIS_NULL_CHECK() if(this == NULL) return 0;
