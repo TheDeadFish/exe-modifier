@@ -46,17 +46,15 @@ SHITSTATIC
 void readConfig()
 {
 	// load configuration
-	strcpy(exeName+exePathLen, "exe_mod.cfg");
-	int lineCount;
-	char** cfgData = loadText(exeName, lineCount);
+	cstr progDir = getProgramDir(); int lineCount;
+	char** cfgData = loadText(Cstr(replName(
+		progDir, "exe_mod.cfg")), lineCount);
 	if(cfgData == NULL)
 		fatalError("unable to load config file");
 
 	// parse config
 	int listCount = 0;
-	char* libPathTmp = xmalloc(exePathLen+1);
-	strNcpy(libPathTmp, exeName, exePathLen);
-	xNextAlloc(lib_path, listCount) = libPathTmp;
+	xNextAlloc(lib_path, listCount) = progDir;
 	for(int i = 0; i < lineCount; i++) {
 		char* pch = strtok(cfgData[i], "=");
 		if(pch == NULL) continue;

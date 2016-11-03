@@ -70,25 +70,21 @@ char* symbcat(char* symb, const char* str)
 
 struct ParseDefLine
 {
-	xvector argLst; char* line; int lineNo;
-	~ParseDefLine() { argLst.free(); }
-	char* argn(int idx) { return
-		argLst.dataPtr.ref<char*>(idx); }
-	char* arg1; char* arg2; char* arg3; int argcCount;	
-	void defBad(int srcLn) { fatal_error(
-		"def file bad at line %d (%d)\n", lineNo, srcLn); }
-
-char* initLine(char* line, int lineNo)
-{
-	this->line = line;
-	this->lineNo = lineNo;	
-	char* curPos = strchr(line, '(');
-	if(curPos == 0) defBad(__LINE__);
-	*curPos++ = '\0';
-	arg1 = 0; arg2 = 0; arg3 = 0;
-	argLst.dataSize = 0;
-	return curPos;
-}
+	cParse cp; char* line; int argcCount;
+	//cParse::Parse_t arg1, arg2, arg3;
+	char* arg1; char* arg2; char* arg3;
+	xVector<cParse::Parse_t> argLst;
+	//bool hasAtSym(cParse::Parse_t& arg);
+	
+	void defBad(int srcLn, char* err) { fatal_error(
+		"def file:%d:%d: bad (%d)", cp.getLine(err), srcLn); }
+	void defBad(cch* str, char* err) { fatal_error(
+		"def file:%d:%d: %s", cp.getLine(err), str); }
+	char* argn(int idx) { return argLst[idx]->str; }
+		
+	//char* arg1; char* arg2; char* arg3; int argcCount;	
+	//void defBad(int srcLn) { fatal_error(
+	//	"def file bad at line %d (%d)\n", lineNo, srcLn); }
 
 bool check(const char* cmd, int argc) 
 {
@@ -101,7 +97,7 @@ bool check(const char* cmd, int argc)
 
 DWORD getNumber(char* str) {
 	auto result = defFileGetNumber(str);
-	if(result.b) defBad(__LINE__);
+	if(result.b) defBad("bad number", str);
 	return result.a; }
 bool isAddress(char* str)
 {	return defFileIsAddress(str); }
@@ -135,7 +131,7 @@ void freeBlock(int offset)
 	DWORD length = end-start;
 	Void ptr = PeFile::patchChk(start, length);
 	if(ptr == NULL)
-		fatal_error("def file: address range at line %d\n", lineNo);
+		defBad("bad address range", arg1);
 	PeFile::clearSpace(PeFile::addrToRva(start), length, offset);
 }
 
@@ -153,12 +149,13 @@ retpair<Void, int> memNop(void)
 	DWORD length = end-start;
 	Void ptr = PeFile::patchChk(start, length);
 	if(ptr == NULL)
-		fatal_error("def file: address range at line %d\n", lineNo);
+		defBad("bad address range", arg1);
 	PeFile::Relocs_Remove(PeFile::addrToRva(start), length);
 	memset(ptr, 0x90, length);
 	return retpair<Void, int>(ptr, length);
 }
 
+/*
 bool mempatch2_hexData(char* strPos, xvector* data)
 {
 	while(*strPos++ != '"') {
@@ -179,12 +176,12 @@ bool mempatch2_hexData(char* strPos, xvector* data)
 		else
 			data->xnxalloc(4).dword() = value;
 	}
-	return true;
-}
+	return true; 
+}*/
 
 void memPatch2(char* strPos)
 {
-	// parse string as hex
+/*	// parse string as hex
 	xvector data = {0};
 	bool wideChar = (strPos[-2] == 'L');
 	if((wideChar == false)
@@ -242,7 +239,7 @@ WAS_MEMPATCH_HEX:
 		fatal_error("def file: address range at line %d\n", lineNo);
 	PeFile::Relocs_Remove(PeFile::addrToRva(start), data.dataSize);
 	memcpy(ptr, data.dataPtr, data.dataSize);
-	data.free();
+	data.free();*/
 }
 
 void memPatch(bool hookMode) 
@@ -258,7 +255,7 @@ void memPatch(bool hookMode)
 	DWORD addr = getNumber(arg1);
 	Void ptr = PeFile::patchChk(addr, 4);
 	if(ptr == NULL)
-		fatal_error("def file: bad patch address at line %d\n", lineNo);
+		defBad("bad patch address", arg1);
 		
 	// handle hook mode (arg3)
 	int rva = PeFile::addrToRva(addr);
@@ -277,7 +274,7 @@ void memPatch(bool hookMode)
 		ptr.dword() = value;
 	} else {
 		if(offsetMode == true)
-			fatal_error("def file: @mode invalid at line %d\n", lineNo);
+			defBad("@mode invalid", arg2);
 		PeFile::Relocs_Remove(rva);
 		Linker::addReloc(Linker::Type_DIR32, -1, 
 			PeFile::addrToRva(addr), symbol);
@@ -355,16 +352,14 @@ void callPatch(bool hookMode)
 	DWORD addr = getNumber(arg1);
 	Void ptr = PeFile::patchChk(addr, 5);
 	if(ptr == NULL)
-		fatal_error("def file: bad patch address at line %d\n", lineNo);
+		defBad("bad patch address", arg1);
 	auto cp = callPatchCore(ptr, true);
 	
 	// implement hook mode
 	Void patchPtr = ptr+cp.patchOffset;
 	if(hookMode == true) {
-		if(isAddress(arg2) == true)
-			fatal_error("def file: CALLHOOK must be symbol at line %d\n", lineNo);
-		if(cp.addrType != 2)
-			fatal_error("def file: CALLHOOK must be relative at line %d\n", lineNo);
+		if(isAddress(arg2) == true) defBad("CALLHOOK must be symbol", arg2);
+		if(cp.addrType != 2) defBad("CALLHOOK must be relative", arg1);
 		DWORD oldCall = patchPtr.dword()+addr+cp.patchOffset+4;
 		Linker::addSymbol(arg2, Linker::Type_Relocate, -1, oldCall);
 		arg2 = symbcat(arg2, "_hook");
@@ -402,14 +397,14 @@ void importHook(void)
 		} while(arg1 = strtok(NULL, " \t;"));
 	} else {
 		if(PeFile::nRelocs == 0)
-			fatal_error("def file: IMPORTHOOK requires relocs at %d\n", lineNo);
+			defBad("IMPORTHOOK requires relocs", arg1);
 		char* dllName = arg1;
 		char* impName = strtok(NULL, ";");
 		if(impName == NULL)
-			fatal_error("def file: IMPORTHOOK import name bad at %d\n", lineNo);
+			defBad("IMPORTHOOK import name bad", arg1);
 		int impRva = PeFile::Import_Find(dllName, impName);
 		if(impRva <= 0)
-			fatal_error("def file: bad import name at line %d\n", lineNo);
+			defBad("IMPORTHOOK import name bad", arg1);
 		int impAddr = PeFile::rvaToAddr(impRva);
 		for(DWORD reloc : Range(PeFile::relocs, PeFile::nRelocs))
 		  if((PeFile::imageData+reloc).dword() == impAddr)
@@ -420,18 +415,17 @@ void importHook(void)
 	DWORD symbOffset;
 	DWORD symbol = getSymbol(arg2, &symbOffset);
 	if(symbol == DWORD(-1))
-		fatal_error("def file: IMPORTHOOK requires symbol at line %d\n", lineNo);
+		defBad("IMPORTHOOK requires symbol", arg2);
 	for(DWORD patchPos : Range(patchList, patchCount)) 
 	{
 		DWORD addr = patchPos+PeFile::baseAddr();
 		int ofs = 2;
 	RETRY_PATCH:
 		Void ptr = PeFile::patchChk(addr-ofs, 6);
-		if(ptr == NULL) fatal_error(
-			"def file: bad reloc/hook address at line %d\n", lineNo);
+		if(ptr == NULL) defBad("bad reloc/hook address", arg2);
 		auto cp = callPatchCore(ptr, false);	
-		if(cp.addrType != 1) { if(--ofs) goto RETRY_PATCH; fatal_error(
-			"def file: IMPORTHOOK failed (%X), at line %d\n", addr, lineNo); }
+		if(cp.addrType != 1) { if(--ofs) goto RETRY_PATCH; 
+			defBad(xstrfmt("IMPORTHOOK failed (%X)", addr), arg2); }
 		PeFile::Relocs_Remove(patchPos, 4);
 		(ptr+ofs).dword() = symbOffset;
 		Linker::addReloc(cp.relative ? Linker::Type_REL32 
@@ -444,14 +438,13 @@ void codePatch(void)
 	// apply patch
 	auto block = this->memNop();
 	auto sect = Linker::findSection(arg3);
-	if(sect == NULL) fatal_error(
-		"def file: CODEPATCH bad section name, at line %d\n", lineNo);
-	if(sect->length > block.b) fatal_error(
-		"def file: CODEPATCH patch too large, at line %d\n", lineNo);
+	if(sect == NULL) defBad("CODEPATCH bad section name", arg3);
+	if(sect->length > block.b) 
+		defBad("CODEPATCH patch too large", arg3);
 	memcpy(block.a, sect->rawData, sect->length);
 
 	// duplicate section
-	char* sectName = xstrcat("@patch_", arg3);
+	char* sectName = xstrfmt("%s%s", "@patch_", arg3);
 	this->keepSymbol(sectName);
 	int iSect = Linker::addSection(sect->fileName, sectName, NULL,
 		Linker::nRelocs, sect->nReloc, sect->type, 0, block.a-PeFile::imageData, 0);
@@ -465,10 +458,9 @@ void importDef(void)
 {
 	char* dllName = strtok(arg1, ";");
 	char* impName = strtok(NULL, ";");
-	if(impName == NULL)
-		fatal_error("def file: IMPORTDEF import name bad at %d\n", lineNo);
+	if(impName == NULL) defBad("IMPORTDEF import name bad", arg1);
 	if(Linker::addImport(arg2, dllName, impName) < 0)
-		fatal_error("def file: IMPORTDEF symbol allready defined %d\n", lineNo);
+		defBad("IMPORTDEF symbol allready defined", arg2);
 }
 
 void funcRepl(void)
@@ -488,7 +480,7 @@ void codeMove(void)
 	Void srcPtr = PeFile::patchChk(start, length);
 	Void dstPtr = PeFile::patchChk(dst, length);
 	if((srcPtr == NULL)||(dstPtr == NULL))
-		fatal_error("def file: address range at line %d\n", lineNo);
+		defBad("address range bad", arg1);
 		
 	// move block
 	void* tmpBuff = xMalloc(length); memcpy(tmpBuff, srcPtr, length);
@@ -515,8 +507,7 @@ void codeMove(void)
 			
 		// apply fixup to near jump
 		auto cp = callPatchCore(fixupPtr, false);
-		if(cp.addrType != 2) { fatal_error(
-			"def file: CODEMOVE fixup must be relative at line %d\n", lineNo); }
+		if(cp.addrType != 2) defBad("CODEMOVE fixup must be relative", argn(i));
 		DWORD& fixupRef = (fixupPtr+cp.patchOffset).dword();
 		if(target == 0) { fixupRef += start-dst; }
 		else { fixupRef = target - (fixDst + cp.patchOffset + 4); }
@@ -527,25 +518,13 @@ void asmPatch(bool limit)
 {
 	char* quoteEnd = strchr(arg2+1, '\"');
 	if((arg2[0] != '\"') || (quoteEnd == NULL))
-	  defBad(__LINE__); quoteEnd[0] = '\0';
-	DefFileAsmPatch ctx(lineNo); ctx.run(
+	  defBad(__LINE__, arg2); quoteEnd[0] = '\0';
+	DefFileAsmPatch ctx(cp); ctx.run(
 		getNumber(arg1), arg2+1);
 }
 
-void processLine(char* curPos)
+void processLine(void)
 {
-	// get arguments
-	char* arg; bool argsEnd; 
-NEXT_ARGUMENT:
-	getpair(arg, argsEnd, defFileGetArg(curPos));
-	if(arg != NULL) {
-		if(argLst.dataSize < 12) { *(char**)
-		(size_t(&arg1)+argLst.dataSize) = arg; }
-		argLst.xnxalloc(4).ref<char*>() = arg;
-		goto NEXT_ARGUMENT; }
-	if(argsEnd == true) return;
-	argcCount = argLst.dataSize / 4;
-	
 	if(this->check("KEEP", 1))
 		this->keepSymbol(this->arg1);
 	ei(this->check("FREE", 2))
@@ -578,28 +557,29 @@ NEXT_ARGUMENT:
 		this->asmPatch(false);
 	ei(this->check("ASMPATCH", 3))
 		this->asmPatch(true);
-
 	else
-		defBad(__LINE__);
-	lineNo = 0;
+		defBad("bad command", line);
 }
 };
 
 void parse_def_file(char* def_file)
 {
-	int lineCount;
-	char** defLines = loadText(def_file, lineCount);
-	if(defLines == NULL)
-		fatal_error("unable to load def file\n");
-		
+	// load def file
 	ParseDefLine defLine{};
-	for(int i = 0; i < lineCount; i++) {
-		char* curPos = defLines[i];
-		if(defLine.lineNo == 0) {
-			if(is_one_of(*curPos, '\0', ';', '/')) continue;
-			curPos = defLine.initLine(defLines[i], i+1); 
-		} defLine.processLine(curPos);
-	} if(defLine.lineNo != 0)
-		fatal_error("def file bad, unexpected end\n");
-	free(defLines);
+	char* err = defLine.cp.load2(
+		def_file, cParse::FLAG_STRCOMBINE);
+	if(err) defLine.defBad("load failed", err);
+	
+	// parse def file
+	defLine.argLst.xReserve(3); while(1) {
+	cstr str = defLine.cp.tokLst.getCall(defLine.argLst);
+	if(!str.slen) { if(str.data) defLine.defBad(
+		__LINE__, str.data); break; }
+	defLine.argcCount = defLine.argLst.getCount();
+	for(int i = 0; i < defLine.argLst.getCount(); i++) {
+		char* str = defLine.argLst[i].nTerm(); 
+		if(i < 3) (&defLine.arg1)[i] = str; }
+	
+	defLine.line = str.nterm();
+	defLine.processLine(); }
 }

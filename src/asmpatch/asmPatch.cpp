@@ -147,7 +147,7 @@ struct DefFileAsmPatch
 	int* findLabel(char* label);
 	void addLabel(char* label, int value);
 	
-	DefFileAsmPatch(int ln) : lineNo(ln), instNo(0) { }
+	DefFileAsmPatch(cParse& cp_) : cp(cp_) { }
 	~DefFileAsmPatch() { asmOutput.free(); }
 	void run(DWORD addr, char* str);
 	bool zeroArg(char* opcode);
@@ -162,13 +162,14 @@ struct DefFileAsmPatch
 	enum AsmModifer { 
 		MOD_NEAR = 1, MOD_SHORT = 2 };
 	xnlist<AsmOutput> asmOutput{}; 
-	int lineNo; int instNo;
+	int lineNo; char* instPos;
 	AsmArg args[3];	int nArgs;
 	int modifier;
 	
 	// error handling
+	cParse& cp;
 	void error(const char* a, const char* b) { fatal_error(
-		"defFile,asmPatch (%d,%d): %s %s", lineNo, instNo, a, b); }
+		"defFile,asmPatch:%d:%d: %s %s", cp.getLine(instPos), a, b); }
 	void error(const char* a) { error(a, ""); }
 	void badop(char* opcode) {
 		error("uknown instruction: ", opcode); }
@@ -305,7 +306,8 @@ char* DefFileAsmPatch::encodeFixup(char* curPos,
 void DefFileAsmPatch::run(DWORD addr, char* str)
 {
 	for(char* curPos = strtok(str, ";");
-	  instNo++, curPos; curPos = strtok(NULL, ";"))
+	  curPos && (instPos = curPos, 1);
+	  curPos = strtok(NULL, ";"))
 	{
 		// parse label/opcode
 		char* opcode = defFileGetArg(curPos, true);

@@ -4,8 +4,6 @@
 #include "linker/linker.h"
 
 // global config
-extern char exeName[MAX_PATH];
-extern int exePathLen;
 extern char** keep_list;
 extern int keep_count;
 extern bool useHeaderFree;
