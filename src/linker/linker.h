@@ -33,7 +33,10 @@ struct Symbol {
 	DWORD section;
 	DWORD weakSym;
 	DWORD value; 
-	DWORD getAddr(void); };
+	DWORD getAddr(void); 
+	cch* getName() { return Name ?
+		Name : "##NO NAME##"; }
+};
 extern Symbol* symbols;
 extern DWORD nSymbols;
 int findSymbol(const char* name); int symbolRva(int symbol);

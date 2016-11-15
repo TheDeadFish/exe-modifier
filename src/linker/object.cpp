@@ -72,6 +72,7 @@ void object_load(const char* fileName,
 		
 		// check StorageClass
 		DWORD sclass = objSym[i].StorageClass;
+		if(sclass == 6) sclass = 2; // I have not idea
 		if((sclass != 2)&&(sclass != 3)&&(sclass != 105)){
 			if((sclass == 103)||(sclass == 0))
 				continue;

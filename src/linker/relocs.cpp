@@ -2,6 +2,21 @@
 // included by linker.cc
 // DeadFish Shitware, 2014
 
+char* getSectionName(WORD section, int offset)
+{
+	return (section == 0xFFFF) ? xstrfmt("@image:%X", offset) : xstrfmt(
+		"%s:%s:%X", sections[section].fileName, sections[section].name, offset);
+}
+
+bool undef_symbol_flag;
+void undef_symbol(Symbol* symb, WORD section, int offset)
+{
+	undef_symbol_flag = true;
+	char* sectName = getSectionName(section, offset);
+	error_msg("undefined symbol: %s, referenced by: %s\n",
+		symb->getName(), sectName); free(sectName);
+}
+
 void addReloc(WORD type, WORD section, DWORD offset, DWORD symbol)
 {
 	auto& reloc = xNextAlloc(relocs, nRelocs);
@@ -26,7 +41,7 @@ void relocs_fixup(void)
 		const char* symbName = symb.Name ? 
 			symb.Name : "##NO NAME##";
 		if(symb.section == Type_Undefined)
-			fatal_error("undefined symbol: %s\n", symbName);
+			undef_symbol(&symb, reloc.section, reloc.offset);
 
 		DWORD symbAddr = symb.getAddr();
 		if(reloc.type == Type_DIR32) {
@@ -38,4 +53,6 @@ void relocs_fixup(void)
 			addr -= PeFile::rvaToAddr(relocRva) + 4;
 		}
 	}
+	
+	if(undef_symbol_flag) exit(1);
 }

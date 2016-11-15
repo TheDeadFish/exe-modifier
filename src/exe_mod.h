@@ -28,6 +28,9 @@ void file_bad(const char* type, const char* fileName) {
 static FATALFUNC
 void recurse_error(const char* type) {
 	fatal_error("%s: infinite recursion error", type); }
+	
+#define error_msg(fmt, ...) \
+	fprintf(stderr, fmt, __VA_ARGS__);
 
 // dfLinker functions
 int exe_mod(int argc, char* argv[]);
