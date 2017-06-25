@@ -21,7 +21,7 @@ void HookEntryPoint(void)
 	xmp_start_player(ctx, 48000, 0);
 	
 	WaveOut wo;
-	wo.callBack = MakeDelegate2(ctx, callback);
+	wo.callBack = MakeDelegate(ctx, callback);
 	if(wo.open(48000))
 		wo.start();
 	RawEntryPoint();

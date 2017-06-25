@@ -1,5 +1,7 @@
-#include "stdshit.cc"
-#include "c-parse.cc"
+//#include "stdshit.cc"
+//#include "c-parse.cc"
+#include "stdshit.h"
+
 
 int strifnd(const char* str, const char** tab, int len)
 {

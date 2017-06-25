@@ -103,7 +103,7 @@ void hollow_Region(HWND hwnd, RECT* outer, RECT* inner) {
 void hollow_groupBox(HWND hwnd) {
 	RECT rect1; GetClientRect(hwnd, &rect1);
 	HDC hdc = GetDC(hwnd); SIZE size;
-	GetTextExtentPoint(hdc, "0", 1, &size);
+	GetTextExtentPointA(hdc, "0", 1, &size);
 	rect1.top += (size.cy/2)-2;
 	RECT rect2 = {rect1.left+2, rect1.top+2,
 		rect1.right-2, rect1.bottom-2};
@@ -111,9 +111,9 @@ void hollow_groupBox(HWND hwnd) {
 BOOL CALLBACK EnumChildProc(HWND hwnd, LPARAM lParam)
 {
 	char className[32];
-	GetClassName(hwnd, className, 32);
+	GetClassNameA(hwnd, className, 32);
 	if((!strcmp(className, "Button"))
-	&&(GetWindowLong(hwnd, GWL_STYLE) & 15) == BS_GROUPBOX)
+	&&(GetWindowLongA(hwnd, GWL_STYLE) & 15) == BS_GROUPBOX)
 		hollow_groupBox(hwnd);
 	return TRUE;
 }

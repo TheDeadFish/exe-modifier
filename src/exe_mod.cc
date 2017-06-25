@@ -26,8 +26,8 @@ void find_library(char* libName)
 	char filePath[MAX_PATH+32];
 	for(int i = 0; lib_path[i]; i++) {
 		sprintf(filePath, "%s\\lib%s.a", lib_path[i], libName+2);
-		GetFullPathName(filePath, MAX_PATH, filePath, NULL);
-		if(GetFileAttributes(filePath) != INVALID_FILE_ATTRIBUTES)
+		GetFullPathNameA(filePath, MAX_PATH, filePath, NULL);
+		if(GetFileAttributesA(filePath) != INVALID_FILE_ATTRIBUTES)
 			return add_library(filePath); }
 	fatal_error("library not found: %s", libName);
 }
@@ -60,7 +60,7 @@ void readConfig()
 		if(pch == NULL) continue;
 		if(strcmp(pch, "keep_list") == 0)
 			parse_delim_list(keep_list, keep_count, " ");
-		ei(strcmp(pch, "lib_path") == 0)
+		ei(strcmp(pch, "lib_path32") == 0)
 			parse_delim_list(lib_path, listCount, ";");
 		ei(strcmp(pch, "def_libs") == 0) {
 			while(pch = strtok(NULL, " "))

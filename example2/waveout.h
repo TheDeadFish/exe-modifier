@@ -11,7 +11,7 @@ public:
 	void close(void); bool isPlaying(void);
 	void start(void); void stop(void);
 	void lock(void); void unlock(void);
-	Delegate2<bool, short*, int> callBack;
+	Delegate<bool, short*, int> callBack;
 	
 private:
 	static void CALLBACK waveOutProc(
