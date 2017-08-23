@@ -97,7 +97,7 @@ int addSymbol(const char* Name, DWORD section, DWORD weakSym, DWORD value)
 DWORD Symbol::getAddr(void) 
 {
 	DWORD symbBase = (int(section) < 0) ? 0 : 
-		PeFile::rvaToAddr(sections[section].baseRva);
+		PeFILE::rvaToAddr(sections[section].baseRva);
 	return symbBase + this->value;
 }
 
@@ -109,6 +109,6 @@ int symbolRva(int symbol)
 	||( symb.section == Type_Undefined ))
 		fatal_error("undefined symbol: %s\n",
 			symb.Name ? symb.Name :"##NO NAME##" );
-	return PeFile::addrToRva(symb.getAddr());
+	return PeFILE::addrToRva(symb.getAddr());
 }
 }

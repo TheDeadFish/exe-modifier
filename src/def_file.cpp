@@ -129,10 +129,10 @@ void freeBlock(int offset)
 	DWORD start = getNumber(arg1);
 	DWORD end = getNumber(arg2);
 	DWORD length = end-start;
-	Void ptr = PeFile::patchChk(start, length);
+	Void ptr = PeFILE::patchChk(start, length);
 	if(ptr == NULL)
 		defBad("bad address range", arg1);
-	PeFile::clearSpace(PeFile::addrToRva(start), length, offset);
+	PeFILE::clearSpace(PeFILE::addrToRva(start), length, offset);
 }
 
 void symbol(bool relocate) 
@@ -147,16 +147,15 @@ retpair<Void, int> memNop(void)
 	DWORD start = getNumber(arg1);
 	DWORD end = getNumber(arg2);
 	DWORD length = end-start;
-	Void ptr = PeFile::patchChk(start, length);
+	Void ptr = PeFILE::patchChk(start, length);
 	if(ptr == NULL)
 		defBad("bad address range", arg1);
-	PeFile::Relocs_Remove(PeFile::addrToRva(start), length);
+	PeFILE::Relocs_Remove(PeFILE::addrToRva(start), length);
 	memset(ptr, 0x90, length);
 	return retpair<Void, int>(ptr, length);
 }
 
-/*
-bool mempatch2_hexData(char* strPos, xvector* data)
+bool mempatch2_hexData(char* strPos, xvector_* data)
 {
 	while(*strPos++ != '"') {
 		if(strPos[-1] != '\\')
@@ -170,98 +169,80 @@ bool mempatch2_hexData(char* strPos, xvector* data)
 		if(data == NULL)
 			continue;
 		if(valueLen <= 2)
-			data->xnxalloc(1).byte() = value;
+			data->xnxalloc_(1).byte() = value;
 		ei(valueLen <= 4)
-			data->xnxalloc(2).word() = value;
+			data->xnxalloc_(2).word() = value;
 		else
-			data->xnxalloc(4).dword() = value;
+			data->xnxalloc_(4).dword() = value;
 	}
 	return true; 
-}*/
+}
 
 void memPatch2(char* strPos)
 {
-/*	// parse string as hex
-	xvector data = {0};
-	bool wideChar = (strPos[-2] == 'L');
+	// parse string as hex
+	xvector_ data = {0};
+	bool wideChar = (*strPos == 'L');
+	strPos += wideChar ? 2 : 1;
 	if((wideChar == false)
 	&&( mempatch2_hexData(strPos, NULL))) {
 		mempatch2_hexData(strPos, &data);
 		goto WAS_MEMPATCH_HEX; }
 		
 	// parse string as ascii
-	while(*strPos++ != '"') {
-		DWORD result = strPos[-1];
-		if((result == 0)||(*strPos == 0)) defBad(__LINE__);
-		if(result == '\\') {
-			switch(*strPos++) {
-			case 'x': {
-				char* end;
-				int max = wideChar ? 0xFFFF : 0xFF;
-				result = strtoul(strPos, &end, 16);
-				if(((strPos) == end)||(result > max))
-					defBad(__LINE__);
-				strPos = end; }
-				break;
-			case '0':
-				result = 0x00;
-				break;
-			case '\"':
-				result = 0x22;
-				break;
-			case '\\':
-				result = 0x5C;
-				break;
-			case 'n':
-				result = 0x0A;
-				break;
-			case 'r':
-				result = 0x0D;
-				break;
-			case 't':
-				result = 0x09;
-				break;
-			default:
-				defBad(__LINE__);
-			}
-		}
-
+	while(1) { byte ch = RDI(strPos);
+		DWORD chw; if(ch == '"') break;
+		
+		// escape character
+		if(ch == '\\') { switch(RDI(strPos)) {
+		case 'x': { char* end; chw = strtoul(strPos, &end, 16);
+			if(strPos == end) defBad("bad hex value", end);
+			strPos = end;  goto SKIP_WIDEN; }
+		case '0': ch = 0x00; break;	case '\"': ch = 0x22; break;
+		case '\\': ch = 0x5C; break; case 'n': ch = 0x0A; break;
+		case 'r': ch = 0x0D; break;	case 't': ch = 0x09; break;
+		default: defBad("bad escape code", strPos); }}
+	
+		// append character
+		chw = ch; SKIP_WIDEN:
 		if(wideChar == true)
-			data.xnxalloc(2).word() = result;
+			data.xnxalloc_(2).word() = chw;
 		else 
-			data.xnxalloc(1).byte() = result;
+			data.xnxalloc_(1).byte() = chw;
 	}
 	
 WAS_MEMPATCH_HEX:
 	DWORD start = getNumber(arg1);
-	Void ptr = PeFile::patchChk(start, data.dataSize);
-	if(ptr == NULL)
-		fatal_error("def file: address range at line %d\n", lineNo);
-	PeFile::Relocs_Remove(PeFile::addrToRva(start), data.dataSize);
+	Void ptr = PeFILE::patchChk(start, data.dataSize);
+	if(ptr == NULL) defBad("bad patch address", arg1);
+	PeFILE::Relocs_Remove(PeFILE::addrToRva(start), data.dataSize);
 	memcpy(ptr, data.dataPtr, data.dataSize);
-	data.free();*/
+	data.free();
 }
 
 void memPatch(bool hookMode) 
 {
-	// process arguments (1&2)
-	char* strPos = strchr(arg2, '"');
-	if(strPos != NULL)
-		return memPatch2(strPos+1);
+	// check bytes mode
+	if((arg2[0] == '"')
+	||(RW(arg2) == '"L'))
+		return memPatch2(arg2);
+		
+	
+	// process arguments (1&2)	
 	bool offsetMode = false;
 	if(arg2[0] == '@') {
 		offsetMode = true;
 		arg2 += 1; }
 	DWORD addr = getNumber(arg1);
-	Void ptr = PeFile::patchChk(addr, 4);
+	Void ptr = PeFILE::patchChk(addr, 4);
 	if(ptr == NULL)
 		defBad("bad patch address", arg1);
 		
 	// handle hook mode (arg3)
-	int rva = PeFile::addrToRva(addr);
+	int rva = PeFILE::addrToRva(addr);
 	if(hookMode == true) {
 		DWORD hookAddr = ptr.dword();
-		bool relocate = PeFile::Reloc_Find(rva);
+		bool relocate = PeFILE::Reloc_Find(rva);
 		Linker::addSymbol(arg3, relocate ? Linker::Type_Relocate
 		: Linker::Type_Absolute, -1, hookAddr); }
 
@@ -275,9 +256,9 @@ void memPatch(bool hookMode)
 	} else {
 		if(offsetMode == true)
 			defBad("@mode invalid", arg2);
-		PeFile::Relocs_Remove(rva);
+		PeFILE::Relocs_Remove(rva);
 		Linker::addReloc(Linker::Type_DIR32, -1, 
-			PeFile::addrToRva(addr), symbol);
+			PeFILE::addrToRva(addr), symbol);
 	}
 }
 
@@ -350,7 +331,7 @@ callPatchCore_t callPatchCore(
 void callPatch(bool hookMode)
 {
 	DWORD addr = getNumber(arg1);
-	Void ptr = PeFile::patchChk(addr, 5);
+	Void ptr = PeFILE::patchChk(addr, 5);
 	if(ptr == NULL)
 		defBad("bad patch address", arg1);
 	auto cp = callPatchCore(ptr, true);
@@ -366,8 +347,8 @@ void callPatch(bool hookMode)
 	} SCOPE_EXIT(if(hookMode == true) free(arg2););
 	
 	// apply patch
-	int rva = PeFile::addrToRva(addr);
-	PeFile::Relocs_Remove(rva, cp.patchOffset+4);	
+	int rva = PeFILE::addrToRva(addr);
+	PeFILE::Relocs_Remove(rva, cp.patchOffset+4);	
 	DWORD symbol = getSymbol(arg2, patchPtr);
 	if(symbol != DWORD(-1)) {
 		Linker::addReloc(cp.relative ? Linker::Type_REL32 : Linker::Type_DIR32,
@@ -378,8 +359,8 @@ void callPatch(bool hookMode)
 		if( cp.relative == true ) {
 			patchPtr.dword() = callAddr-(patchAddr+4);
 		} else {
-			patchPtr.dword() = PeFile::addrToRva(callAddr);
-			PeFile::Relocs_Add(rva+cp.patchOffset);
+			patchPtr.dword() = PeFILE::addrToRva(callAddr);
+			PeFILE::Relocs_Add(rva+cp.patchOffset);
 		}
 	}
 }
@@ -393,22 +374,24 @@ void importHook(void)
 	if(isAddress(arg1) == true) {
 		do {
 			xNextAlloc(patchList, patchCount) = 
-				getNumber(arg1)-PeFile::baseAddr()+2;
+				getNumber(arg1)-PeFILE::baseAddr()+2;
 		} while(arg1 = strtok(NULL, " \t;"));
 	} else {
-		if(PeFile::nRelocs == 0)
+#if 0
+		if(PeFILE::nRelocs == 0)
 			defBad("IMPORTHOOK requires relocs", arg1);
 		char* dllName = arg1;
 		char* impName = strtok(NULL, ";");
 		if(impName == NULL)
 			defBad("IMPORTHOOK import name bad", arg1);
-		int impRva = PeFile::Import_Find(dllName, impName);
+		int impRva = PeFILE::Import_Find(dllName, impName);
 		if(impRva <= 0)
 			defBad("IMPORTHOOK import name bad", arg1);
-		int impAddr = PeFile::rvaToAddr(impRva);
-		for(DWORD reloc : Range(PeFile::relocs, PeFile::nRelocs))
-		  if((PeFile::imageData+reloc).dword() == impAddr)
+		int impAddr = PeFILE::rvaToAddr(impRva);
+		for(DWORD reloc : Range(PeFILE::relocs, PeFILE::nRelocs))
+		  if((PeFILE::imageData+reloc).dword() == impAddr)
 			xNextAlloc(patchList, patchCount) = reloc;
+#endif
 	}
 		
 	// process patch points
@@ -418,15 +401,15 @@ void importHook(void)
 		defBad("IMPORTHOOK requires symbol", arg2);
 	for(DWORD patchPos : Range(patchList, patchCount)) 
 	{
-		DWORD addr = patchPos+PeFile::baseAddr();
+		DWORD addr = patchPos+PeFILE::baseAddr();
 		int ofs = 2;
 	RETRY_PATCH:
-		Void ptr = PeFile::patchChk(addr-ofs, 6);
+		Void ptr = PeFILE::patchChk(addr-ofs, 6);
 		if(ptr == NULL) defBad("bad reloc/hook address", arg2);
 		auto cp = callPatchCore(ptr, false);	
 		if(cp.addrType != 1) { if(--ofs) goto RETRY_PATCH; 
 			defBad(xstrfmt("IMPORTHOOK failed (%X)", addr), arg2); }
-		PeFile::Relocs_Remove(patchPos, 4);
+		PeFILE::Relocs_Remove(patchPos, 4);
 		(ptr+ofs).dword() = symbOffset;
 		Linker::addReloc(cp.relative ? Linker::Type_REL32 
 			: Linker::Type_DIR32, -1, patchPos, symbol);
@@ -446,8 +429,8 @@ void codePatch(void)
 	// duplicate section
 	char* sectName = xstrfmt("%s%s", "@patch_", arg3);
 	this->keepSymbol(sectName);
-	int iSect = Linker::addSection(sect->fileName, sectName, NULL,
-		Linker::nRelocs, sect->nReloc, sect->type, 0, block.a-PeFile::imageData, 0);
+	int iSect = Linker::addSection(sect->fileName, sectName, NULL, Linker::
+		nRelocs, sect->nReloc, sect->type, 0, PeFILE::ptrToRva(block.a), 0);
 	for(int i = 0; i < sect->nReloc; i++) {
 		auto& reloc = Linker::relocs[sect->iReloc+i];
 		Linker::addReloc(reloc.type, iSect, reloc.offset, reloc.symbol);
@@ -477,16 +460,16 @@ void codeMove(void)
 	DWORD dst = (arg3[0] != '@') ? 	getNumber(arg3) 
 		: start + getNumber(arg3+1);
 	DWORD length = getNumber(arg2)-start;
-	Void srcPtr = PeFile::patchChk(start, length);
-	Void dstPtr = PeFile::patchChk(dst, length);
+	Void srcPtr = PeFILE::patchChk(start, length);
+	Void dstPtr = PeFILE::patchChk(dst, length);
 	if((srcPtr == NULL)||(dstPtr == NULL))
 		defBad("address range bad", arg1);
 		
 	// move block
 	void* tmpBuff = xMalloc(length); memcpy(tmpBuff, srcPtr, length);
 	memset(srcPtr, 0x90, length); memcpy(dstPtr, tmpBuff, length);
-	free(tmpBuff); PeFile::Relocs_Find(PeFile::addrToRva(start), length,
-		[&](DWORD& reloc) { reloc += dst-start; });
+	free(tmpBuff); PeFILE::Relocs_Move(PeFILE::
+		addrToRva(start), length, dst-start);
 	
 	// perform fixups
 	for(int i = 3; i < argcCount; i++)

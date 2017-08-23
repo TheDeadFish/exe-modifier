@@ -1,6 +1,6 @@
 #ifndef _EXE_MODIF_H_
 #define _EXE_MODIF_H_
-#include "peFile/peFile.h"
+#include "peFile/peFile_.h"
 #include "linker/linker.h"
 
 // global config

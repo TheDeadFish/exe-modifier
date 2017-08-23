@@ -4,9 +4,9 @@
 void dfLink_init()
 {
 	Linker::addSymbol("_RawEntryPoint",	Linker::Type_Relocate,
-		-1, PeFile::rvaToAddr(PeFile::entryPoint()));
+		-1, PeFILE::rvaToAddr(PeFILE::entryPoint()));
 	Linker::addSymbol("_DllMainCRTStartup@12", Linker::Type_Relocate,
-		-1, PeFile::rvaToAddr(PeFile::entryPoint()));
+		-1, PeFILE::rvaToAddr(PeFILE::entryPoint()));
 }
 
 void dfLink_main()

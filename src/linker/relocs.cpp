@@ -35,7 +35,7 @@ void relocs_fixup(void)
 		DWORD baseRva = (reloc.section == 0xFFFF) ?
 			0 : sections[reloc.section].baseRva;
 		DWORD relocRva = baseRva + reloc.offset;
-		DWORD& addr = (PeFile::imageData + relocRva).dword();
+		DWORD& addr = PeFILE::rvaToPtr(relocRva).dword();
 		auto& symb = symbols[reloc.symbol];
 		
 		const char* symbName = symb.Name ? 
@@ -47,10 +47,10 @@ void relocs_fixup(void)
 		if(reloc.type == Type_DIR32) {
 			addr += symbAddr;
 			if(symb.section != Type_Absolute)
-				PeFile::Relocs_Add( relocRva );
+				PeFILE::Relocs_Add( relocRva );
 		} else {
 			addr += symbAddr;
-			addr -= PeFile::rvaToAddr(relocRva) + 4;
+			addr -= PeFILE::rvaToAddr(relocRva) + 4;
 		}
 	}
 	

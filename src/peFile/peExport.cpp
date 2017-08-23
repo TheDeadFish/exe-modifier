@@ -1,4 +1,23 @@
 
+struct RangeChk {
+	Void basePtr; Void endPtr;
+	RangeChk() {}
+	RangeChk(Void base, Void end) {
+		basePtr = base; endPtr = end; }
+	bool check(Void ptr, int length = 4);
+	int checkStr(Void str); };
+bool RangeChk::check(Void ptr, int length) {
+return ((ptr >= basePtr)&&(ptr+length <= endPtr)); }
+int RangeChk::checkStr(Void str) {
+	if(str < basePtr) return -1;
+	for(int i = 0;; i++) {
+		if(str+i >= endPtr) return -1;
+	if(str[i] == 0) return i+1; } 
+}
+
+inline char* pestrdup(int rva) { return 
+	xstrdup((char*)rvaToPtr(rva)); }
+
 struct ExportFunc
 {
 	char* frwdName;
@@ -27,15 +46,15 @@ struct ExportDir
 
 const char* Exports_Load(void)
 {
-	if(dataDir[IDE_EXPORT].Size == 0)
+	if(peFile.dataDir[peFile.IDE_EXPORT].size == 0)
 		return NULL;
-		
+
 	// check export directory
-	int expRva = dataDir[IDE_EXPORT].VirtualAddress;
-	int expSize = dataDir[IDE_EXPORT].Size;
-	PIMAGE_EXPORT_DIRECTORY expBase = rvaToPtr(expRva);
+	int expRva = peFile.dataDir[peFile.IDE_EXPORT].rva;
+	int expSize = peFile.dataDir[peFile.IDE_EXPORT].size;
+	PIMAGE_EXPORT_DIRECTORY expBase = peFile.rvaToPtr(expRva, expSize);
 	RangeChk expChk(expBase, Void(expBase)+expSize);
-	if((!sectChk.check(expBase, expSize))
+	if(!expBase
 	||(!expChk.check(expBase, sizeof(IMAGE_EXPORT_DIRECTORY)))
 	||(expChk.checkStr(rvaToPtr(expBase->Name)) < 0))
 		return "Exports_Load: bad directory";

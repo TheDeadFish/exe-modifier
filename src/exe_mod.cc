@@ -135,16 +135,16 @@ int exe_mod(int argc, char* argv[])
 	}
 
 	// load pe file
-	const char* result = PeFile::load(argv[1]);
+	const char* result = PeFILE::load(argv[1]);
 	if(result != NULL) {
 		printf("bin_linker: failed to load pe file: %s\n", result);
 		return 1; }
-	DWORD nOldRelocs = PeFile::nRelocs;
+	/*DWORD nOldRelocs = PeFILE::nRelocs;
 	DWORD* oldRelocs = NULL;
 	if((relocCheck == true)&&(nOldRelocs != 0)) {
 		oldRelocs = xMalloc(nOldRelocs);
-		memcpyX(oldRelocs, PeFile::relocs, nOldRelocs); }
-	if(guiMode)	PeFile::subsysGUI();
+		memcpyX(oldRelocs, PeFILE::relocs, nOldRelocs); } */
+	if(guiMode)	PeFILE::subsysGUI();
 
 	// load object files
 	dfLink_init();
@@ -161,21 +161,26 @@ int exe_mod(int argc, char* argv[])
 	Linker::imports_parse();
 
 	// allocate sections
-	PeFile::PeBlock* blocks = xMalloc(Linker::nSections);
+	PeBlock* blocks = xCalloc(Linker::nSections);
 	int blockCount = 0;
 	for(int i = 0; i < Linker::nSections; i++) {
 		if( Linker::sections[i].type >= 4 ) continue;
-		blocks[blockCount].type = Linker::sections[i].type;
+		
+		static const byte types[] = {
+			PeSecTyp::Data, PeSecTyp::Bss, 
+			PeSecTyp::RData, PeSecTyp::Text };
+		blocks[blockCount].type = types[Linker::sections[i].type];
+		
 		blocks[blockCount].align = Linker::sections[i].align;
 		blocks[blockCount].length = Linker::sections[i].length;
-		blocks[blockCount++].userData = i; }
-	PeFile::allocBlocks(blocks, blockCount);
+		blocks[blockCount++].lnSect = i; }
+	PeFILE::allocBlocks(blocks, blockCount);
 	
 	// initialize sections
 	for(int i = 0; i < blockCount; i++) {
-		auto& sect = Linker::sections[blocks[i].userData];
+		auto& sect = Linker::sections[blocks[i].lnSect];
 		sect.baseRva = blocks[i].baseRva;
-		Void basePtr = PeFile::imageData+sect.baseRva;
+		Void basePtr = PeFILE::rvaToPtr(sect.baseRva);
 		memcpy(basePtr, sect.rawData, sect.length);
 		free(sect.rawData); sect.rawData = basePtr; }
 	Linker::imports_resolve();
@@ -184,8 +189,8 @@ int exe_mod(int argc, char* argv[])
 	// write output file
 	int entryPoint = dfLink_entryPoint();
 	if(entryPoint >= 0)
-		PeFile::entryPoint() = Linker::symbolRva(entryPoint);
-	result = PeFile::save(argv[2]);
+		PeFILE::entryPoint() = Linker::symbolRva(entryPoint);
+	result = PeFILE::save(argv[2]);
 	if(result != NULL) {
 		printf("bin_linker: failed to save pe file: %s\n", result);
 		return 1; }
@@ -195,13 +200,13 @@ int exe_mod(int argc, char* argv[])
 	} ei(!BindImage(argv[2], NULL, NULL)) {
 		fatal_error("bin_linker: binding failed\n"); return 1; }
 		
-	// peform checks
+	/* peform checks
 	if(relocCheck == true) 
 	{
-		result = PeFile::load(argv[2]);
+		result = PeFILE::load(argv[2]);
 		if(result != NULL) {
 			printf("bin_linker: failed to reload pe file: %s\n", result);
 		return 1; }
-		PeFile::Relocs_Report(oldRelocs, nOldRelocs);
-	}
+		PeFILE::Relocs_Report(oldRelocs, nOldRelocs);
+	}*/
 }
