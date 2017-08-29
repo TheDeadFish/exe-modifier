@@ -257,7 +257,7 @@ void memPatch(bool hookMode)
 		if(offsetMode == true)
 			defBad("@mode invalid", arg2);
 		PeFILE::Relocs_Remove(rva);
-		Linker::addReloc(Linker::Type_DIR32, -1, 
+		Linker::addReloc(Linker::Type_DIR32, 
 			PeFILE::addrToRva(addr), symbol);
 	}
 }
@@ -351,8 +351,8 @@ void callPatch(bool hookMode)
 	PeFILE::Relocs_Remove(rva, cp.patchOffset+4);	
 	DWORD symbol = getSymbol(arg2, patchPtr);
 	if(symbol != DWORD(-1)) {
-		Linker::addReloc(cp.relative ? Linker::Type_REL32 : Linker::Type_DIR32,
-			-1, rva+cp.patchOffset, symbol);
+		Linker::addReloc(cp.relative ? Linker::Type_REL32 : 
+			Linker::Type_DIR32,	rva+cp.patchOffset, symbol);
 	} else {
 		int patchAddr = addr+cp.patchOffset;
 		int callAddr = getNumber(arg2);
@@ -412,7 +412,7 @@ void importHook(void)
 		PeFILE::Relocs_Remove(patchPos, 4);
 		(ptr+ofs).dword() = symbOffset;
 		Linker::addReloc(cp.relative ? Linker::Type_REL32 
-			: Linker::Type_DIR32, -1, patchPos, symbol);
+			: Linker::Type_DIR32, patchPos, symbol);
 	}
 }
 
@@ -426,14 +426,11 @@ void codePatch(void)
 		defBad("CODEPATCH patch too large", arg3);
 	memcpy(block.a, sect->rawData, sect->length);
 
-	// duplicate section
-	char* sectName = xstrfmt("%s%s", "@patch_", arg3);
-	this->keepSymbol(sectName);
-	int iSect = Linker::addSection(sect->fileName, sectName, NULL, Linker::
-		nRelocs, sect->nReloc, sect->type, 0, PeFILE::ptrToRva(block.a), 0);
-	for(int i = 0; i < sect->nReloc; i++) {
-		auto& reloc = Linker::relocs[sect->iReloc+i];
-		Linker::addReloc(reloc.type, iSect, reloc.offset, reloc.symbol);
+	// duplicate relocs
+	u32 blockRva = PeFILE::ptrToRva(block.a);
+	for(auto& reloc : Range(sect->relocs, sect->nReloc)) {
+		Linker::addReloc(reloc.type, reloc.
+			offset+blockRva, reloc.symbol);
 	}
 }
 

@@ -16,8 +16,7 @@ void gc_sections(void)
 	
 	// mark -1 refernced sections
 	for(auto& reloc : Range(relocs, nRelocs))
-	  if((reloc.section == 0xFFFF)
-	  &&(int(symbols[reloc.symbol].section) >= 0))
+	  if(int(symbols[reloc.symbol].section) >= 0)
 		 sectMask[symbols[reloc.symbol].section] = 1;
 	
 	// mark referenced sections
@@ -28,10 +27,9 @@ RECHECK_MASK:
 	  &&(int(sections[i].type) >= 0))
 	{
 		sectMask[i] = 2;
-		int eReloc = sections[i].iReloc +
-			sections[i].nReloc;
-		for(int j = sections[i].iReloc; j < eReloc; j++) {
-			auto& symbol = symbols[relocs[j].symbol];
+		for(auto& reloc : Range(sections[i]
+		  .relocs, sections[i].nReloc)) {
+			auto& symbol = symbols[reloc.symbol];
 			if(int(symbol.section) < 0)
 				continue;
 			if((sectMask[symbol.section] == 0)

@@ -3,22 +3,44 @@
 
 namespace Linker {
 
+// reloc interace
+enum {
+	Type_DIR32 = 0,
+	Type_REL32 = 1, 
+	Type_DIR32NB = 2};
+struct Reloc {
+	WORD type;
+	DWORD offset;
+	DWORD symbol;
+	void fixup(struct Section* sect);
+
+
+	};
+extern Reloc* relocs;
+extern DWORD nRelocs;
+void addReloc(WORD type, DWORD offset, DWORD symbol);
+void relocs_fixup(void);
+
 // section interface	
 struct Section {
 	const char* fileName;
 	char* name; Void rawData;
-	DWORD iReloc, nReloc;
+	Reloc* relocs; DWORD nReloc;
 	WORD type; WORD align;
 	DWORD baseRva, length;
-
-	Void endPtr() {
-		return rawData+length; }
+	
+	void addReloc(WORD type, DWORD 
+		offset, DWORD symbol);
+	
+	
+	Void endPtr() { return rawData+length; }
+	
 };
 extern Section* sections;
 extern DWORD nSections;
 DWORD addSection(const char* fileName, const char* Name,
-	void* rawData, DWORD iReloc, DWORD nReloc,
-	WORD type, WORD align, DWORD baseRva, DWORD length);
+	void* rawData, WORD type, WORD align, 
+	DWORD baseRva, DWORD length);
 void destroy_section(Section& sect);
 Section* findSection(const char* name);
 
@@ -44,21 +66,6 @@ int addSymbol(const char* name, DWORD section, DWORD weakSym, DWORD value);
 int addImport(const char* Name, const char* dllName, const char* importName);
 static inline bool isUndefSymb(int symb) { return (symb < 0)
 	|| (symbols[symb].section == Type_Undefined); }
-
-// reloc interace
-enum {
-	Type_DIR32 = 0,
-	Type_REL32 = 1, 
-	Type_DIR32NB = 2};
-struct Reloc {
-	WORD type;
-	WORD section;
-	DWORD offset;
-	DWORD symbol; };
-extern Reloc* relocs;
-extern DWORD nRelocs;
-void addReloc(WORD type, WORD section, DWORD offset, DWORD symbol);
-void relocs_fixup(void);
 
 // object functions
 void library_load(const char* fileName);

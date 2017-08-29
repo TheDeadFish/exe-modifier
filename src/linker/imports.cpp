@@ -49,8 +49,7 @@ void imports_parse(void)
 		||(idata5->nReloc != 1)) {
 	ERROR_IDATA5: fatal_error(
 			"imports_parse: .idata$5 bad, %s\n", iatsym.Name); }
-		int idata5_reloc = idata5->iReloc;
-		int idata5_symbol = relocs[idata5_reloc].symbol;
+		int idata5_symbol = idata5->relocs->symbol;
 		int idata6_section = symbols[idata5_symbol].section;
 		if(idata6_section == (WORD)-1)
 			goto ERROR_IDATA5;
@@ -69,8 +68,7 @@ void imports_parse(void)
 		||(idata7->nReloc != 1)) {
 	ERROR_IDATA7: fatal_error(
 			"imports_parse: .idata$7 bad, %s\n", iatsym.Name); }
-		int idata7_reloc = idata7->iReloc;
-		int idata7_symbol = relocs[idata7_reloc].symbol;
+		int idata7_symbol = idata7->relocs->symbol;
 		int idata2_section = symbols[idata7_symbol].section;
 		if(idata2_section == (WORD)-1)
 			goto ERROR_IDATA7;
@@ -82,8 +80,7 @@ void imports_parse(void)
 		||(idata2->nReloc != 3)) {
 	ERROR_IDATA2: fatal_error(
 			"imports_parse: .idata$2 bad, %s\n", iatsym.Name); }
-		int idata2_reloc = idata2->iReloc;
-		int idata2_symbol = relocs[idata2_reloc+1].symbol;
+		int idata2_symbol = idata2->relocs[1].symbol;
 		int idata7b_section = symbols[idata2_symbol].section;
 		if(idata7b_section == (WORD)-1)
 			goto ERROR_IDATA2;
@@ -100,7 +97,7 @@ void imports_parse(void)
 		int thunkSect = -1;
 		for(int i = idata6_section; --i >= 0;)
 		if(!strcmp(sections[i].name, ".text")) {
-			DWORD& relocSymb = relocs[sections[i].iReloc].symbol;
+			DWORD& relocSymb = sections[i].relocs->symbol;
 			if((sections[i].nReloc == 1)
 			&&( symbols[relocSymb].section == iatsym.section )) {
 				relocSymb = &iatsym-symbols; 

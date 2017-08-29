@@ -287,7 +287,7 @@ char* DefFileAsmPatch::encodeFixup(char* curPos,
 		  error("invalid fixup for undefined extern symbol: ", out.symbol[index]);
 		int symb = Linker::addSymbol(out.symbol[index]+1, Linker::Type_Undefined, 0, 0);
 		Linker::addReloc(out.mode[index] == MODE_REL32 ? Linker::Type_REL32 
-			: Linker::Type_DIR32, -1, PeFILE::ptrToRva(curPos), symb);
+			: Linker::Type_DIR32, PeFILE::ptrToRva(curPos), symb);
 		*(u32*)curPos = 0; return curPos+4;
 	} else {
 		if(out.mode[index] == MODE_DIR8) { *(u8*)curPos = offset; return curPos+1; }

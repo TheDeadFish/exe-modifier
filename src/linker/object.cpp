@@ -37,11 +37,11 @@ void object_load(const char* fileName,
 	fileName = xstrdup(fileName);
 	Void objLimit = objFile + objSize;
 	IMAGE_FILE_HEADER* objHeadr = objFile;
-	IMAGE_SECTION_HEADER* sections = (Void)(objHeadr+1);	
+	IMAGE_SECTION_HEADER* objSects = (Void)(objHeadr+1);	
 	if(objLimit < (objHeadr+1))
 		file_corrupt("object", fileName);
 	DWORD nSects = objHeadr->NumberOfSections;
-	if(objLimit < (sections+nSects))
+	if(objLimit < (objSects+nSects))
 		file_corrupt("object", fileName);
 	DWORD nSymbols = objHeadr->NumberOfSymbols;
 	ObjSymbol* objSym = objFile + objHeadr->PointerToSymbolTable;
@@ -137,29 +137,28 @@ void object_load(const char* fileName,
 		  if(strScmp(Name, sectList[i]) != NULL) {
 			type = i; break; }
 		if(type < 0) {
-			addSection(fileName, Name, NULL, 0, 0, type, 0, 0, 0);
+			addSection(fileName, Name, 0, type, 0, 0, 0);
 			continue; }
 				
 		// register section
-		if( sections[i].VirtualAddress != 0 )
+		if( objSects[i].VirtualAddress != 0 )
 			file_bad("object", fileName);
-		DWORD sectSize = sections[i].SizeOfRawData;
+		DWORD sectSize = objSects[i].SizeOfRawData;
 		if( sectSize == 0 ) type = -1;
 		Void sectData = NULL;
-		if( sections[i].PointerToRawData != 0 )	{
-			sectData = objFile + sections[i].PointerToRawData;
+		if( objSects[i].PointerToRawData != 0 )	{
+			sectData = objFile + objSects[i].PointerToRawData;
 			if( (sectData + sectSize) > objLimit )
 				file_corrupt("object", fileName); 
 		}
-		int align = (sections[i].Characteristics>>20)&15;
+		int align = (objSects[i].Characteristics>>20)&15;
 		if(align != 0) align = 1 << (align-1);
-		DWORD sectIndex = addSection(fileName, Name, sectData,
-			Linker::nRelocs, sections[i].NumberOfRelocations,
-			type, align, 0, sectSize);
+		DWORD sectIndex = addSection(fileName, Name, 
+			sectData, type, align, 0, sectSize);
 		
 		// read relocs
-		ObjRelocs* relocs = objFile + sections[i].PointerToRelocations;
-		DWORD nRelocs = sections[i].NumberOfRelocations;
+		ObjRelocs* relocs = objFile + objSects[i].PointerToRelocations;
+		DWORD nRelocs = objSects[i].NumberOfRelocations;
 		if((relocs + nRelocs) > objLimit)
 			file_corrupt("object", fileName);
 			
@@ -181,8 +180,8 @@ void object_load(const char* fileName,
 			if((reloc.symbol >= nSymbols)
 			||(int(symMapp[reloc.symbol]) < 0))
 				file_corrupt("object", fileName);
-			addReloc(type, sectIndex, reloc.offset,
-				symMapp[reloc.symbol]);
+			sections[sectIndex].addReloc(type, 
+				reloc.offset, symMapp[reloc.symbol]);
 		}
 	}
 }

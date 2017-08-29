@@ -25,17 +25,16 @@ const char* nullchk(const char* str, const char* limit)
 }
 
 DWORD addSection(const char* fileName, const char* Name,
-	void* rawData, DWORD iReloc, DWORD nReloc, 
-	WORD type, WORD align, DWORD baseRva, DWORD length)
+	void* rawData, WORD type, WORD align,
+		DWORD baseRva, DWORD length)
 {
 	auto& sect = xNextAlloc(sections, nSections);
 	sect.fileName = fileName;
 	sect.name = xstrdup(Name);
-	sect.rawData = xmalloc(length);
-	memset(sect.rawData, 0, length);
+	sect.rawData = xcalloc(length);
 	if(rawData != NULL)
 		memcpy(sect.rawData, rawData, length);
-	sect.iReloc = iReloc; sect.nReloc = nReloc;
+	sect.relocs = 0; sect.nReloc = 0;
 	sect.type = type; sect.align = align;
 	sect.baseRva = baseRva; sect.length = length; 
 	return nSections-1;
@@ -43,10 +42,9 @@ DWORD addSection(const char* fileName, const char* Name,
 
 void destroy_section(Section& section)
 {
-	for(int i = 0; i < section.nReloc; i++)
-		relocs[section.iReloc+i].type = -1;
-	section.name[0] = '\0';
+	free_ref(section.relocs);
 	free_ref(section.rawData);
+	section.name[0] = '\0';
 	section.type = -1;
 	section.length = 0;
 	section.nReloc = 0;	
