@@ -184,6 +184,7 @@ int exe_mod(int argc, char* argv[])
 		memcpy(basePtr, sect.rawData, sect.length);
 		free(sect.rawData); sect.rawData = basePtr; }
 	Linker::imports_resolve();
+	Linker::exports_resolve();
 	Linker::relocs_fixup();
 
 	// write output file

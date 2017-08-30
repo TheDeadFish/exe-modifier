@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "peImport.h"
+#include "peExport.h"
 
 static inline
 void* xarray_insert(void* xa, void* ins, void* end, size_t sz) {
@@ -58,6 +59,14 @@ Void FreeLst::mark(u32 rva, u32 len, u32 align, bool doMark)
 	FreeLst2_t::mark(this, sizeof(FreeLst2_t), 
 		rva, rva+len, align, sect-peFile->sects);
 	return sect->data + rva;
+}
+
+char* FreeLst::markStrDup(u32 rva)
+{
+	auto str = peFile->chkStr2(rva);
+	if(!str) return (char*)str.data;
+	this->mark(rva, str.len, 1);
+	return xstrdup(str.data);
 }
 
 struct FreeSect
@@ -182,6 +191,7 @@ bool FreeSect::resolveBlocks(xarray<PeBlock> blocks)
 			sects[block.peSect-1].iSect];
 		block.data = sect.data+block.baseRva;
 		block.baseRva += sect.baseRva;
+		memset(block.data, 0, block.length);
 	}
 	
 	return true;
@@ -223,16 +233,22 @@ int PeBlock::cmpFn(const PeBlock& a, const PeBlock& b)
 }
 
 void allocBlocks(xarray<PeBlock> blocks, PeFile& 
-	peFile, PeImport* peImp, FreeLst* freeLst)
+	peFile, PeImport* peImp, PeExport* peExp, FreeLst* freeLst)
 {
 	FreeSect freeSect(peFile);
+	
+	// rebuild exports	
+	xArray<PeBlock> expBlock;
+	if(peExp && peExp->mustRebuild) {
+		expBlock.init(peExp->getBlocks());
+		freeSect.add(peExp->freeLst);
+	}
 	
 	// rebuild imports
 	xArray<PeBlock> impBlock;
 	if(peImp && peImp->mustRebuild()) {
 		impBlock.init(peImp->getBlocks());
 		freeSect.add(peImp->freeLst);
-		freeSect.allocBlocks(impBlock);
 	}
 	
 	// sort the blocks
@@ -244,12 +260,15 @@ void allocBlocks(xarray<PeBlock> blocks, PeFile&
 	// perform the allocations
 	freeSect.finalize();
 	freeSect.allocBlocks({blocks.data, rdatPos});
+	freeSect.allocBlocks(expBlock);
 	freeSect.allocBlocks(impBlock);
 	freeSect.allocBlocks({rdatPos, blocks.end()});
 	
 	// resolve sections
 	freeSect.allocSects();
 	freeSect.resolveBlocks(blocks);
+	freeSect.resolveBlocks(expBlock);
 	freeSect.resolveBlocks(impBlock);
+	peExp->build(expBlock);
 	peImp->build(impBlock);
 }

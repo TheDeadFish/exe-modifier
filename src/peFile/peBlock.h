@@ -15,7 +15,7 @@ struct FreeLst : xArray<FreeLst2_t>
 	void init(PeFile* pe) { peFile = pe; }
 	Void mark(u32 rva, u32 len, u32 align);
 	Void mark(u32 rva, u32 len, u32 align, bool doMark);
-	xarray<cch> markStr(PeFile& peFile, void* str, u32 align);
+	char* markStrDup(u32 rva);
 };
 
 struct PeBlock {
@@ -27,9 +27,9 @@ struct PeBlock {
 		const PeBlock& a, const PeBlock& b);
 };
 
-struct PeImport;
+struct PeImport; struct PeExport;
 void allocBlocks(xarray<PeBlock> blocks, PeFile& 
-	peFile, PeImport* peImp, FreeLst* freeLst);
+	peFile, PeImport* peImp, PeExport* peExp, FreeLst* freeLst);
 
 
 #endif

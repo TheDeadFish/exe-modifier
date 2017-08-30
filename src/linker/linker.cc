@@ -7,6 +7,7 @@ namespace Linker {
 #include "object.cpp"
 #include "relocs.cpp"
 #include "imports.cpp"
+#include "exports.cpp"
 #include "gc-sections.cpp"
 
 Section* sections;

@@ -503,6 +503,39 @@ void asmPatch(bool limit)
 		getNumber(arg1), arg2+1);
 }
 
+void exportDef(void)
+{
+	// parse export name
+	char* name = strtok(arg1, ";: "); 
+	char* ord = strtok(NULL, ";: ");
+	if(is_one_of(*name, '#', '@')) 
+		ord = release(name)+1;
+	u32 iOrd = ord ? getNumber(is_one_of(
+		*ord, '#', '@') ? ord+1 : ord) : 0;
+		
+	// lookup export
+	auto exp = PeFILE::peExp.find(name, iOrd); if(exp.err) {
+		if(exp.err > 0)	defBad("EXPORTDEF: name ordinal missmatch", arg1);
+		defBad("EXPORTDEF: mistake catcher; existing export specified "
+			"by ordinal when name exists", arg1); }
+	if(!exp) { exp.slot = &PeFILE::peExp.add(name, iOrd); }
+	
+	// handle immidiate, forwarder
+	if(*arg2 == '"') { arg2 = strtok(arg2, "\"");
+		exp->setFrwd(arg2); return; }
+	if(isAddress(arg2)) { exp->setRva(PeFILE::
+		addrToRva(getNumber(arg2))); return; }
+		
+	// handle symbol
+	DWORD symbOffset;
+	DWORD symbol = getSymbol(arg2, &symbOffset);
+	Linker::addExport(name, iOrd, symbol, symbOffset);
+	if(exp->frwd) { free_ref(exp->frwd.data); } else 
+	{ xstr name(symbcat(Linker::symbols[symbol].Name, "_org"));
+		Linker::addSymbol(name, Linker::Type_Relocate, -1,
+			PeFILE::rvaToAddr(exp->rva)); }
+}
+
 void processLine(void)
 {
 	if(this->check("KEEP", 1))
@@ -537,6 +570,8 @@ void processLine(void)
 		this->asmPatch(false);
 	ei(this->check("ASMPATCH", 3))
 		this->asmPatch(true);
+	ei(this->check("EXPORTDEF", 2))
+		exportDef();
 	else
 		defBad("bad command", line);
 }

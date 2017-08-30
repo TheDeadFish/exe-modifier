@@ -79,5 +79,10 @@ void imports_resolve(void);
 const char* nullchk(const char* str, const char* limit);
 void gc_sections(void);
 
+// exports interface
+void addExport(char* name, uint ord, 
+	DWORD symbol, DWORD offset);
+void exports_resolve();
+
 }
 #endif

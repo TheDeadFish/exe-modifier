@@ -4,11 +4,13 @@
 #include "peFile.h"
 #include "peBlock.h"
 #include "peImport.h"
+#include "peExport.h"
 
 namespace PeFILE {
 
 	extern PeFile peFile;
 	extern PeImport peImp;
+	extern PeExport peExp;
 	
 	
 	

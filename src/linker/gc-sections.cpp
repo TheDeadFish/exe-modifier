@@ -18,6 +18,9 @@ void gc_sections(void)
 	for(auto& reloc : Range(relocs, nRelocs))
 	  if(int(symbols[reloc.symbol].section) >= 0)
 		 sectMask[symbols[reloc.symbol].section] = 1;
+	for(auto& slot : exports)
+	  if(int(symbols[slot.symbol].section) >= 0)
+		sectMask[symbols[slot.symbol].section] = 1;
 	
 	// mark referenced sections
 RECHECK_MASK:
