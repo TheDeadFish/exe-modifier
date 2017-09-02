@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "peExport.h"
-
+#include <time.h>
 
 int PeExport::load(PeFile& peFile)
 {
@@ -190,11 +190,31 @@ PeExport::ExportSlot& PeExport::add(cch* name, uint ord)
 	slot.ord = ord; return slot;
 }
 
+void PeExport::setRva(ExportSlot& slot, DWORD rva)
+{
+	mustRebuild = true;
+	if(slot.frwd || slot.rva) {
+		TimeDateStamp = time(0); }
+	free_ref(slot.frwd.data);
+	slot.rva = rva;
+}
+
+void PeExport::setFrwd(ExportSlot& slot, cch* frwd)
+{
+	mustRebuild = true;
+	if(slot.frwd || slot.rva) {
+		TimeDateStamp = time(0); } 
+	slot.rva = 0; 
+	xstrdupr(slot.frwd.data, frwd);
+}
+
+
 void PeExport::setRva(cch* name, DWORD rva)
 {
 	auto* slot = find(name);
 	assert(slot && (slot->ord > 0));
 	DWORD* ptr = peFile().rvaToPtr(funcTabRva 
 		+ (slot->ord - OrdinalBase)*4, 4);
-	assert(ptr != NULL); *ptr = rva;
+	assert(ptr != NULL); if(*ptr)
+	TimeDateStamp = time(0); *ptr = rva;
 }

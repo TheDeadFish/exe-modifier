@@ -11,11 +11,7 @@ struct PeExport
 		
 	struct ExportSlot { xstr name, frwd;
 		uint ord; uint rva; static int sortFn(
-		const ExportSlot& a, const ExportSlot& b); 
-		
-		void setRva(uint rva) { this->rva = rva; free_ref(frwd.data); }
-		void setFrwd(cch* frwd) { xstrdupr(this->frwd.data, frwd); }
-	};
+		const ExportSlot& a, const ExportSlot& b); };
 	xArray<ExportSlot> exports; FreeLst freeLst;
 	PeFile& peFile() { return *freeLst.peFile; }
 	u32 ptrSize() { return peFile().PE64 ? 8 : 4; }
@@ -31,12 +27,7 @@ struct PeExport
 	
 	
 	void setRva(ExportSlot& slot, DWORD rva);
-	
-	
-	
-	
-	
-	
+	void setFrwd(ExportSlot& slot, cch* frwd);
 	void setRva(cch* name, DWORD rva);
 	
 	

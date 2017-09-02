@@ -511,17 +511,17 @@ void exportDef(bool hasArg2)
 	if(!exp) { exp.slot = &PeFILE::peExp.add(name, iOrd); }
 	
 	// handle immidiate, forwarder
-	if(hasArg2){ if(*arg2 == '"') { arg2 = strtok(
-		arg2, "\""); exp->setFrwd(arg2); return; }
-	if(isAddress(arg2)) { exp->setRva(PeFILE::
-		addrToRva(getNumber(arg2))); return; }}
+	if(hasArg2){ if(*arg2 == '"') { PeFILE::peExp
+		.setFrwd(*exp, strtok(arg2, "\"")); return; }
+	if(isAddress(arg2)) { PeFILE::peExp.setRva(*exp, 
+		PeFILE::addrToRva(getNumber(arg2))); return; }}
 		
 	// handle symbol
 	DWORD symbOffset; DWORD symbol = getSymbol(
 		hasArg2 ? arg2 : name, &symbOffset);
-	DWORD oldRva = exp->rva; if(exp->frwd) { 
-		free_ref(exp->frwd.data); oldRva = 0; }
-	Linker::addExport(name, iOrd, symbol, symbOffset, oldRva);
+	if(exp->frwd) PeFILE::peExp.setFrwd(*exp, 0);
+	Linker::addExport(name, iOrd, 
+		symbol, symbOffset, exp->rva);
 }
 
 void processLine(void)
