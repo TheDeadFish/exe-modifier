@@ -110,4 +110,15 @@ int symbolRva(int symbol)
 			symb.Name ? symb.Name :"##NO NAME##" );
 	return PeFILE::addrToRva(symb.getAddr());
 }
+
+char* symbcat(char* symb, const char* str)
+{
+	int len = strlen(symb);
+	char* result = xmalloc(strlen(str)+len+1);
+	char* end = strrchr(symb, '@');
+	if(end == NULL) end = symb+len;
+	sprintf(result, "%.*s%s%s",  end-symb, symb, str, end);
+	return result;
+}
+
 }

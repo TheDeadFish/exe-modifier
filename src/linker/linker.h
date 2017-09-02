@@ -66,6 +66,7 @@ int addSymbol(const char* name, DWORD section, DWORD weakSym, DWORD value);
 int addImport(const char* Name, const char* dllName, const char* importName);
 static inline bool isUndefSymb(int symb) { return (symb < 0)
 	|| (symbols[symb].section == Type_Undefined); }
+char* symbcat(char* symb, const char* str);
 
 // object functions
 void library_load(const char* fileName);
@@ -81,7 +82,8 @@ void gc_sections(void);
 
 // exports interface
 void addExport(char* name, uint ord, 
-	DWORD symbol, DWORD offset);
+	DWORD symbol, DWORD offset, DWORD oldRva);
+void exports_symbfix();
 void exports_resolve();
 
 }

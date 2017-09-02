@@ -157,6 +157,7 @@ int exe_mod(int argc, char* argv[])
 	dfLink_main();
 	for(int i = 0; i < libIndex; i++)
 		Linker::library_load(library_list[i]);
+	Linker::exports_symbfix();
 	Linker::gc_sections();
 	Linker::imports_parse();
 

@@ -58,16 +58,6 @@ SHITSTATIC char* defFileGetNumPos(char* str)
 
 #include "asmpatch\asmPatch.cpp"
 
-char* symbcat(char* symb, const char* str)
-{
-	int len = strlen(symb);
-	char* result = xmalloc(strlen(str)+len+1);
-	char* end = strrchr(symb, '@');
-	if(end == NULL) end = symb+len;
-	sprintf(result, "%.*s%s%s",  end-symb, symb, str, end);
-	return result;
-}
-
 struct ParseDefLine
 {
 	cParse cp; char* line; int argcCount;
@@ -343,7 +333,7 @@ void callPatch(bool hookMode)
 		if(cp.addrType != 2) defBad("CALLHOOK must be relative", arg1);
 		DWORD oldCall = patchPtr.dword()+addr+cp.patchOffset+4;
 		Linker::addSymbol(arg2, Linker::Type_Relocate, -1, oldCall);
-		arg2 = symbcat(arg2, "_hook");
+		arg2 = Linker::symbcat(arg2, "_hook");
 	} SCOPE_EXIT(if(hookMode == true) free(arg2););
 	
 	// apply patch
@@ -503,7 +493,7 @@ void asmPatch(bool limit)
 		getNumber(arg1), arg2+1);
 }
 
-void exportDef(void)
+void exportDef(bool hasArg2)
 {
 	// parse export name
 	char* name = strtok(arg1, ";: "); 
@@ -521,19 +511,17 @@ void exportDef(void)
 	if(!exp) { exp.slot = &PeFILE::peExp.add(name, iOrd); }
 	
 	// handle immidiate, forwarder
-	if(*arg2 == '"') { arg2 = strtok(arg2, "\"");
-		exp->setFrwd(arg2); return; }
+	if(hasArg2){ if(*arg2 == '"') { arg2 = strtok(
+		arg2, "\""); exp->setFrwd(arg2); return; }
 	if(isAddress(arg2)) { exp->setRva(PeFILE::
-		addrToRva(getNumber(arg2))); return; }
+		addrToRva(getNumber(arg2))); return; }}
 		
 	// handle symbol
-	DWORD symbOffset;
-	DWORD symbol = getSymbol(arg2, &symbOffset);
-	Linker::addExport(name, iOrd, symbol, symbOffset);
-	if(exp->frwd) { free_ref(exp->frwd.data); } else 
-	{ xstr name(symbcat(Linker::symbols[symbol].Name, "_org"));
-		Linker::addSymbol(name, Linker::Type_Relocate, -1,
-			PeFILE::rvaToAddr(exp->rva)); }
+	DWORD symbOffset; DWORD symbol = getSymbol(
+		hasArg2 ? arg2 : name, &symbOffset);
+	DWORD oldRva = exp->rva; if(exp->frwd) { 
+		free_ref(exp->frwd.data); oldRva = 0; }
+	Linker::addExport(name, iOrd, symbol, symbOffset, oldRva);
 }
 
 void processLine(void)
@@ -570,8 +558,10 @@ void processLine(void)
 		this->asmPatch(false);
 	ei(this->check("ASMPATCH", 3))
 		this->asmPatch(true);
+	ei(this->check("EXPORTDEF", 1))
+		exportDef(false);
 	ei(this->check("EXPORTDEF", 2))
-		exportDef();
+		exportDef(true);
 	else
 		defBad("bad command", line);
 }
