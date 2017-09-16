@@ -4,46 +4,79 @@
 #include "def_file.cpp"
 
 const char progName[] = "exe modifier";
-static char** lib_path;
-static char** library_list;
-static int libraryCount;
-char** keep_list;
-int keep_count;
-bool useHeaderFree;
-char exeName[MAX_PATH];
-int exePathLen;
 
-SHITSTATIC
-void add_library(char* fileName)
+int FileOrMem::open(int extra)
 {
-	xNextAlloc(library_list, libraryCount) 
-		= xstrdup(fileName);
+	if(data) return size_;
+	auto file = loadFile(name, extra);
+	data = file.data;
+	size_ = file.size | INT_MIN;
+	return file.size;
 }
 
-SHITSTATIC 
-void find_library(char* libName)
+void FileOrMem::free(void)
 {
-	char filePath[MAX_PATH+32];
-	for(int i = 0; lib_path[i]; i++) {
-		sprintf(filePath, "%s\\lib%s.a", lib_path[i], libName+2);
-		GetFullPathNameA(filePath, MAX_PATH, filePath, NULL);
-		if(GetFileAttributesA(filePath) != INVALID_FILE_ATTRIBUTES)
-			return add_library(filePath); }
+	if(size_ & INT_MIN) free_ref(data);
+}
+
+void library_load(FileOrMem& fileRef)
+{
+	int size = fileRef.open();
+	if(size < 0) { load_error(
+		"library", fileRef.name); }
+	Linker::library_load(fileRef.name,
+		fileRef.data, size);
+	fileRef.free();
+}
+
+void object_load(FileOrMem& fileRef)
+{
+	int size = fileRef.open();
+	if(size < 0) { load_error(
+		"object", fileRef.name); }
+	Linker::object_load(fileRef.name,
+		fileRef.data, size);
+	fileRef.free();
+}
+
+void defFile_load(FileOrMem& fileRef)
+{
+	int size = fileRef.open(1);
+	if(size < 0) load_error(
+		"def file", fileRef.name);
+	PB(fileRef.data)[size] = 0; 
+	parse_def_file(fileRef.name, fileRef.data);
+	fileRef.free();
+}
+
+struct Arguments
+{
+	bool bindImage, guiMode;
+	xArray<cch*> libPaths;
+	xArray<FileOrMem> libs;
+	xArray<FileOrMem> objs;
+	xArray<FileOrMem> defs;
+	
+	Arguments() { ZINIT; }
+	
+	
+	void find_library(char* libName);
+	
+	void next(FileOrMem fileRef);
+};
+
+void Arguments::find_library(char* libName)
+{
+	for(cch* libPath : libPaths) {
+		char* name = xstrfmt("%j%:lib%s.a", libPath, libName+2);
+		if(!isNeg(getFileAttributes(name))) { libs
+			.push_back(name); return;  } free(name); }
 	fatal_error("library not found: %s", libName);
 }
 
-SHITSTATIC
-void parse_delim_list(char**& str, int& count, const char* delim)
-{
-	char* pch;
-	do {
-		pch = strtok(NULL, delim);
-		xNextAlloc(str, count) = pch;
-	} while(pch);
-}
 
 SHITSTATIC 
-void readConfig()
+void readConfig(Arguments& args)
 {
 	// load configuration
 	cstr progDir = getProgramDir(); int lineCount;
@@ -53,18 +86,26 @@ void readConfig()
 		fatalError("unable to load config file");
 
 	// parse config
-	int listCount = 0;
-	xNextAlloc(lib_path, listCount) = progDir;
+	args.libPaths.push_back(progDir); 
 	for(int i = 0; i < lineCount; i++) {
 		char* pch = strtok(cfgData[i], "=");
 		if(pch == NULL) continue;
-		if(strcmp(pch, "keep_list") == 0)
-			parse_delim_list(keep_list, keep_count, " ");
-		ei(strcmp(pch, "lib_path32") == 0)
-			parse_delim_list(lib_path, listCount, ";");
+		
+		
+		
+		if(strcmp(pch, "keep_list") == 0) {
+			while(pch = strtok(NULL, " "))
+				Linker::keepSymbol(pch);
+		}
+	
+		ei(strcmp(pch, "lib_path32") == 0) {
+			while(pch = strtok(NULL, ";"))
+				args.libPaths.push_back(pch);
+		}
+		
 		ei(strcmp(pch, "def_libs") == 0) {
 			while(pch = strtok(NULL, " "))
-				find_library(pch);
+				args.find_library(pch);
 		}
 	}
 }
@@ -100,63 +141,67 @@ void checkSum_file(char* fileName)
     CloseHandle( FileHandle );
 }
 
+
+
+void Arguments::next(FileOrMem fileRef)
+{
+	char* arg = fileRef.name;
+	if(arg[0] == '-') {
+		if(arg[1] == 'b') { bindImage = true; }
+		ei(arg[1] == 'l') { find_library(arg); }
+		ei(!strncmp(arg, "-mwindows")) guiMode = true;
+		else fatal_error("bad option '%s'\n", arg);
+	} else {
+		char* name = getName(arg);
+		char* setName = strrchr(name, ':');
+		if(setName) *setName = 0;
+
+		if(!strEicmp(arg, ".exm")) {
+			ExmFileRead(fileRef, setName,
+			MakeDelegate(this, Arguments::next));
+		}ei(!strEicmp(arg, ".def"))
+			defs.push_back(fileRef);
+		ei(!strEicmp(arg, ".a"))
+			libs.push_back(fileRef);
+		else objs.push_back(fileRef);
+		
+	}
+}
+
 int exe_mod(int argc, char* argv[])
 {
 	// display ussage
 	if( chkInvalidType(argv[1]) ) {
 		printf("exe_mod: argument <src exe/dll> invalid\n");
 		return 1; }
+	if(strstr(argv[2], ".exm")) {
+		ExmFileWrite(argc, argv); }
 	if( chkInvalidType(argv[2]) ) {
 		printf("exe_mod: argument <dest exe/dll> invalid\n");
 		return 1; }
 		
 	// parse command line
-	readConfig();
-	int libIndex = libraryCount;
-	char** object_list = NULL; int objectCount = 0;
-	char** def_list = NULL; int defFileCount = 0;
-	bool bindImage = false;
-	bool relocCheck = false;
-	bool guiMode = false;
+	Arguments args; readConfig(args);
+	int libIndex = args.libs.len;
 	for(int i = 3; i < argc; i++) {
-		if(argv[i][0] == '-') {
-			if(argv[i][1] == 'r') relocCheck = true;
-			ei(argv[i][1] == 'b') bindImage = true;
-			ei(argv[i][1] == 'l') find_library(argv[i]);
-			ei(!strncmp(argv[i], "-mwindows")) guiMode = true;
-			else fatal_error("bad option '%s'\n", argv[i]);
-		} ei(!strEicmp(argv[i], ".def")) {
-			xNextAlloc(def_list, defFileCount) = argv[i];
-		} ei(!strEicmp(argv[i], ".a")) {
-			add_library(argv[i]);
-		} else {
-			xNextAlloc(object_list, objectCount) = argv[i];
-		}
-	}
+		args.next(argv[i]); }
 
 	// load pe file
 	const char* result = PeFILE::load(argv[1]);
 	if(result != NULL) {
 		printf("bin_linker: failed to load pe file: %s\n", result);
 		return 1; }
-	/*DWORD nOldRelocs = PeFILE::nRelocs;
-	DWORD* oldRelocs = NULL;
-	if((relocCheck == true)&&(nOldRelocs != 0)) {
-		oldRelocs = xMalloc(nOldRelocs);
-		memcpyX(oldRelocs, PeFILE::relocs, nOldRelocs); } */
-	if(guiMode)	PeFILE::subsysGUI();
+	if(args.guiMode) PeFILE::subsysGUI();
 
 	// load object files
 	dfLink_init();
-	for(int i = 0; i < objectCount; i++)
-		Linker::object_load(object_list[i]);
-	for(int i = 0; i < defFileCount; i++)
-		parse_def_file(def_list[i]);
-	for(int i = libIndex; i < libraryCount; i++)
-		Linker::library_load(library_list[i]);
+	for(auto& obj : args.objs) object_load(obj);
+	for(auto& def : args.defs) defFile_load(def);
+	for(auto& lib : args.libs.right(libIndex))
+		library_load(lib);
 	dfLink_main();
-	for(int i = 0; i < libIndex; i++)
-		Linker::library_load(library_list[i]);
+	for(auto& lib : args.libs.left(libIndex))
+		library_load(lib);
 	Linker::exports_symbfix();
 	Linker::gc_sections();
 	Linker::imports_parse();
@@ -198,7 +243,7 @@ int exe_mod(int argc, char* argv[])
 		return 1; }
 	
 	// bind/checksum pe file	
-	if(bindImage == false) { checkSum_file(argv[2]);
+	if(args.bindImage == false) { checkSum_file(argv[2]);
 	} ei(!BindImage(argv[2], NULL, NULL)) {
 		fatal_error("bin_linker: binding failed\n"); return 1; }
 		

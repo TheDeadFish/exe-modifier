@@ -17,19 +17,6 @@ struct ObjRelocs
 	WORD type;
 } __attribute__((packed));
 
-void object_load(const char* fileName)
-{
-	// load object file
-	FILE* fp = xfopen(fileName, "rb");
-	if(fp == NULL)
-		load_error("object", fileName);
-	DWORD objSize = fsize(fp);
-	Void objFile = xmalloc(objSize);
-	xfread((char*)objFile, objSize, fp);
-	object_load(fileName, objFile, objSize);
-	fclose(fp); free(objFile);
-}
-
 void object_load(const char* fileName,
 	Void objFile, DWORD objSize)
 {

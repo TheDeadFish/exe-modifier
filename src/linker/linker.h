@@ -69,10 +69,8 @@ static inline bool isUndefSymb(int symb) { return (symb < 0)
 char* symbcat(char* symb, const char* str);
 
 // object functions
-void library_load(const char* fileName);
 void library_load(const char* fileName,
-	Void fileData, int fileSize);
-void object_load(const char* fileName);
+	Void fileData, DWORD fileSize);
 void object_load(const char* fileName, 
 	Void objData, DWORD objSize);
 void imports_parse(void);
@@ -85,6 +83,11 @@ void addExport(char* name, uint ord,
 	DWORD symbol, DWORD offset, DWORD oldRva);
 void exports_symbfix();
 void exports_resolve();
+
+extern xarray<char*> keep_list;
+static inline
+void keepSymbol(char* name) {
+	keep_list.push_back(name); }
 
 }
 #endif

@@ -3,11 +3,6 @@
 #include "peFile/peFile_.h"
 #include "linker/linker.h"
 
-// global config
-extern char** keep_list;
-extern int keep_count;
-extern bool useHeaderFree;
-
 // error handling
 static FATALFUNC
 void fatal_error(const char*fmt,...) {
@@ -37,5 +32,23 @@ int exe_mod(int argc, char* argv[]);
 void dfLink_init();
 void dfLink_main();
 int dfLink_entryPoint();
+
+// exmod file interface
+struct FileOrMem { char* name;
+	void* data; DWORD size_;
+	
+	FileOrMem() = default;
+	FileOrMem(char* nm) : FileOrMem(nm, 0, 0) {}
+	FileOrMem(char* a, void* b, DWORD c) :
+		name(a), data(b), size_(c) {}
+	
+	int open(int extra = 0); void free(void);
+	//DWORD size() { return size_ & INT_MAX; }
+};
+
+void ExmFileWrite(int argc, char* argv[]);
+void ExmFileRead(FileOrMem& fileRef, 
+	cch* setName, Delegate<void,FileOrMem> cb);
+
 
 #endif

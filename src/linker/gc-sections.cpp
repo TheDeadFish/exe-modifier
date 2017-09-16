@@ -4,13 +4,13 @@ void gc_sections(void)
 	// mark keep sections
 	char* sectMask = xMalloc(nSections);
 	memset(sectMask, 0, nSections);
-	for(int i = 0; keep_list[i]; i++) {
-		int symbol = findSymbol(keep_list[i]);
+	for(char* keep : keep_list) {
+		int symbol = findSymbol(keep);
 		if((symbol >= 0)
 		&&(int(symbols[symbol].section) >= 0))
 			sectMask[symbols[symbol].section] = 1;
 		for(int j = 0; j < nSections; j++) {
-		  if(strScmp(sections[j].name, keep_list[i]))
+		  if(strScmp(sections[j].name, keep))
 			sectMask[j] = 1; }
 	}
 	

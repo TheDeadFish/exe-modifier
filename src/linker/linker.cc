@@ -16,6 +16,7 @@ Symbol* symbols;
 DWORD nSymbols;
 Reloc* relocs;
 DWORD nRelocs;
+xarray<char*> keep_list;
 
 const char* nullchk(const char* str, const char* limit)
 {

@@ -108,12 +108,6 @@ DWORD getSymbol(char* str, DWORD* offset)
 		Linker::Type_Undefined, -1, 0);
 }
 
-void keepSymbol(char* name)
-{
-	keep_list[keep_count-1] = name;
-	xNextAlloc(keep_list, keep_count) = 0;
-}
-
 void freeBlock(int offset)
 {	
 	DWORD start = getNumber(arg1);
@@ -527,7 +521,7 @@ void exportDef(bool hasArg2)
 void processLine(void)
 {
 	if(this->check("KEEP", 1))
-		this->keepSymbol(this->arg1);
+		Linker::keepSymbol(this->arg1);
 	ei(this->check("FREE", 2))
 		this->freeBlock(0);
 	ei(this->check("CONSTANT", 2))
@@ -567,12 +561,13 @@ void processLine(void)
 }
 };
 
-void parse_def_file(char* def_file)
+void parse_def_file(
+	char* def_file, void* data)
 {
 	// load def file
 	ParseDefLine defLine{};
-	char* err = defLine.cp.load2(
-		def_file, cParse::FLAG_STRCOMBINE);
+	char* err = defLine.cp.load2_(
+		data, cParse::FLAG_STRCOMBINE);
 	if(err) defLine.defBad("load failed", err);
 	
 	// parse def file

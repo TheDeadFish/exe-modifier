@@ -127,14 +127,9 @@ RECHECK_EXPORTS:
 	}
 }
 
-void library_load(const char* fileName)
+void library_load(const char* fileName, 
+	Void fileData, DWORD fileSize)
 {
-	FILE* fp = xfopen(fileName, "rb");
-	if(fp == NULL) load_error("library", fileName);
-	int fileSize = fsize(fp);
-	Void fileData = xmalloc(fileSize);
-	xfread((char*)fileData, fileSize, fp);
-	fclose(fp);
 	LibraryLoad ll = {fileName, fileData,
 		fileData+fileSize}; ll.load();
 }
