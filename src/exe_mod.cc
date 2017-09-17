@@ -170,12 +170,14 @@ void Arguments::next(FileOrMem fileRef)
 
 int exe_mod(int argc, char* argv[])
 {
+	// check for exm file
+	if(getName(argv[1]).istr(".exm"))
+		ExmFileWrite(argc, argv);
+
 	// display ussage
 	if( chkInvalidType(argv[1]) ) {
 		printf("exe_mod: argument <src exe/dll> invalid\n");
 		return 1; }
-	if(strstr(argv[2], ".exm")) {
-		ExmFileWrite(argc, argv); }
 	if( chkInvalidType(argv[2]) ) {
 		printf("exe_mod: argument <dest exe/dll> invalid\n");
 		return 1; }

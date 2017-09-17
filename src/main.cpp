@@ -24,7 +24,7 @@ int dfLink_entryPoint()
 
 int main(int argc, char* argv[])
 {
-	if(argc < 4) { printf("exe_mod, DeadFish Shitware 2014\n");
+	if(argc < 3) { printf("exe_mod, DeadFish Shitware 2014\n");
 		printf(" ussage: exe_mod <src exe/dll> <dest exe/dll>\n"
 			"  [link script (.def)] [input objects (.o/.a)]\n\n");
 		return 1; 

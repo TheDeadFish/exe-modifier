@@ -39,21 +39,21 @@ private:
 void ExmFileWrite(int argc, char* argv[])
 {
 	// get the set name
-	char* setName = strrchr(argv[2], ':');
-	if(setName) *setName = 0;
+	char* setName = getName(argv[1]).rchr(':');
+	if(setName) WRI(setName, 0);
 	else setName = (char*)"";
 
 	// load existing file
 	ExmFile exmFile;
-	if(argv[2][0] == '+') {
-		auto file = loadFile(argv[2]+1);
+	if(argv[1][0] == '+') {
+		auto file = loadFile(argv[1]+1);
 		if((file)&&(!exmFile.load(file.data, file.size)))
-			fatal_error("bad emx file: %s", argv[2]+1);
+			fatal_error("bad emx file: %s", argv[1]+1);
 	}
 	
 	// read the files
 	auto& set = exmFile.addSet(setName);
-	for(int i = 3; i < argc; i++) {
+	for(int i = 2; i < argc; i++) {
 		int dataId = -1;
 		if(argv[i][0] != '-') {
 			auto data = loadFile(argv[i]);
@@ -63,8 +63,8 @@ void ExmFileWrite(int argc, char* argv[])
 	}
 	
 	// write the file
-	if(!exmFile.save(argv[2])) fatal_error(
-		"write error: %s\n", argv[2]);
+	if(!exmFile.save(argv[1])) fatal_error(
+		"write error: %s\n", argv[1]);
 	exit(0);
 }
 
