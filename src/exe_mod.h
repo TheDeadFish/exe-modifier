@@ -46,9 +46,9 @@ struct FileOrMem { char* name;
 	//DWORD size() { return size_ & INT_MAX; }
 };
 
-void ExmFileWrite(int argc, char* argv[]);
-void ExmFileRead(FileOrMem& fileRef, 
+void WINAPI ExmFileWrite(int argc, char* argv[]);
+void WINAPI ExmFileRead(FileOrMem& fileRef, 
 	cch* setName, Delegate<void,FileOrMem> cb);
-
+void WINAPI ExmFileCall(char mode, int argc, char* argv[]);
 
 #endif

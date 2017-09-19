@@ -154,7 +154,7 @@ void Arguments::next(FileOrMem fileRef)
 	} else {
 		char* name = getName(arg);
 		char* setName = strrchr(name, ':');
-		if(setName) *setName = 0;
+		if(setName) WRI(setName, 0);
 
 		if(!strEicmp(arg, ".exm")) {
 			ExmFileRead(fileRef, setName,
@@ -173,6 +173,11 @@ int exe_mod(int argc, char* argv[])
 	// check for exm file
 	if(getName(argv[1]).istr(".exm"))
 		ExmFileWrite(argc, argv);
+		
+	// check for exm call
+	{char ch = getName2(argv[1]).getr(-1);
+	if(is_one_of(ch, '@', '~')) {
+		ExmFileCall(ch, argc, argv); }}
 
 	// display ussage
 	if( chkInvalidType(argv[1]) ) {

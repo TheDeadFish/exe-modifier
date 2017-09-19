@@ -78,8 +78,15 @@ void ExmFileRead(FileOrMem& fileRef,
 		fatal_error("bad exm file: %s\n", fileRef.name);
 
 	// locate specified set
+	printf("set: %s\n", setName);
+	
+	
+	
 	if(!setName) setName = "";
 	auto* set = exm.findSet(setName);
+	
+	
+	
 	if(!set) fatal_error("exm set not found");
 	
 	// iterate over arguments
@@ -203,4 +210,118 @@ bool ExmFile::load(byte* data, int size)
 	}
 	
 	return true;
+}
+
+char* grpCat(cch* str, cch* grp)
+{
+	cch* atPos = strrchr(str, '@');
+	if(atPos == NULL) { fatal_error(
+		"'@' not present in argument: \"%s\"", str); }
+	cstr tmp = getName2(grp);
+	return xstrfmt("%v%v~%s", cstr(
+		str, atPos), tmp, tmp.end());
+}
+
+char* verCat(cch* str, cch* ver)
+{
+	cch* tiPos = strrchr(str, '~');
+	if(tiPos == NULL) { fatal_error(
+		"'~' not present in argument: \"%s\"", str); }
+	return xstrfmt("%v;%s%s", cstr(
+		str, tiPos), ver, tiPos+1);
+}
+
+void doCall(cch* cmdLine)
+{
+	STARTUPINFOA si = {}; PROCESS_INFORMATION pi;
+	createProcess(xstr(getModuleFileName(0)),
+		cmdLine, 0, 0, 0, 0, 0, 0, &si, &pi);
+	WaitForSingleObject(pi.hProcess, INFINITE);	
+	CloseHandle(pi.hProcess);
+}
+
+
+void ExmFileCall2(int argc, char* argv[])
+{
+	struct ArgInfo {
+		char* str; ExmFile exm; };
+	xarray<ArgInfo> args = {};
+	xarray<cch*> ver = {};
+
+	// read arguments
+	for(int i = 3; i < argc; i++) {
+		auto& arg = args.push_back(argv[i]);
+		if(!strEicmp(argv[i], ".exm")) 
+		{
+			// load the exm file
+			auto file = loadFile(argv[i]);
+			if(!file) load_error("exm file", argv[i]);
+			if(!arg.exm.load(file.data, file.size))
+			fatal_error("bad exm file: %s\n", argv[i]);	
+			
+			// add sets to set list
+			for(auto& set : arg.exm.setList) {
+			for(cch* sver : ver) {
+				if(!stricmp(sver, set.name)) goto FOUND_VER; }
+			ver.push_back(set.name); FOUND_VER:; }
+		}
+	}
+	
+	// clobber unamed set
+	if(ver.size > 1) for(cch*& sver : ver) {
+	if(*sver == '\0') { sver = ver.back(); 
+		ver.pop_back(); break; }}
+
+	// iterate verions
+	for(int i = 0; i < ver.len; i++) {
+		bstr cmd = "exe_mod.exe";
+		cmd.argcatf(verCat(argv[1], ver[i]));
+		cmd.argcatf(verCat(argv[2], ver[i]));
+		for(auto& arg : args) {
+			if(arg.exm.findSet(ver[i])) 
+				cmd.fmtcat(" %z:%s", arg.str, ver[i]);
+			ei(!arg.exm.setList || arg.exm.findSet(""))
+				cmd.argcat(arg.str);
+		}
+		
+		printf("%s\n", cmd);
+		
+		doCall(cmd);
+	}
+
+	exit(0);
+}
+
+void ExmFileCall(char mode, int argc, char* argv[])
+{
+	if(mode == '~') { ExmFileCall2(argc, argv); }
+	struct ArgInfo {
+		char* str; int groupId; };
+	xarray<ArgInfo> args = {};
+	xarray<char*> grp = {};
+	
+	// read arguments
+	for(int i = 3; i < argc; i++) {
+		cstr name = getName2(argv[i]);
+		int groupId = -1;
+		if(!stricmp(name.end(), ".exm")) {
+		if(!(name = cstr_split(name, ';'))) fatal_error(
+		"exm file name lacks group: \"%s\"", argv[i]);
+		while(++groupId < grp.len) { if(!name
+			.cmp(grp[groupId])) goto GRP_FOUND; }
+		grp.push_back(name.xdup()); GRP_FOUND:; }
+		args.push_back(argv[i], groupId);
+	}
+
+	// iterate groups
+	for(int i = 0; i < grp.len; i++) {
+		bstr cmd = "exe_mod.exe";
+		cmd.argcatf(grpCat(argv[1], grp[i]));
+		cmd.argcatf(grpCat(argv[2], grp[i]));
+		for(auto& arg : args) if((arg.groupId < 0)
+		||(arg.groupId == i)) cmd.argcat(arg.str);
+		doCall(cmd);
+	}
+	
+	exit(0);
 }
