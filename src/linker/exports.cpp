@@ -9,6 +9,14 @@ struct ExportSlot
 
 xarray<ExportSlot> exports;
 
+struct ExportSymb
+{
+	cch* name;
+	DWORD symbol;
+};
+
+xarray<ExportSymb> expSymb;
+
 void addExport(char* name, uint ord, 
 	DWORD symbol, DWORD offset, DWORD oldRva)
 {
@@ -51,6 +59,7 @@ void exports_symbfix()
 
 void exports_resolve()
 {
+	// resolve new exports
 	for(auto& slot : exports) {
 		auto& symb = symbols[slot.symbol];
 		if(symb.section == Type_Undefined)
@@ -58,4 +67,36 @@ void exports_resolve()
 		PeFILE::peExp.setRva(slot.name, PeFILE::
 			addrToRva(symb.getAddr()) + slot.offset);
 	}
+	
+	// update export symbols
+	for(auto& slot : expSymb) {
+		symbols[slot.symbol].value = PeFILE::
+		rvaToAddr(PeFILE::peExp.find(slot.name)->rva);
+	}
+}
+
+void exports_addSymb(int symb, char* importName)
+{
+	expSymb.push_back(xstrdup(importName), symb);
+}
+
+int exports_getExpSym(
+	char*& dllName, char*& importName)
+{
+	// lookup export name
+	if(stricmp(PeFILE::peExp.dllName, dllName)) return -1;
+	auto* slot = PeFILE::peExp.find(importName);
+	if(!slot) { fatal_error("exported function"
+		" does not exist: %s", importName); }
+	
+	// handle export forwarding
+	if(slot->frwd) { char* dotPos = strchr(slot->frwd, '.');
+	if(!dotPos) fatal_error("bad export forwarder: %s", importName);
+	dotPos = importName; dllName = xstrdup(slot->frwd, dotPos-slot->frwd);
+	return -2; }
+	
+	// create export symbol
+	int symb = addSymbol(NULL, Type_Relocate, 0, 0);
+	exports_addSymb(symb, importName);
+	return symb;
 }

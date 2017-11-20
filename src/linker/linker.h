@@ -35,6 +35,8 @@ struct Section {
 	
 	Void endPtr() { return rawData+length; }
 	
+	
+	bool isExec() { return is_one_of(type, 3, 4); }
 };
 extern Section* sections;
 extern DWORD nSections;
@@ -83,6 +85,9 @@ void addExport(char* name, uint ord,
 	DWORD symbol, DWORD offset, DWORD oldRva);
 void exports_symbfix();
 void exports_resolve();
+void exports_addSymb(int symb, char* importName);
+int exports_getExpSym(
+	char*& dllNane, char*& importName);
 
 extern xarray<char*> keep_list;
 static inline

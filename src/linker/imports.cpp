@@ -35,6 +35,49 @@ void imports_resolve(void)
 	}
 }
 
+
+
+
+
+
+void import_fixReloc(byte* base, 
+	DWORD iatSymb, DWORD expsymb,
+	Reloc* relocs, int nRelocs)
+{
+	for(auto& reloc : Range(relocs, nRelocs)) 
+	if(reloc.symbol == iatSymb) 
+	{
+		byte* base2 = base ? base :
+		PeFILE::peFile.rvaToSect(reloc.offset, 0)->data;
+		byte* rpos = base2+reloc.offset;
+		reloc.symbol = expsymb;
+
+		// 0x25FF: jmp indirect
+		if(RW(rpos,-2) == 0x25FF) { RW(rpos,-2)
+			= 0xE990; reloc.type = Type_REL32; }
+		
+		// 0x15FF: call indirect
+		ei(RW(rpos,-2) == 0x15FF) { RW(rpos,-2)
+			= 0xE890; reloc.type = Type_REL32; }
+		
+		// 0xA1: move eax, [address]
+		ei(rpos[-1] == 0xA1) { rpos[-1] = 0xB8; }
+			
+		// 0x??8B: move ea?, [address]
+		ei((RW(rpos,-2) & 0xC7FF) == 0x58B)
+		{
+			int r = (RW(rpos,-2) >> 11);
+			RW(rpos,-2) = 0xB890 + (r << 8);
+		}
+		
+		else {
+			fatal_error("import_fixReloc: failed");
+		}
+		
+	}
+};
+
+
 void imports_parse(void)
 {
 	for(auto& iatsym : Range(symbols, nSymbols))
@@ -104,22 +147,25 @@ void imports_parse(void)
 				thunkSect = i; }
 			break; }
 		
-		// register import
-		if(int impRva = PeFILE::Import_Add(dllName, importName))
-		{
-			// redirect thunk symbols
-			if(thunkSect >= 0) {
-				for(auto& symb : Range(symbols, nSymbols))
-				  if(symb.section == thunkSect)	{
-					symb.section = Type_Relocate;
-					if(symb.value != 0)
-						fatalError("imports_parse: bad symbol");
-					symb.value = PeFILE::rvaToAddr(impRva); }
-				destroy_section(sections[thunkSect]); 
-			}
-		
-		} else {
-			makeImportSymbol(iatsym, dllName, importName);
+		// check for import from self
+		int expsymb = exports_getExpSym(dllName, importName);
+		if(expsymb < 0) { makeImportSymbol(
+			iatsym, dllName, importName); continue; }
+			
+		// redirect relocations
+		int iSymb = &iatsym-symbols;
+		import_fixReloc(0, iSymb, expsymb, relocs, nRelocs);
+		for(auto& sect : Range(sections, nSections))
+		if(sect.isExec()) {	import_fixReloc(sect.rawData,
+			iSymb, expsymb, sect.relocs, sect.nReloc); }
+			
+		// redirect thunk symbols
+		if(thunkSect >= 0) {
+			for(int iSymb : Range(0, int(nSymbols)))
+			if(symbols[iSymb].section == thunkSect) {
+				symbols[iSymb].section = Type_Relocate;
+				exports_addSymb(iSymb, importName); }
+			destroy_section(sections[thunkSect]); 
 		}
 	}
 	
