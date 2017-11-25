@@ -1,9 +1,16 @@
 #include "stdafx.h"
 #include "exe_mod.h"
-#include "miscLib\misc.cpp"
 #include "def_file.cpp"
 
 const char progName[] = "exe modifier";
+
+const ArchStr archStr32 = { "-lmisc32", "lib_path32",
+	"_RawEntryPoint", "_HookEntryPoint",
+	"_DllMainCRTStartup@12", "_DllHookCRTStartup@12" };
+const ArchStr archStr64 = { "-lmisc64", "lib_path64",
+	"RawEntryPoint", "HookEntryPoint",
+	"DllMainCRTStartup", "DllHookCRTStartup" };
+const ArchStr* archStr;
 
 int FileOrMem::open(int extra)
 {
@@ -67,6 +74,9 @@ struct Arguments
 
 void Arguments::find_library(char* libName)
 {
+	if(!strcmp(libName, "-lmisc")) {
+		libName = (char*)archStr->libMisc; }
+
 	for(cch* libPath : libPaths) {
 		char* name = xstrfmt("%j%:lib%s.a", libPath, libName+2);
 		if(!isNeg(getFileAttributes(name))) { libs
@@ -98,7 +108,7 @@ void readConfig(Arguments& args)
 				Linker::keepSymbol(pch);
 		}
 	
-		ei(strcmp(pch, "lib_path32") == 0) {
+		ei(strcmp(pch, archStr->libPath) == 0) {
 			while(pch = strtok(NULL, ";"))
 				args.libPaths.push_back(pch);
 		}
@@ -187,17 +197,18 @@ int exe_mod(int argc, char* argv[])
 		printf("exe_mod: argument <dest exe/dll> invalid\n");
 		return 1; }
 		
-	// parse command line
-	Arguments args; readConfig(args);
-	int libIndex = args.libs.len;
-	for(int i = 3; i < argc; i++) {
-		args.next(argv[i]); }
-
 	// load pe file
 	const char* result = PeFILE::load(argv[1]);
 	if(result != NULL) {
 		printf("bin_linker: failed to load pe file: %s\n", result);
 		return 1; }
+	archStr = PeFILE::peFile.PE64 ? &archStr64 : &archStr32;
+		
+	// parse command line
+	Arguments args; readConfig(args);
+	int libIndex = args.libs.len;
+	for(int i = 3; i < argc; i++) {
+		args.next(argv[i]); }
 	if(args.guiMode) PeFILE::subsysGUI();
 
 	// load object files

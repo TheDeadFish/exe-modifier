@@ -148,20 +148,28 @@ void object_load(const char* fileName,
 		DWORD nRelocs = objSects[i].NumberOfRelocations;
 		if((relocs + nRelocs) > objLimit)
 			file_corrupt("object", fileName);
-			
+		
 		for(auto& reloc : Range(relocs, nRelocs))
 		{
-			// get reloc type
 			WORD type;
-			if( reloc.type == 0x06 )
-				type = Type_DIR32;
-			ei( reloc.type == 0x07 )
-				type = Type_DIR32NB;
-			ei( reloc.type == 0x14 )
-				type = Type_REL32;
-			else {
-				FATAL_ERROR("object: unsupported reloc, %d",
+			
+			// i386 relocation types
+			if(!PeFILE::peFile.PE64) {
+			switch(reloc.type) {
+			case 0x06: type = Type_DIR32; break;
+			case 0x07: type = Type_DIR32NB; break;
+			case 0x14: type = Type_REL32; break;
+			default: BAD_TYPE: FATAL_ERROR(
+				"object: unsupported reloc, %d",
 					reloc.type, fileName);	}
+
+			// x64 relocation types
+			} else { switch(reloc.type) {
+			case 0x01: type = Type_DIR64; break;
+			case 0x02: type = Type_DIR32; break;
+			case 0x03: type = Type_DIR32NB; break;
+			case 0x04: type = Type_REL32; break;
+			default: goto BAD_TYPE; }}				
 					
 			// register reloc
 			if((reloc.symbol >= nSymbols)

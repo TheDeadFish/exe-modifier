@@ -1,7 +1,5 @@
 setlocal
 call egcc.bat
-gcc *.s -c
-ar -rcs ..\..\bin\libmisc.a *.o
-move /Y main.o ..\..\bin\main.o
-move /Y wmain.o ..\..\bin\wmain.o
-del *.o
+gcc %CCFLAGS2% stubgen.cc -lstdshit -o stubgen.exe
+stubgen.exe
+del *.exe obj32\*.o obj64\*.o

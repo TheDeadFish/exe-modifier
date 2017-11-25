@@ -1,0 +1,4 @@
+SYMBOL(0x033B0, SetDisplayText)
+CALLPATCH(0x04F86, SetDisplayText_hook)
+CALLPATCH(0x066F1, SetDisplayText_hook)
+CALLPATCH(0x0676B, SetDisplayText_hook)

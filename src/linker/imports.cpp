@@ -81,7 +81,7 @@ void import_fixReloc(byte* base,
 void imports_parse(void)
 {
 	for(auto& iatsym : Range(symbols, nSymbols))
-	  if((iatsym.Name && strScmp(iatsym.Name, "__imp__"))
+	  if((iatsym.Name && strScmp(iatsym.Name, "__imp_"))
 	  &&(int(iatsym.section) >= 0)
 	  &&(strScmp(sections[iatsym.section].name, ".idata$")))
 	{
@@ -149,7 +149,8 @@ void imports_parse(void)
 		
 		// check for import from self
 		int expsymb = exports_getExpSym(dllName, importName);
-		if(expsymb < 0) { makeImportSymbol(
+		if(expsymb < 0) { PeFILE::Import_Add(dllName, importName);
+			makeImportSymbol(
 			iatsym, dllName, importName); continue; }
 			
 		// redirect relocations

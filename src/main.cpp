@@ -3,9 +3,12 @@
 
 void dfLink_init()
 {
-	Linker::addSymbol("_RawEntryPoint",	Linker::Type_Relocate,
+	Linker::keepSymbol((char*)archStr->hookEntryPoint);
+	Linker::keepSymbol((char*)archStr->dllHookStartup);
+
+	Linker::addSymbol(archStr->rawEntryPoint, Linker::Type_Relocate,
 		-1, PeFILE::rvaToAddr(PeFILE::entryPoint()));
-	Linker::addSymbol("_DllMainCRTStartup@12", Linker::Type_Relocate,
+	Linker::addSymbol(archStr->dllMainStartup, Linker::Type_Relocate,
 		-1, PeFILE::rvaToAddr(PeFILE::entryPoint()));
 }
 
@@ -16,9 +19,9 @@ void dfLink_main()
 
 int dfLink_entryPoint()
 {
-	int entryPoint = Linker::findSymbol("_HookEntryPoint");
+	int entryPoint = Linker::findSymbol(archStr->hookEntryPoint);
 	if(entryPoint < 0)
-		entryPoint = Linker::findSymbol("_DllHookCRTStartup@12");	
+		entryPoint = Linker::findSymbol(archStr->dllHookStartup);	
 	return entryPoint;
 }
 

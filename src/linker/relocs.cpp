@@ -32,13 +32,17 @@ void Reloc::fixup(Section* sect)
 	DWORD relocRva = baseRva + this->offset;
 	DWORD& addr = PeFILE::rvaToPtr(relocRva).dword();
 	DWORD symbAddr = symb.getAddr();
-	if(this->type == Type_DIR32) {
-		addr += symbAddr;
-		if(symb.section != Type_Absolute)
-			PeFILE::Relocs_Add( relocRva );
-	} else {
-		addr += symbAddr;
+	
+	switch(this->type) {
+	case Type_DIR32: addr += symbAddr; if(0) {
+	case Type_DIR64: RQ(&addr) += symbAddr; }
+	if(symb.section != Type_Absolute)
+		PeFILE::Relocs_Add( relocRva ); break;
+	case Type_REL32: addr += symbAddr;
 		addr -= PeFILE::rvaToAddr(relocRva) + 4;
+		break;
+	default:
+		fatal_error("%s, %d\n", __FILE__, __LINE__);
 	}
 }
 

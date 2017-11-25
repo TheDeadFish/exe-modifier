@@ -84,7 +84,8 @@ int exports_getExpSym(
 	char*& dllName, char*& importName)
 {
 	// lookup export name
-	if(stricmp(PeFILE::peExp.dllName, dllName)) return -1;
+	if((!PeFILE::peExp.dllName)
+	||(stricmp(PeFILE::peExp.dllName, dllName))) return -1;
 	auto* slot = PeFILE::peExp.find(importName);
 	if(!slot) { fatal_error("exported function"
 		" does not exist: %s", importName); }

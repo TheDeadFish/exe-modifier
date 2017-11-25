@@ -7,7 +7,11 @@ namespace Linker {
 enum {
 	Type_DIR32 = 0,
 	Type_REL32 = 1, 
-	Type_DIR32NB = 2};
+	Type_DIR32NB = 2,
+	Type_DIR64 = 3 };
+	
+	
+	
 struct Reloc {
 	WORD type;
 	DWORD offset;

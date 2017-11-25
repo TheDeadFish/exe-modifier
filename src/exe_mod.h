@@ -51,4 +51,10 @@ void WINAPI ExmFileRead(FileOrMem& fileRef,
 	cch* setName, Delegate<void,FileOrMem> cb);
 void WINAPI ExmFileCall(char mode, int argc, char* argv[]);
 
+// architecture dependant strings
+struct ArchStr { cch* libMisc; cch* libPath;
+cch* rawEntryPoint; cch* hookEntryPoint;
+cch* dllMainStartup; cch* dllHookStartup;
+}; extern const ArchStr* archStr;
+
 #endif
