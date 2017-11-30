@@ -117,11 +117,18 @@ cch* def_freeBlock(u64 start,
 		start), length, offset); return 0;
 }
 
-cch* def_symbol(u64 value, 
-	char* name, bool relocate)
+cch* def_symbol(u64 value, char* name)
 {
-	Linker::addSymbol(name, relocate ? Linker::Type_Relocate
-		: Linker::Type_Absolute, -1, value); return 0;
+	printf("symb: %s, %I64X\n", name, value);
+
+	Linker::addSymbol(name, Linker::Type_Relocate,
+		-1, PeFILE::addrToRva64(value)); return 0;
+}
+
+cch* def_const(u64 value, char* name)
+{
+	Linker::addSymbol(name, Linker::Type_Absolute,
+		-1, value); return 0;
 }
 
 cch* def_callPatch(u64 addr, SymbArg& s, bool hookMode)
@@ -172,95 +179,31 @@ cch* def_memNop(u64 start, u64 end)
 }
 
 cch* def_patchPtr(u64 addr, SymbArg2& s,
-	char* hookSymb, bool ptrSize)
+	char* hookSymb, int size)
 {
-
-#if 0
-	ptrSize &= PeFILE::peFile.PE64;
-	Void ptr = PeFILE::patchChk(
-		addr, ptrSize ? 8 : 4);
+	if(size & 2) size += PeFILE::peFile.PE64;
+	Void ptr = PeFILE::patchChk(addr, (size&1) ? 8 : 4);
 	if(!ptr) return "bad patch address";
 	
 	// handle hook mode
 	int rva = PeFILE::addrToRva(addr);
-	if(hookSymb) {
-		DWORD hookAddr = ptr.dword();
-		bool relocate = PeFILE::Reloc_Find(rva);
-		Linker::addSymbol(hookSymb, relocate ? Linker::Type_Relocate
-		: Linker::Type_Absolute, -1, hookAddr); }
-		
-	// apply patch
-	if(!s.offsetMode) ptr.dword() = 0;
-	if(s.name) { 
-		
-	
-	
-		
-		ptr.dword() += s.symInit();
-		Linker::addReloc(ptrSize ? 
-			Linker::Type_DIR64 : Linker::Type_DIR32,
-			PeFILE::addrToRva(addr), symbol);
-			
-	} else {
-		
-	
-	
-	
+	if(hookSymb) { u64 addr = (size&1) ?
+		ptr.ref<u64>() : ptr.dword();
+		if(size & 2){ def_symbol(addr, hookSymb);
+		} else { def_const(addr, hookSymb); }	
 	}
-	
-	
-	
-
-	/*
-		// process arguments (1&2)	
-	bool offsetMode = false;
-	if(arg2[0] == '@') {
-		offsetMode = true;
-		arg2 += 1; }
-	DWORD addr = getNumber(arg1);
-	Void ptr = PeFILE::patchChk(addr, 4);
-	if(ptr == NULL)
-		defBad(, arg1);
 		
-	// handle hook mode (arg3)
-	
-	if(hookMode == true) {
-		
-
 	// apply patch
-	DWORD symbol = getSymbol(arg2, ptr);
-	if(symbol == DWORD(-1)) {
-		DWORD value = getNumber(arg2);
-		if(offsetMode == true)
-			value += ptr.dword();
-		ptr.dword() = value;
-	} else {
-		if(offsetMode == true)
-			defBad("@mode invalid", arg2);
+	if(!s.offsetMode) if(size&1) ptr.ref
+		<u64>() = 0; else ptr.dword() = 0;
+	if(size&1) ptr.ref<u64>() += s.offset;
+	else ptr.dword() += s.offset;
+	
+	// register relocation
+	if(s.name) { s.symInit();
 		PeFILE::Relocs_Remove(rva);
-		Linker::addReloc(Linker::Type_DIR32, 
-			PeFILE::addrToRva(addr), symbol);
+		Linker::addReloc((size&1) ? Linker::Type_DIR64
+			: Linker::Type_DIR32, rva, s.symb);	
 	}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-*/
-
-#endif
-
-
-
 }
 

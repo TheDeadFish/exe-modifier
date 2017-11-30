@@ -22,27 +22,30 @@ void Reloc::fixup(Section* sect)
 	// check symbol
 	if(this->type == (WORD)-1) return;
 	auto& symb = symbols[this->symbol];
-	const char* symbName = symb.Name ? 
-		symb.Name : "##NO NAME##";
-		if(symb.section == Type_Undefined)
-			undef_symbol(&symb, sect, this->offset);
+	if(symb.section == Type_Undefined)
+		undef_symbol(&symb, sect, this->offset);
 			
 	// resolve fixup
 	DWORD baseRva = sect ? sect->baseRva : 0;
 	DWORD relocRva = baseRva + this->offset;
 	DWORD& addr = PeFILE::rvaToPtr(relocRva).dword();
-	DWORD symbAddr = symb.getAddr();
 	
-	switch(this->type) {
-	case Type_DIR32: addr += symbAddr; if(0) {
-	case Type_DIR64: RQ(&addr) += symbAddr; }
-	if(symb.section != Type_Absolute)
-		PeFILE::Relocs_Add( relocRva ); break;
-	case Type_REL32: addr += symbAddr;
-		addr -= PeFILE::rvaToAddr(relocRva) + 4;
-		break;
-	default:
-		fatal_error("%s, %d\n", __FILE__, __LINE__);
+	if(this->type == Type_REL32) {
+		addr += (symb.getRva()-relocRva)-4; }
+	else { 
+	
+		// asjust the pointer
+		u64 symbAddr = symb.getAddr();
+		if(this->type == Type_DIR32) { addr += symbAddr; }
+		ei(this->type == Type_DIR64) { RQ(&addr) += symbAddr; }
+		else { assert(0); }
+		
+		// create the Pe relocation
+		if(symb.section != Type_Absolute) {
+			if(PeFILE::peFile.PE64^(this->type == Type_DIR64))
+			fatal_error("reloc: pointer size missmatch: %s",
+			symb.getName()); PeFILE::Relocs_Add( relocRva );
+		}
 	}
 }
 

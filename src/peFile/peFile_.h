@@ -12,10 +12,17 @@ namespace PeFILE {
 	extern PeImport peImp;
 	extern PeExport peExp;
 	
-	
-	
+
 	static DWORD baseAddr(void) { return peFile.ImageBase; }
 	static DWORD rvaToAddr(int rva) { return rva+baseAddr(); }
+	
+	
+	static u64 baseAddr64(void) { return peFile.ImageBase; }
+	static u64 rvaToAddr64(int rva) { return rva+baseAddr64(); }
+	static DWORD addrToRva64(u64 addr) { return addr-baseAddr64(); }
+	
+	
+	
 	static DWORD addrToRva(int addr) { return addr-baseAddr(); }
 	static DWORD& entryPoint() { return peFile.AddressOfEntryPoint; }
 	

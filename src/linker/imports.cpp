@@ -31,7 +31,7 @@ void imports_resolve(void)
 		int impRva = PeFILE::Import_Find(dllName, impName);
 		assert(impRva > 0);
 		symbol.section = Type_Relocate;
-		symbol.value = PeFILE::rvaToAddr(impRva);
+		symbol.value = impRva;
 	}
 }
 

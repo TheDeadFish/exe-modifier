@@ -643,6 +643,9 @@ bool ParseDefLine::check(cch* name, ArgDef argDef)
 	// match arguments
 	if(stricmp(funcName, name)) return false;
 	int argcDef = argDef.count();
+	
+	printf("%d, %d\n", argc(), argcDef);
+	
 	if(argDef.va()) { if(argc() < argcDef) return false;
 	} else { if(argc() != argcDef) return false; }
 		
@@ -660,6 +663,8 @@ bool ParseDefLine::check(cch* name, ArgDef argDef)
 		cch* err = argn(i).syn2.parse(str);
 		if(err) defBad("bad number", str); break; }
 	case Raw:
+		printf("%s\n", str);
+	
 		argn(i).raw = str; break;
 	}}
 	
@@ -677,39 +682,17 @@ cch* ParseDefLine::processLine()
 
 	FUNC("KEEP", ArgDef(Raw), def_keepSymbol(a1));
 	FUNC("FREE", ArgDef(Num,Num), def_keepSymbol(a1));
-	FUNC("CONSTANT", ArgDef(Num,Raw), def_symbol(a1,a2,0));
-	FUNC("SYMBOL", ArgDef(Num,Raw), def_symbol(a1,a2,1));
+	FUNC("CONSTANT", ArgDef(Num,Raw), def_const(a1,a2));
+	FUNC("SYMBOL", ArgDef(Num,Raw), def_symbol(a1,a2));
 	FUNC("CALLPATCH", ArgDef(Num,SyN), def_callPatch(a1,a2,0));
 	FUNC("CALLHOOK", ArgDef(Num,SyN), def_callPatch(a1,a2,1));
 	FUNC("MEMNOP", ArgDef(Num,Num), def_memNop(a1,a2));	
 	
 	// ptr patch functions
-	FUNC("PATCH_PTR", ArgDef(Num,SyN2), def_patchPtr(a1,a2,0,1));
-	FUNC("PATCH_INT", ArgDef(Num,SyN2), def_patchPtr(a1,a2,0,0));
-	FUNC("PATCH_PTR", ArgDef(Num,SyN2,Raw), def_patchPtr(a1,a2,a3,1));
-	FUNC("PATCH_INT", ArgDef(Num,SyN2,Raw), def_patchPtr(a1,a2,a3,0));
-	
-	
-
-	
-
-	
-	
-	
-	
-	
-	
-	
-
-
-
-
-
-
-
-
-
-
-
-
+	FUNC("PATCH_PTR", ArgDef(Num,SyN2), def_patchPtr(a1,a2,0,2));
+	FUNC("PATCH_PTR", ArgDef(Num,SyN2,Raw), def_patchPtr(a1,a2,a3,2));
+	FUNC("PATCH_I32", ArgDef(Num,SyN2), def_patchPtr(a1,a2,0,0));
+	FUNC("PATCH_I32", ArgDef(Num,SyN2,Raw), def_patchPtr(a1,a2,a3,0));
+	FUNC("PATCH_I64", ArgDef(Num,SyN2), def_patchPtr(a1,a2,0,1));
+	FUNC("PATCH_I64", ArgDef(Num,SyN2,Raw), def_patchPtr(a1,a2,a3,1));
 }

@@ -6,10 +6,10 @@ void dfLink_init()
 	Linker::keepSymbol((char*)archStr->hookEntryPoint);
 	Linker::keepSymbol((char*)archStr->dllHookStartup);
 
-	Linker::addSymbol(archStr->rawEntryPoint, Linker::Type_Relocate,
-		-1, PeFILE::rvaToAddr(PeFILE::entryPoint()));
-	Linker::addSymbol(archStr->dllMainStartup, Linker::Type_Relocate,
-		-1, PeFILE::rvaToAddr(PeFILE::entryPoint()));
+	Linker::addSymbol(archStr->rawEntryPoint, 
+		Linker::Type_Relocate, -1, PeFILE::entryPoint());
+	Linker::addSymbol(archStr->dllMainStartup,
+		Linker::Type_Relocate, -1, PeFILE::entryPoint());
 }
 
 void dfLink_main()

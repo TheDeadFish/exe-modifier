@@ -15,10 +15,11 @@ struct SymbArg2 : SymbArg {
 	
 SHITCALL cch* def_keepSymbol(char* name);
 SHITCALL cch* def_freeBlock(u64 start, u64 end, int offset);
-SHITCALL cch* def_symbol(u64 value, char* name, bool relocate);
+SHITCALL cch* def_symbol(u64 value, char* name);
+SHITCALL cch* def_const(u64 value, char* name);
 SHITCALL cch* def_callPatch(u64 addr, SymbArg& s, bool hookMode);
 SHITCALL cch* def_memNop(u64 start, u64 end);
 SHITCALL cch* def_patchPtr(u64 addr, SymbArg2& s,
-	char* hookSymb, bool ptrSize);
+	char* hookSymb, int ptrSize);
 
 #endif

@@ -1,1 +1,1 @@
-MEMHOOK(0x10017ED, _CalcWndProc_hook@16, _CalcWndProc@16)
+PATCH_PTR(0x10017ED, _CalcWndProc_hook@16, _CalcWndProc@16)

@@ -64,14 +64,14 @@ void exports_resolve()
 		auto& symb = symbols[slot.symbol];
 		if(symb.section == Type_Undefined)
 			undef_symbol(&symb, 0, 0);
-		PeFILE::peExp.setRva(slot.name, PeFILE::
-			addrToRva(symb.getAddr()) + slot.offset);
+		PeFILE::peExp.setRva(slot.name, 
+			symb.getRva() + slot.offset);
 	}
 	
 	// update export symbols
 	for(auto& slot : expSymb) {
-		symbols[slot.symbol].value = PeFILE::
-		rvaToAddr(PeFILE::peExp.find(slot.name)->rva);
+		symbols[slot.symbol].value = 
+			PeFILE::peExp.find(slot.name)->rva;
 	}
 }
 

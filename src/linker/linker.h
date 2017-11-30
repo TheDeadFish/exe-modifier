@@ -61,9 +61,16 @@ struct Symbol {
 	DWORD section;
 	DWORD weakSym;
 	DWORD value; 
-	DWORD getAddr(void); 
+	u64 getAddr(void); 
+	
+	DWORD getRva(void);
+	
+	
 	cch* getName() { return Name ?
 		Name : "##NO NAME##"; }
+	
+		
+		
 };
 extern Symbol* symbols;
 extern DWORD nSymbols;

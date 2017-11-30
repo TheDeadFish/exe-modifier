@@ -94,22 +94,33 @@ int addSymbol(const char* Name, DWORD section, DWORD weakSym, DWORD value)
 	return symIndex;
 }
 
+/*
 DWORD Symbol::getAddr(void) 
 {
 	DWORD symbBase = (int(section) < 0) ? 0 : 
 		PeFILE::rvaToAddr(sections[section].baseRva);
-	return symbBase + this->value;
+	return symbBase + ;
+}*/
+
+DWORD Symbol::getRva(void)
+{
+	if(( section == Type_Absolute)
+	||( section == Type_Undefined ))
+		fatal_error("undefined symbol: %s\n", getName());
+	return (isNeg(section) ? 0 : 
+		sections[section].baseRva) + value;
+}
+
+u64 Symbol::getAddr(void)
+{
+	return (section == Type_Absolute) ?
+	value : PeFILE::rvaToAddr64(getRva());
 }
 
 int symbolRva(int symbol) 
 {
 	assert(symbol >= 0);
-	auto& symb = symbols[symbol];
-	if(( symb.section == Type_Absolute)
-	||( symb.section == Type_Undefined ))
-		fatal_error("undefined symbol: %s\n",
-			symb.Name ? symb.Name :"##NO NAME##" );
-	return PeFILE::addrToRva(symb.getAddr());
+	return symbols[symbol].getRva();
 }
 
 char* symbcat(char* symb, const char* str)
