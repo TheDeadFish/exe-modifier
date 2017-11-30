@@ -1,4 +1,10 @@
 #include <string>
+#include "def_ops.h"
+
+struct Args {
+	
+};
+
 
 SHITSTATIC retpair<char*, bool> defFileGetArg(
 	char*& curPos, bool ss = false)
@@ -26,19 +32,18 @@ SHITSTATIC retpair<char*, bool> defFileGetArg(
 	return result; 
 }
 
-SHITSTATIC retpair<DWORD, bool> defFileGetNumber(char* str)
+SHITCALL cch* defFileGetNumber(u64& out, char* str)
 {
 	int base = 10;
 	for(int i = 0; str[i]; i++)
 	  if(isalpha(str[i]))
 		base = 16;
 	char *end;
-	DWORD result = strtoul(str, &end, base);
-	return retpair<DWORD, bool>(
-		result, str == end);
+	out = _strtoui64(str, &end, base);
+	return (str == end) ? "bad number" : 0;
 }
 
-SHITSTATIC bool defFileIsAddress(char* str)
+SHITCALL bool defFileIsAddress(char* str)
 {
 	if((*str == '+')||(*str == '-')
 	||(!strncmp(str, "0x"))) return true;
@@ -48,13 +53,15 @@ SHITSTATIC bool defFileIsAddress(char* str)
 	return true;
 }
 
-SHITSTATIC char* defFileGetNumPos(char* str)
+SHITCALL char* defFileGetNumPos(char* str)
 {
 	char* numPos = strchr(str, '+');
 	if(numPos == NULL)
 		numPos = strchr(str, '-');
 	return numPos;
 }
+
+#if 0
 
 #include "asmpatch\asmPatch.cpp"
 
@@ -561,6 +568,43 @@ void processLine(void)
 }
 };
 
+#endif
+
+struct ParseDefLine
+{
+	// parsing state
+	cParse cp; char* funcName; 
+	xVector<cParse::Parse_t> argLst;
+	char*& argStr(int i) { return 
+		argLst.dataPtr.ref<char*>(i); }
+	int argc() { return argLst.dataSize; }
+
+	// argument definition
+	struct ArgDef { int val; byte get(int i) { return val>>((i+1)*8); } 
+	int count() { return val&127; } bool va() { return s8(val) < 0; }
+	ALWAYS_INLINE int vi(byte a, int i) { return (s8(a)<0)
+		? 0x80 : (a ? (a<<((i+1)*8))|1 : 0); }
+	ALWAYS_INLINE ArgDef(byte a1, byte a2=0, byte a3=0, byte a4=0) 
+		: val(vi(a1,0)+vi(a2,1)+vi(a3,2)+vi(a4,3)) { } };
+	enum { None, Num, Raw, SyN, SyN2, VArg = -1 };
+	
+	// argument data
+	union Arg_t { u64 num; 
+		char* raw; SymbArg syn; SymbArg2 syn2; 
+		TMPL(T) operator T&() { return *(T*)this; } };
+	Arg_t a1, a2, a3; xarray<char*> va;
+	Arg_t& argn(int i) { return (&a1)[i]; }
+	
+	void defBad(int srcLn, char* err) { fatal_error(
+		"def file:%d:%d: bad (%d)", cp.getLine(err), srcLn); }
+	void defBad(cch* str, char* err) { fatal_error(
+		"def file:%d:%d: %s", cp.getLine(err), str); }
+		
+	bool check(cch* name, ArgDef argDef);
+		
+	cch* processLine();
+};
+
 void parse_def_file(
 	char* def_file, void* data)
 {
@@ -575,11 +619,97 @@ void parse_def_file(
 	cstr str = defLine.cp.tokLst.getCall(defLine.argLst);
 	if(!str.slen) { if(str.data) defLine.defBad(
 		__LINE__, str.data); break; }
-	defLine.argcCount = defLine.argLst.getCount();
+		
+	// convert args array to string
+	int argc = defLine.argLst.getCount();
+	for(int i = 0; i < argc; i++) { defLine
+		.argStr(i) = defLine.argLst[i].nTerm(); }
+	defLine.argLst.dataSize = argc;
+	
+	defLine.funcName = str.nterm();
+	defLine.processLine(); } 
+		
+		
+		
+	/*defLine.argcCount = defLine.argLst.getCount();
 	for(int i = 0; i < defLine.argLst.getCount(); i++) {
 		char* str = defLine.argLst[i].nTerm(); 
-		if(i < 3) (&defLine.arg1)[i] = str; }
+		if(i < 3) (&defLine.arg1)[i] = str; }*/
 	
-	defLine.line = str.nterm();
-	defLine.processLine(); }
+}
+
+bool ParseDefLine::check(cch* name, ArgDef argDef)
+{
+	// match arguments
+	if(stricmp(funcName, name)) return false;
+	int argcDef = argDef.count();
+	if(argDef.va()) { if(argc() < argcDef) return false;
+	} else { if(argc() != argcDef) return false; }
+		
+	// parse the arguments
+	for(int i = 0; i < argcDef; i++) {
+	char *str = argStr(i);
+	switch(argDef.get(i)) {
+	case Num: { 
+		cch* err = defFileGetNumber(
+			argn(i).num, str); break; }
+	case SyN: {
+		cch* err = argn(i).syn2.parse(str);
+		if(err) defBad("bad number", str); break; }
+	case SyN2: {
+		cch* err = argn(i).syn2.parse(str);
+		if(err) defBad("bad number", str); break; }
+	case Raw:
+		argn(i).raw = str; break;
+	}}
+	
+	// setup varargs
+	va.data = &argStr(argcDef);
+	va.len = argc()-argcDef;
+		
+	return true; 
+}
+
+
+cch* ParseDefLine::processLine()
+{
+	#define FUNC(fn,ad,func) if(check(fn,ad)) { return func; }
+
+	FUNC("KEEP", ArgDef(Raw), def_keepSymbol(a1));
+	FUNC("FREE", ArgDef(Num,Num), def_keepSymbol(a1));
+	FUNC("CONSTANT", ArgDef(Num,Raw), def_symbol(a1,a2,0));
+	FUNC("SYMBOL", ArgDef(Num,Raw), def_symbol(a1,a2,1));
+	FUNC("CALLPATCH", ArgDef(Num,SyN), def_callPatch(a1,a2,0));
+	FUNC("CALLHOOK", ArgDef(Num,SyN), def_callPatch(a1,a2,1));
+	FUNC("MEMNOP", ArgDef(Num,Num), def_memNop(a1,a2));	
+	
+	// ptr patch functions
+	FUNC("PATCH_PTR", ArgDef(Num,SyN2), def_patchPtr(a1,a2,0,1));
+	FUNC("PATCH_INT", ArgDef(Num,SyN2), def_patchPtr(a1,a2,0,0));
+	FUNC("PATCH_PTR", ArgDef(Num,SyN2,Raw), def_patchPtr(a1,a2,a3,1));
+	FUNC("PATCH_INT", ArgDef(Num,SyN2,Raw), def_patchPtr(a1,a2,a3,0));
+	
+	
+
+	
+
+	
+	
+	
+	
+	
+	
+	
+
+
+
+
+
+
+
+
+
+
+
+
 }
