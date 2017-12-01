@@ -15,6 +15,9 @@ void makeImportSymbol(Symbol& iatsym,
 int addImport(const char* Name,
 	const char* dllName, const char* importName)
 {
+	// todo - generate import symbol
+	assert(Name != NULL);
+
 	int symbol = addSymbol(Name, Type_Import, 0, 0);
 	if(symbol >= 0)
 		makeImportSymbol(symbols[symbol], dllName, importName);

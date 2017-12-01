@@ -586,12 +586,13 @@ struct ParseDefLine
 		? 0x80 : (a ? (a<<((i+1)*8))|1 : 0); }
 	ALWAYS_INLINE ArgDef(byte a1, byte a2=0, byte a3=0, byte a4=0) 
 		: val(vi(a1,0)+vi(a2,1)+vi(a3,2)+vi(a4,3)) { } };
-	enum { None, Num, Raw, SyN, SyN2, VArg = -1 };
+	enum { None, Num, Raw, SyN, SyN2, SyS, VArg = -1 };
 	
 	// argument data
-	union Arg_t { u64 num; 
-		char* raw; SymbArg syn; SymbArg2 syn2; 
-		TMPL(T) operator T&() { return *(T*)this; } };
+	union Arg_t { u64 num;  char* raw; 
+		SymbArg syn; SymbArg2 syn2; SymStrArg sys;
+		TMPL(T) operator T&() { return *(T*)this; } 
+		Void v() { return Void(this); }};
 	Arg_t a1, a2, a3; xarray<char*> va;
 	Arg_t& argn(int i) { return (&a1)[i]; }
 	
@@ -662,6 +663,10 @@ bool ParseDefLine::check(cch* name, ArgDef argDef)
 	case SyN2: {
 		cch* err = argn(i).syn2.parse(str);
 		if(err) defBad("bad number", str); break; }
+	case SyS: {
+		cch* err = argn(i).sys.parse(str);
+		if(err) defBad("bad number", str); break; }	
+		
 	case Raw:
 		printf("%s\n", str);
 	
@@ -681,12 +686,19 @@ cch* ParseDefLine::processLine()
 	#define FUNC(fn,ad,func) if(check(fn,ad)) { return func; }
 
 	FUNC("KEEP", ArgDef(Raw), def_keepSymbol(a1));
-	FUNC("FREE", ArgDef(Num,Num), def_keepSymbol(a1));
+	FUNC("FREE", ArgDef(Num,Num), def_freeBlock(a1,a2,0));
 	FUNC("CONSTANT", ArgDef(Num,Raw), def_const(a1,a2));
 	FUNC("SYMBOL", ArgDef(Num,Raw), def_symbol(a1,a2));
 	FUNC("CALLPATCH", ArgDef(Num,SyN), def_callPatch(a1,a2,0));
 	FUNC("CALLHOOK", ArgDef(Num,SyN), def_callPatch(a1,a2,1));
 	FUNC("MEMNOP", ArgDef(Num,Num), def_memNop(a1,a2));	
+	FUNC("FUNCREPL", ArgDef(Num,Num,SyN), def_funcRepl(a1,a2,a3));
+
+	// import/export functions
+	FUNC("IMPORTDEF", ArgDef(Raw), def_import(a1,0))
+	FUNC("IMPORTDEF", ArgDef(Raw,Raw), def_import(a1,a2))
+	FUNC("EXPORTDEF", ArgDef(Raw), def_export(a1,0))
+	FUNC("EXPORTDEF", ArgDef(Raw,SyS), def_export(a1,a2.v()))
 	
 	// ptr patch functions
 	FUNC("PATCH_PTR", ArgDef(Num,SyN2), def_patchPtr(a1,a2,0,2));

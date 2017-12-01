@@ -34,6 +34,15 @@ cch* SymbArg2::parse(char* str)
 	return SymbArg::parse(str);
 }
 
+cch* SymStrArg::parse(char* str)
+{
+	if(*str == '"') { 
+	str++; char* end = strrchr(str, '"');
+	if(!end) return "unterminated string"; 
+	*end = '\0'; ZINIT; this->str = str; 
+	return 0; } return SymbArg::parse(str);
+}
+
 struct callPatchCore_t {
 	bool relative;
 	byte addrType;
@@ -205,5 +214,58 @@ cch* def_patchPtr(u64 addr, SymbArg2& s,
 		Linker::addReloc((size&1) ? Linker::Type_DIR64
 			: Linker::Type_DIR32, rva, s.symb);	
 	}
+}
+
+SHITCALL cch* def_funcRepl(u64 start, u64 end, SymbArg& s)
+{
+	IFRET(def_freeBlock(start, end, 5));
+	return def_callPatch(start, s, 0);
+}
+
+SHITCALL cch* def_import(char* name, char* symb)
+{
+	char* dllName = strtok(name, ";");
+	char* impName = strtok(NULL, ";");	
+	if(!impName) return "IMPORTDEF import name bad";
+	
+	if(Linker::addImport(symb, dllName, impName) < 0)
+		return "IMPORTDEF symbol allready defined";
+	return 0;
+}
+
+SHITCALL cch* def_export(char* str, SymStrArg* frwd)
+{
+	// get export and ordinal name
+	char* name = strtok(str, ";: "); 
+	char* ord = strtok(NULL, ";: ");
+	if(is_one_of(*name, '#', '@')) 
+		ord = release(name)+1;
+
+	// get ordinal number
+	u64 iOrd = 0; if(ord) { 
+		if(is_one_of(*ord, '#', '@')) ord++;
+		IFRET(defFileGetNumber(iOrd, ord)); }
+
+	// lookup export
+	auto exp = PeFILE::peExp.find(name, iOrd); if(exp.err) {
+		if(exp.err > 0) return "EXPORTDEF: name ordinal missmatch";
+		return "EXPORTDEF: mistake catcher; existing export specified "
+			"by ordinal when name exists"; }
+	if(!exp) { exp.slot = &PeFILE::peExp.add(name, iOrd); }
+	
+	// handle immidiate, forwarder
+	if(frwd){ if(frwd->str) { 
+		PeFILE::peExp.setFrwd(*exp,frwd->str); return 0; }
+		if(!frwd->name) { PeFILE::peExp.setRva(*exp,
+		PeFILE::addrToRva64(frwd->offset)); return 0; }}
+		
+	// handle symbol
+	DWORD symbol = Linker::addSymbol(frwd ? frwd->name
+		: name, Linker::Type_Undefined, -1, 0);
+	DWORD symbOffset = frwd ? frwd->offset : 0;
+	if(exp->frwd) PeFILE::peExp.setFrwd(*exp, 0);
+	Linker::addExport(name, iOrd, 
+		symbol, symbOffset, exp->rva);
+	return 0;
 }
 
