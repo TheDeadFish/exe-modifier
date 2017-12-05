@@ -1,1 +1,1 @@
-PATCH_PTR(0x10017ED, _CalcWndProc_hook@16, _CalcWndProc@16)
+CALLHOOK(0x10017EA, _CalcWndProc@16)

@@ -628,7 +628,9 @@ void parse_def_file(
 	defLine.argLst.dataSize = argc;
 	
 	defLine.funcName = str.nterm();
-	defLine.processLine(); } 
+	err = (char*)defLine.processLine(); 
+	if(err) defLine.defBad(err, str);
+	}
 		
 		
 		
@@ -707,4 +709,7 @@ cch* ParseDefLine::processLine()
 	FUNC("PATCH_I32", ArgDef(Num,SyN2,Raw), def_patchPtr(a1,a2,a3,0));
 	FUNC("PATCH_I64", ArgDef(Num,SyN2), def_patchPtr(a1,a2,0,1));
 	FUNC("PATCH_I64", ArgDef(Num,SyN2,Raw), def_patchPtr(a1,a2,a3,1));
+	
+	return "invalid command";
+	
 }

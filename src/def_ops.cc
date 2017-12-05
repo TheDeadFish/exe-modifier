@@ -6,6 +6,25 @@ SHITCALL cch* defFileGetNumber(u64& out, char* str);
 SHITCALL bool defFileIsAddress(char* str);
 SHITCALL char* defFileGetNumPos(char* str);
 
+// reg/mem helpers
+SHITCALL int regMemLen(Void ptr) { 
+	int len = 1;
+	u8 mod = ptr[0]>>6, base = ptr[0]&7;
+	if((mod != 3)&&(base == 4)) {
+		base = ptr[1]&7; len++; }
+	if((!mod && (base == 5))||(mod == 2))
+	len+=4; if(mod == 1) len++; return len; }
+
+// 
+int getRel32Rva(Void ptr, int extra = 0) {
+	return PeFILE::ptrToRva(ptr)+ptr.dword()+extra+4; } 
+int getDir32Rva(Void ptr) {
+	return PeFILE::addrToRva(ptr.dword()); }
+
+	
+	
+	
+
 u64 SymbArg::symInit()
 {
 	symb = Linker::addSymbol(name, 
@@ -44,69 +63,68 @@ cch* SymStrArg::parse(char* str)
 }
 
 struct callPatchCore_t {
-	bool relative;
-	byte addrType;
-	WORD reserved;
-	int patchOffset;
+	byte oldType;     // type 0: relative
+	byte newType;     // type 1: absolute
+	int patchOffset;  // type 2: indirect
 };
+
+static bool x64Mode() { return PeFILE::peFile.PE64; }
 
 callPatchCore_t callPatchCore(
 	Void ptr, bool create)
 {
-	callPatchCore_t ret = { 
-		true, 1, 0, 2};
-	
-	// 0x25FF: jmp indirect
-	if( ptr.word() == 0x25FF ) 
-	{ 
-		ptr.word() = 0xE990;
-	}	
 
-	// 0x15FF: call indirect
-	ei( ptr.word() == 0x15FF ) 
-	{
-		ptr.word() = 0xE890;
-	}
+	if(x64Mode()) {
 	
-	// 0xA1: move eax, [address]
-	ei((ptr[0] == 0xA1))
-	{
-		ptr[0] = 0xB8;
-		ret.patchOffset = 1;
-		ret.relative = false;
-	}
+		// lea ra?, [rip+disp32]
+		if((ptr.dword() & 0xC7FFF0) == 0x058D40) 
+		{ return {1,1,3}; }
 	
-	// 0x??8B: move ea?, [address]
-	ei((ptr.word() & 0xC7FF) == 0x58B)
-	{
-		int r = (ptr.word() >> 11);
-		ptr.word() = 0xB890 + (r << 8);
-		ret.relative = false;
-	}
+	} else {
 	
-	// 0x8X0F: conditional
-	ei((ptr.word() & 0xF0FF) == 0x800F)
-	{
-		ret.addrType = 2;
+		// 0xC7: mov r/m, imm32
+		if(ptr[0] == 0xC7) {
+			return {1, 1, regMemLen(ptr+1)+1}; }
+			
+		// 0xB8+r: mov ea?, imm32
+		if(inRng(ptr[0], 0xB8, 0xBF)) { 
+			return {1, 1, 1}; }
+			
+		// 0xA1: move eax, [address]
+		if(ptr[0] == 0xA1) { 
+			ptr[0] = 0xB8; return {2, 1, 1}; }
+			
+			
+		// 0x??8B: move ea?, [address]
+		if((ptr.word() & 0xC7FF) == 0x58B)
+		{
+			int r = (ptr.word() >> 11);
+			ptr.word() = 0xB890 + (r << 8);
+			return {2, 1, 2};
+		}
 	}
-	
+		
 	// 0xE8: call relative
 	// 0xE9: jump relative	
-	ei((ptr[0] == 0xE8 )
-	||(ptr[0] == 0xE9 )) {
-		ret.patchOffset = 1;
-		ret.addrType = 2;
-	}
+	if((ptr[0] == 0xE8 )
+	||(ptr[0] == 0xE9 )) { 
+		return {0,0,1}; }
+		
+	// 0x25FF: jmp indirect
+	if( ptr.word() == 0x25FF ) { 
+		ptr.word() = 0xE990;
+		return {2, 0, 2}; }
+
+	// 0x15FF: call indirect
+	ei( ptr.word() == 0x15FF ) {
+		ptr.word() = 0xE890;
+		return {2, 0, 2}; }
 	
-	// anything else
-	else {
-		ret.patchOffset = 1;
-		ret.addrType = 0;
-		if(create == true)
-			ptr[0] = 0xE9;
-	}
+	// 0x8X0F: conditional
+	ei((ptr.word() & 0xF0FF) == 0x800F) {
+		return {0,0, 2}; }
 	
-	return ret;
+	return {0,0,-1};
 }
 
 
@@ -128,8 +146,6 @@ cch* def_freeBlock(u64 start,
 
 cch* def_symbol(u64 value, char* name)
 {
-	printf("symb: %s, %I64X\n", name, value);
-
 	Linker::addSymbol(name, Linker::Type_Relocate,
 		-1, PeFILE::addrToRva64(value)); return 0;
 }
@@ -142,20 +158,23 @@ cch* def_const(u64 value, char* name)
 
 cch* def_callPatch(u64 addr, SymbArg& s, bool hookMode)
 {
-	printf("%I64X, %s, %I64X\n", addr, s.name, s.offset);
-
-
 	Void ptr = PeFILE::patchChk(addr, 5);
 	if(ptr == NULL) return "bad patch address";
 	auto cp = callPatchCore(ptr, true);
+	if(cp.patchOffset < 0) return "unsuported instruction";
 	
 	// implement hook mode
 	Void patchPtr = ptr+cp.patchOffset;
 	if(hookMode == true) {
 		if(!s.name) return "CALLHOOK must be symbol";
-		if(cp.addrType != 2) return "CALLHOOK must be relative";
-		DWORD oldCall = patchPtr.dword()+addr+cp.patchOffset+4;
+		if(cp.oldType == 2) return "CALLHOOK must not be indirect";
+		
+		int oldCall = cp.oldType 
+			? getDir32Rva(ptr+cp.patchOffset)
+			: getRel32Rva(ptr+cp.patchOffset);
+
 		Linker::addSymbol(s.name, Linker::Type_Relocate, -1, oldCall);
+		
 		s.name = Linker::symbcat(s.name, "_hook");
 	} SCOPE_EXIT(if(hookMode == true) free(s.name););
 	
@@ -163,11 +182,11 @@ cch* def_callPatch(u64 addr, SymbArg& s, bool hookMode)
 	int rva = PeFILE::addrToRva(addr);
 	PeFILE::Relocs_Remove(rva, cp.patchOffset+4);
 	if(s.name) { patchPtr.dword() = s.symInit();
-		Linker::addReloc(cp.relative ? Linker::Type_REL32 : 
-			Linker::Type_DIR32,	rva+cp.patchOffset, s.symb);		
+		Linker::addReloc(cp.newType ? Linker::Type_DIR32 : 
+			Linker::Type_REL32,	rva+cp.patchOffset, s.symb);		
 	} else {
 		int patchAddr = addr+cp.patchOffset;
-		if( cp.relative == true ) {
+		if( cp.newType == 0 ) {
 			patchPtr.dword() = s.offset-(patchAddr+4);
 		} else {
 			patchPtr.dword() = PeFILE::addrToRva(s.offset);
@@ -190,7 +209,7 @@ cch* def_memNop(u64 start, u64 end)
 cch* def_patchPtr(u64 addr, SymbArg2& s,
 	char* hookSymb, int size)
 {
-	if(size & 2) size += PeFILE::peFile.PE64;
+	if(size & 2) size += x64Mode();
 	Void ptr = PeFILE::patchChk(addr, (size&1) ? 8 : 4);
 	if(!ptr) return "bad patch address";
 	
