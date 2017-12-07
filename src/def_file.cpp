@@ -648,25 +648,14 @@ bool ParseDefLine::check(cch* name, ArgDef argDef)
 	for(int i = 0; i < argcDef; i++) {
 	char *str = argStr(i);
 	switch(argDef.get(i)) {
-	case Num: { 
-		cch* err = defFileGetNumber(
-			argn(i).num, str); break; }
-	case SyN: {
-		cch* err = argn(i).syn2.parse(str);
-		if(err) defBad("bad number", str); break; }
-	case SyN2: {
-		cch* err = argn(i).syn2.parse(str);
-		if(err) defBad("bad number", str); break; }
-	case SyS: {
-		cch* err = argn(i).sys.parse(str);
-		if(err) defBad("bad number", str); break; }	
-		
-	case Str: {
-		cch* err = strArg_parse(argn(i).raw, str);
-		if(err) defBad("bad number", str); break; }
-		
-	case Raw:
-		argn(i).raw = str; break;
+	#define DO_ARG(ty, ...) case ty: if(cch* err \
+		= __VA_ARGS__) { defBad(err, str); } break;
+	DO_ARG(Num, defFileGetNumber(argn(i).num, str));
+	DO_ARG(SyN, argn(i).syn.parse(str));
+	DO_ARG(SyN2, argn(i).syn2.parse(str));
+	DO_ARG(SyS, argn(i).sys.parse(str));
+	DO_ARG(Str, strArg_parse(argn(i).raw, str));
+	DO_ARG(Raw, ((argn(i).raw = str), (cch*)0));
 	}}
 	
 	// setup varargs
