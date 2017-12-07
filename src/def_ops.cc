@@ -53,13 +53,20 @@ cch* SymbArg2::parse(char* str)
 	return SymbArg::parse(str);
 }
 
-cch* SymStrArg::parse(char* str)
+cch* strArg_parse(char*& out, char* str)
 {
-	if(*str == '"') { 
-	str++; char* end = strrchr(str, '"');
-	if(!end) return "unterminated string"; 
-	*end = '\0'; ZINIT; this->str = str; 
-	return 0; } return SymbArg::parse(str);
+	char *beg = 0; if(*str == '"') { str++; 
+	char* end = strrchr(str, '"'); if(!end) 
+	return "unterminated string"; *end = 0;
+	beg = str; } out = beg; return 0;
+}
+
+cch* SymStrArg::parse(char* in)
+{
+	ZINIT;
+	cch* err = strArg_parse(str, in);
+	if(err || str) return err;
+	return SymbArg::parse(in);
 }
 
 struct callPatchCore_t {
@@ -69,6 +76,7 @@ struct callPatchCore_t {
 };
 
 static bool x64Mode() { return PeFILE::peFile.PE64; }
+static int ptrSize() { return x64Mode() ? 64 : 32; }
 
 callPatchCore_t callPatchCore(
 	Void ptr, bool create)
@@ -287,4 +295,40 @@ SHITCALL cch* def_export(char* str, SymStrArg* frwd)
 		symbol, symbOffset, exp->rva);
 	return 0;
 }
+	
+cch* def_asmPatch(u64 start, u64 end, char* str)
+{
+	// start as
+	xstr tmpName = tempName("exm");
+	FILE* fp = popen(Xstrfmt("as -o %s --%d",
+		tmpName.data, ptrSize()), "w");
+	if(!fp) return "failed to start as";
+	
+	// pipe out assembly
+	xstr sectNm = xstrfmt(".text$asmPatch_%llX", start);
+	fprintf(fp, ".sect \"%s\",\"0\";", sectNm.data);
+	fprintf(fp, ".equ @, .-%#I64X;", start);
+	for(auto& symb : RngRBL(Linker::
+	symbols,Linker::nSymbols)) if(symb.Name
+	&&(symb.section == Linker::Type_Relocate))
+	fprintf(fp,".equ %s, @+%#I64X;", symb.Name, symb.getAddr());
+	fprintf(fp, "%s\n", str);
+	if(pclose(fp)) return "as returned with error";
 
+	// load the object
+	auto file = loadFile(tmpName);
+	if(!file) load_error("object", tmpName);
+	Linker::object_load(tmpName, file.data, file.size);
+	file.free();
+	
+	// locate section
+	auto sect = Linker::findSection(sectNm);
+	if(!sect) return "ASMPATCH section not found";
+	if(isNeg(end)) { end = start + sect->length; }
+	ei(sect->length > (end-start)) 
+		return "ASMPATCH patch too big";
+	IFRET(def_memNop(start, end));
+	Linker::keepSymbol(sectNm);
+	Linker::fixSection(sect, PeFILE::addrToRva64(start));
+	remove(tmpName); return 0;
+}

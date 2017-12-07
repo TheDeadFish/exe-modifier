@@ -37,5 +37,10 @@ T*end(void){return dataPtr+count;}};
 template<class T, class U, class V>
 bool inRange(T value, U min, V max) {
     return (value >= min) && (value <= max); }
+	
+SHITCALL cstr tempName(cch* prefix);
 
+#define RngRBL Range
+
+	
 #endif

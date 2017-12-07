@@ -49,6 +49,7 @@ DWORD addSection(const char* fileName, const char* Name,
 	DWORD baseRva, DWORD length);
 void destroy_section(Section& sect);
 Section* findSection(const char* name);
+void fixSection(Section* sect, DWORD rva);
 
 // symbol interface
 enum : DWORD {

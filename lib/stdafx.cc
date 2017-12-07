@@ -10,3 +10,18 @@ int strifnd(const char* str, const char** tab, int len)
  	    return i+1;
 	return 0;
 }
+
+SHITCALL cstr tempName(cch* prefix)
+{
+	// prepare prefix
+	if(!prefix) prefix = "dft";
+	WCHAR pfx[4]; 
+	for(int i = 0; i < 4; i++)
+		pfx[i] = prefix[i];
+	
+	// get tempory name
+	WCHAR buff[MAX_PATH];
+	GetTempPathW(MAX_PATH, buff);	
+	GetTempFileNameW(buff, pfx, 0, buff);
+	return utf816_dup(buff);
+}

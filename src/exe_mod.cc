@@ -228,7 +228,8 @@ int exe_mod(int argc, char* argv[])
 	PeBlock* blocks = xCalloc(Linker::nSections);
 	int blockCount = 0;
 	for(int i = 0; i < Linker::nSections; i++) {
-		if( Linker::sections[i].type >= 4 ) continue;
+		if(( Linker::sections[i].type >= 4 ) 
+		||( Linker::sections[i].baseRva )) continue;
 		
 		static const byte types[] = {
 			PeSecTyp::Data, PeSecTyp::Bss, 
@@ -243,10 +244,7 @@ int exe_mod(int argc, char* argv[])
 	// initialize sections
 	for(int i = 0; i < blockCount; i++) {
 		auto& sect = Linker::sections[blocks[i].lnSect];
-		sect.baseRva = blocks[i].baseRva;
-		Void basePtr = PeFILE::rvaToPtr(sect.baseRva);
-		memcpy(basePtr, sect.rawData, sect.length);
-		free(sect.rawData); sect.rawData = basePtr; }
+		Linker::fixSection(&sect, blocks[i].baseRva); }
 	Linker::imports_resolve();
 	Linker::exports_resolve();
 	Linker::relocs_fixup();

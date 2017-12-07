@@ -133,4 +133,12 @@ char* symbcat(char* symb, const char* str)
 	return result;
 }
 
+void fixSection(Section* sect, DWORD rva)
+{
+	sect->baseRva = rva;
+	Void basePtr = PeFILE::rvaToPtr(rva);
+	memcpy(basePtr, sect->rawData, sect->length);
+	free(sect->rawData); sect->rawData = basePtr;
+}
+
 }

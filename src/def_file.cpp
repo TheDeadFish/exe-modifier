@@ -1,11 +1,6 @@
 #include <string>
 #include "def_ops.h"
 
-struct Args {
-	
-};
-
-
 SHITSTATIC retpair<char*, bool> defFileGetArg(
 	char*& curPos, bool ss = false)
 {
@@ -586,10 +581,10 @@ struct ParseDefLine
 		? 0x80 : (a ? (a<<((i+1)*8))|1 : 0); }
 	ALWAYS_INLINE ArgDef(byte a1, byte a2=0, byte a3=0, byte a4=0) 
 		: val(vi(a1,0)+vi(a2,1)+vi(a3,2)+vi(a4,3)) { } };
-	enum { None, Num, Raw, SyN, SyN2, SyS, VArg = -1 };
+	enum { None, Num, Raw, SyN, SyN2, SyS, Str, VArg = -1 };
 	
 	// argument data
-	union Arg_t { u64 num;  char* raw; 
+	union Arg_t { u64 num;  char* raw;
 		SymbArg syn; SymbArg2 syn2; SymStrArg sys;
 		TMPL(T) operator T&() { return *(T*)this; } 
 		Void v() { return Void(this); }};
@@ -646,9 +641,6 @@ bool ParseDefLine::check(cch* name, ArgDef argDef)
 	// match arguments
 	if(stricmp(funcName, name)) return false;
 	int argcDef = argDef.count();
-	
-	printf("%d, %d\n", argc(), argcDef);
-	
 	if(argDef.va()) { if(argc() < argcDef) return false;
 	} else { if(argc() != argcDef) return false; }
 		
@@ -669,9 +661,11 @@ bool ParseDefLine::check(cch* name, ArgDef argDef)
 		cch* err = argn(i).sys.parse(str);
 		if(err) defBad("bad number", str); break; }	
 		
+	case Str: {
+		cch* err = strArg_parse(argn(i).raw, str);
+		if(err) defBad("bad number", str); break; }
+		
 	case Raw:
-		printf("%s\n", str);
-	
 		argn(i).raw = str; break;
 	}}
 	
@@ -695,6 +689,8 @@ cch* ParseDefLine::processLine()
 	FUNC("CALLHOOK", ArgDef(Num,SyN), def_callPatch(a1,a2,1));
 	FUNC("MEMNOP", ArgDef(Num,Num), def_memNop(a1,a2));	
 	FUNC("FUNCREPL", ArgDef(Num,Num,SyN), def_funcRepl(a1,a2,a3));
+	FUNC("ASMPATCH", ArgDef(Num,Str), def_asmPatch(a1,-1,a2)) ;
+	FUNC("ASMPATCH", ArgDef(Num,Num,Str), def_asmPatch(a1,a2,a3));
 
 	// import/export functions
 	FUNC("IMPORTDEF", ArgDef(Raw), def_import(a1,0))
