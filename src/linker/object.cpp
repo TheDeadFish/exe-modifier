@@ -119,11 +119,7 @@ void object_load(const char* fileName,
 			sectName[i] : "##NO NAME##";
 		const char* const sectList[] = {".data", ".bss",
 			".rdata", ".text", ".idata", "@patch"};
-		int type = -1;
-		for(int i = 0; i < ARRAYSIZE(sectList); i++)
-		  if(strScmp(Name, sectList[i]) != NULL) {
-			type = i; break; }
-		if(type < 0) {
+		int type = sectTypeFromName(Name); if(type < 0) {
 			addSection(fileName, Name, 0, type, 0, 0, 0);
 			continue; }
 				

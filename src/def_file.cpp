@@ -695,6 +695,15 @@ cch* ParseDefLine::processLine()
 	FUNC("PATCH_I64", ArgDef(Num,SyN2), def_patchPtr(a1,a2,0,1));
 	FUNC("PATCH_I64", ArgDef(Num,SyN2,Raw), def_patchPtr(a1,a2,a3,1));
 	
+	// section interface
+	FUNC("SECT_CREATE", ArgDef(Raw,Num), def_sectCreate(a1, a2)); 
+	FUNC("SECT_APPEND", ArgDef(Raw,Num,Num), def_sectAppend(a1,a2,a3,0));
+	FUNC("SECT_PREPEND", ArgDef(Raw,Num,Num), def_sectAppend(a1,a2,a3,INT_MIN));
+	//FUNC("SECT_APPEND", ArgDef(Raw,Num,Num,Num), def_sectAppend(a1,a2,a3,0));
+	//FUNC("SECT_PREPEND", ArgDef(Raw,Num,Num,Num), def_sectAppend(a1,a2,a3,1));
+	
+	
+	
 	return "invalid command";
 	
 }

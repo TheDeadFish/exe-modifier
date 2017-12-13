@@ -141,4 +141,40 @@ void fixSection(Section* sect, DWORD rva)
 	free(sect->rawData); sect->rawData = basePtr;
 }
 
+int sectTypeFromName(cch* Name)
+{
+	const char* const sectList[] = {".data", ".bss",
+		".rdata", ".text", ".idata", "@patch"};
+	for(int i = 0; i < ARRAYSIZE(sectList); i++) {
+		if(strScmp(Name, sectList[i])) return i; }
+	return -1;
+}
+
+cch* sectGrow(Section* sect, 
+	DWORD offset, DWORD length)
+{
+	// resize the section
+	if(sect->baseRva) return "section fixed";
+	{ Void ofsPos = xrealloc(sect->rawData, 
+		sect->length+length)+offset;
+	memmove(ofsPos+length, ofsPos, sect->length-offset);
+	sect->length += length; }
+	
+	// alter symbols
+	int iSect = sect-sections; int iSectSymb = -1;
+	for(auto& symb : RngRBL(symbols, nSymbols))
+	if(symb.section == iSect) { 
+	if(symb.nmcmp(sect->name)) { iSectSymb = &symb-symbols; }
+	ei(symb.value >= offset) { symb.value += length; }}
+
+	// alter relocs
+	for(auto& reloc : RngRBL(
+	sect->relocs, sect->nReloc)) {
+	if(reloc.offset >= offset) {
+		if(reloc.symbol == iSectSymb)
+			return "sect symbol referenced";
+		reloc.offset += length; 
+	}}
+}
+
 }

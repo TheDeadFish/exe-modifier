@@ -332,3 +332,40 @@ cch* def_asmPatch(u64 start, u64 end, char* str)
 	Linker::fixSection(sect, PeFILE::addrToRva64(start));
 	remove(tmpName); return 0;
 }
+
+
+cch* def_sectCreate(char* Name, int align)
+{
+	if(Linker::findSection(Name)) return "section exists";
+	int type = Linker::sectTypeFromName(Name);
+	if(type < 0) type = 2; // .rdata
+	Linker::addSection(0, Name, 0, type, align, 0, 0);
+}
+
+cch* def_sectAppend(char* Name,
+	u64 start, u64 end, DWORD offset)
+{
+	printf("hello\n");
+
+
+	// check patch range
+	DWORD length = end-start;
+	Void ptr = PeFILE::patchChk(start, length);
+	if(ptr == NULL) return "bad address range";
+	
+	printf("hello\n");
+	
+	// append section
+	auto sect = Linker::findSection(Name);
+	if(!sect) return "section not found";
+	if(isNeg(offset)) { offset = 
+		sect->length - (offset&INT_MAX); }
+	IFRET(Linker::sectGrow(sect, offset, length));
+	memcpy(sect->rawData+offset, ptr, length);
+	
+	
+
+
+
+	return NULL;
+}

@@ -50,6 +50,9 @@ DWORD addSection(const char* fileName, const char* Name,
 void destroy_section(Section& sect);
 Section* findSection(const char* name);
 void fixSection(Section* sect, DWORD rva);
+int sectTypeFromName(cch* name);
+cch* sectGrow(Section* sect, 
+	DWORD offset, DWORD length);
 
 // symbol interface
 enum : DWORD {
@@ -70,8 +73,8 @@ struct Symbol {
 	cch* getName() { return Name ?
 		Name : "##NO NAME##"; }
 	
-		
-		
+	bool nmcmp(cch* str) { return 
+		Name && !strcmp(Name, str); }
 };
 extern Symbol* symbols;
 extern DWORD nSymbols;
