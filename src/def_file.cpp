@@ -38,6 +38,13 @@ SHITCALL cch* defFileGetNumber(u64& out, char* str)
 	return (str == end) ? "bad number" : 0;
 }
 
+SHITCALL cch* defFileGetAddr(u64& out, char* str)
+{
+	IFRET(defFileGetNumber(out, str));
+	out -= PeFILE::baseAddr64();
+	return RI(&out,4) ? "invalid address" : 0;
+}
+
 SHITCALL bool defFileIsAddress(char* str)
 {
 	if((*str == '+')||(*str == '-')
@@ -581,7 +588,7 @@ struct ParseDefLine
 		? 0x80 : (a ? (a<<((i+1)*8))|1 : 0); }
 	ALWAYS_INLINE ArgDef(byte a1, byte a2=0, byte a3=0, byte a4=0) 
 		: val(vi(a1,0)+vi(a2,1)+vi(a3,2)+vi(a4,3)) { } };
-	enum { None, Num, Raw, SyN, SyN2, SyS, Str, VArg = -1 };
+	enum { None, Num, Raw, SyN, SyN2, SyS, Str, Addr, VArg = -1 };
 	
 	// argument data
 	union Arg_t { u64 num;  char* raw;
@@ -646,16 +653,17 @@ bool ParseDefLine::check(cch* name, ArgDef argDef)
 		
 	// parse the arguments
 	for(int i = 0; i < argcDef; i++) {
-	char *str = argStr(i);
-	switch(argDef.get(i)) {
+	char *str = argStr(i); Arg_t* arg = &argn(i);
+	VARFIX(arg); switch(argDef.get(i)) {
 	#define DO_ARG(ty, ...) case ty: if(cch* err \
 		= __VA_ARGS__) { defBad(err, str); } break;
-	DO_ARG(Num, defFileGetNumber(argn(i).num, str));
-	DO_ARG(SyN, argn(i).syn.parse(str));
-	DO_ARG(SyN2, argn(i).syn2.parse(str));
-	DO_ARG(SyS, argn(i).sys.parse(str));
-	DO_ARG(Str, strArg_parse(argn(i).raw, str));
-	DO_ARG(Raw, ((argn(i).raw = str), (cch*)0));
+	DO_ARG(Num, defFileGetNumber(arg->num, str));
+	DO_ARG(Addr, defFileGetAddr(arg->num, str));
+	DO_ARG(SyN, arg->syn.parse(str));
+	DO_ARG(SyN2, arg->syn2.parse(str));
+	DO_ARG(SyS, arg->sys.parse(str));
+	DO_ARG(Str, strArg_parse(arg->raw, str));
+	DO_ARG(Raw, ((arg->raw = str), (cch*)0));
 	}}
 	
 	// setup varargs
@@ -671,15 +679,15 @@ cch* ParseDefLine::processLine()
 	#define FUNC(fn,ad,func) if(check(fn,ad)) { return func; }
 
 	FUNC("KEEP", ArgDef(Raw), def_keepSymbol(a1));
-	FUNC("FREE", ArgDef(Num,Num), def_freeBlock(a1,a2,0));
+	FUNC("FREE", ArgDef(Addr,Addr), def_freeBlock(a1,a2,0));
 	FUNC("CONSTANT", ArgDef(Num,Raw), def_const(a1,a2));
-	FUNC("SYMBOL", ArgDef(Num,Raw), def_symbol(a1,a2));
-	FUNC("CALLPATCH", ArgDef(Num,SyN), def_callPatch(a1,a2,0));
-	FUNC("CALLHOOK", ArgDef(Num,SyN), def_callPatch(a1,a2,1));
-	FUNC("MEMNOP", ArgDef(Num,Num), def_memNop(a1,a2));	
-	FUNC("FUNCREPL", ArgDef(Num,Num,SyN), def_funcRepl(a1,a2,a3));
-	FUNC("ASMPATCH", ArgDef(Num,Str), def_asmPatch(a1,-1,a2)) ;
-	FUNC("ASMPATCH", ArgDef(Num,Num,Str), def_asmPatch(a1,a2,a3));
+	FUNC("SYMBOL", ArgDef(Addr,Raw), def_symbol(a1,a2));
+	FUNC("CALLPATCH", ArgDef(Addr,SyN), def_callPatch(a1,a2,0));
+	FUNC("CALLHOOK", ArgDef(Addr,SyN), def_callPatch(a1,a2,1));
+	FUNC("MEMNOP", ArgDef(Addr,Addr), def_memNop(a1,a2));	
+	FUNC("FUNCREPL", ArgDef(Addr,Addr,SyN), def_funcRepl(a1,a2,a3));
+	FUNC("ASMPATCH", ArgDef(Addr,Str), def_asmPatch(a1,-1,a2)) ;
+	FUNC("ASMPATCH", ArgDef(Addr,Addr,Str), def_asmPatch(a1,a2,a3));
 
 	// import/export functions
 	FUNC("IMPORTDEF", ArgDef(Raw), def_import(a1,0))
@@ -688,17 +696,17 @@ cch* ParseDefLine::processLine()
 	FUNC("EXPORTDEF", ArgDef(Raw,SyS), def_export(a1,a2.v()))
 	
 	// ptr patch functions
-	FUNC("PATCH_PTR", ArgDef(Num,SyN2), def_patchPtr(a1,a2,0,2));
-	FUNC("PATCH_PTR", ArgDef(Num,SyN2,Raw), def_patchPtr(a1,a2,a3,2));
-	FUNC("PATCH_I32", ArgDef(Num,SyN2), def_patchPtr(a1,a2,0,0));
-	FUNC("PATCH_I32", ArgDef(Num,SyN2,Raw), def_patchPtr(a1,a2,a3,0));
-	FUNC("PATCH_I64", ArgDef(Num,SyN2), def_patchPtr(a1,a2,0,1));
-	FUNC("PATCH_I64", ArgDef(Num,SyN2,Raw), def_patchPtr(a1,a2,a3,1));
+	FUNC("PATCH_PTR", ArgDef(Addr,SyN2), def_patchPtr(a1,a2,0,2));
+	FUNC("PATCH_PTR", ArgDef(Addr,SyN2,Raw), def_patchPtr(a1,a2,a3,2));
+	FUNC("PATCH_I32", ArgDef(Addr,SyN2), def_patchPtr(a1,a2,0,0));
+	FUNC("PATCH_I32", ArgDef(Addr,SyN2,Raw), def_patchPtr(a1,a2,a3,0));
+	FUNC("PATCH_I64", ArgDef(Addr,SyN2), def_patchPtr(a1,a2,0,1));
+	FUNC("PATCH_I64", ArgDef(Addr,SyN2,Raw), def_patchPtr(a1,a2,a3,1));
 	
 	// section interface
 	FUNC("SECT_CREATE", ArgDef(Raw,Num), def_sectCreate(a1, a2)); 
-	FUNC("SECT_APPEND", ArgDef(Raw,Num,Num), def_sectAppend(a1,a2,a3,0));
-	FUNC("SECT_PREPEND", ArgDef(Raw,Num,Num), def_sectAppend(a1,a2,a3,INT_MIN));
+	FUNC("SECT_APPEND", ArgDef(Raw,Addr,Addr), def_sectAppend(a1,a2,a3,0));
+	FUNC("SECT_PREPEND", ArgDef(Raw,Addr,Addr), def_sectAppend(a1,a2,a3,INT_MIN));
 	//FUNC("SECT_APPEND", ArgDef(Raw,Num,Num,Num), def_sectAppend(a1,a2,a3,0));
 	//FUNC("SECT_PREPEND", ArgDef(Raw,Num,Num,Num), def_sectAppend(a1,a2,a3,1));
 	

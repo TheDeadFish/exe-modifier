@@ -142,31 +142,36 @@ cch* def_keepSymbol(char* name)
 	return 0;
 }
 
-cch* def_freeBlock(u64 start,
-	u64 end, int offset)
+cch* def_freeBlock(u32 start,
+	u32 end, int offset)
 {
 	DWORD length = end-start;
-	Void ptr = PeFILE::patchChk(start, length);
+	Void ptr = PeFILE::rvaToPtr(start, length);
 	if(ptr == NULL) return "bad address range";
-	PeFILE::clearSpace(PeFILE::addrToRva(
-		start), length, offset); return 0;
+	PeFILE::clearSpace(start, length, offset);
+	return 0;
 }
 
-cch* def_symbol(u64 value, char* name)
+cch* def_symbol(u32 rva, char* name)
 {
-	Linker::addSymbol(name, Linker::Type_Relocate,
-		-1, PeFILE::addrToRva64(value)); return 0;
+	Linker::addSymbol(name, Linker::Type_Relocate, 
+		-1, rva); return 0;
 }
 
-cch* def_const(u64 value, char* name)
+cch* def_const(u32 value, char* name)
 {
 	Linker::addSymbol(name, Linker::Type_Absolute,
 		-1, value); return 0;
 }
 
-cch* def_callPatch(u64 addr, SymbArg& s, bool hookMode)
+cch* def_callPatch(u32 rva, SymbArg& s, bool hookMode)
 {
-	Void ptr = PeFILE::patchChk(addr, 5);
+	printf("hello\n");
+
+	printf("%d\n", rva);
+
+
+	Void ptr = PeFILE::rvaToPtr(rva, 5);
 	if(ptr == NULL) return "bad patch address";
 	auto cp = callPatchCore(ptr, true);
 	if(cp.patchOffset < 0) return "unsuported instruction";
@@ -187,17 +192,16 @@ cch* def_callPatch(u64 addr, SymbArg& s, bool hookMode)
 	} SCOPE_EXIT(if(hookMode == true) free(s.name););
 	
 	// apply patch
-	int rva = PeFILE::addrToRva(addr);
 	PeFILE::Relocs_Remove(rva, cp.patchOffset+4);
 	if(s.name) { patchPtr.dword() = s.symInit();
 		Linker::addReloc(cp.newType ? Linker::Type_DIR32 : 
 			Linker::Type_REL32,	rva+cp.patchOffset, s.symb);		
 	} else {
-		int patchAddr = addr+cp.patchOffset;
 		if( cp.newType == 0 ) {
-			patchPtr.dword() = s.offset-(patchAddr+4);
+			patchPtr.dword() = PeFILE::addrToRva64
+			(s.offset)-(rva+cp.patchOffset+4);
 		} else {
-			patchPtr.dword() = PeFILE::addrToRva(s.offset);
+			patchPtr.dword() = s.offset;
 			PeFILE::Relocs_Add(rva+cp.patchOffset);
 		}
 	}
@@ -205,24 +209,23 @@ cch* def_callPatch(u64 addr, SymbArg& s, bool hookMode)
 	return 0;
 }
 
-cch* def_memNop(u64 start, u64 end)
+cch* def_memNop(u32 start, u32 end)
 {
 	DWORD length = end-start;
-	Void ptr = PeFILE::patchChk(start, length);
+	Void ptr = PeFILE::rvaToPtr(start, length);
 	if(ptr == NULL) return "bad address range";
-	PeFILE::Relocs_Remove(PeFILE::addrToRva(start), length);
+	PeFILE::Relocs_Remove(start, length);
 	memset(ptr, 0x90, length); return 0;
 }
 
-cch* def_patchPtr(u64 addr, SymbArg2& s,
+cch* def_patchPtr(u32 rva, SymbArg2& s,
 	char* hookSymb, int size)
 {
 	if(size & 2) size += x64Mode();
-	Void ptr = PeFILE::patchChk(addr, (size&1) ? 8 : 4);
+	Void ptr = PeFILE::rvaToPtr(rva, (size&1) ? 8 : 4);
 	if(!ptr) return "bad patch address";
 	
 	// handle hook mode
-	int rva = PeFILE::addrToRva(addr);
 	if(hookSymb) { u64 addr = (size&1) ?
 		ptr.ref<u64>() : ptr.dword();
 		if(size & 2){ def_symbol(addr, hookSymb);
@@ -243,7 +246,7 @@ cch* def_patchPtr(u64 addr, SymbArg2& s,
 	}
 }
 
-SHITCALL cch* def_funcRepl(u64 start, u64 end, SymbArg& s)
+SHITCALL cch* def_funcRepl(u32 start, u32 end, SymbArg& s)
 {
 	IFRET(def_freeBlock(start, end, 5));
 	return def_callPatch(start, s, 0);
@@ -296,7 +299,7 @@ SHITCALL cch* def_export(char* str, SymStrArg* frwd)
 	return 0;
 }
 	
-cch* def_asmPatch(u64 start, u64 end, char* str)
+cch* def_asmPatch(u32 start, u32 end, char* str)
 {
 	// start as
 	xstr tmpName = tempName("exm");
@@ -305,9 +308,10 @@ cch* def_asmPatch(u64 start, u64 end, char* str)
 	if(!fp) return "failed to start as";
 	
 	// pipe out assembly
-	xstr sectNm = xstrfmt(".text$asmPatch_%llX", start);
+	u64 addr = PeFILE::rvaToAddr64(start);
+	xstr sectNm = xstrfmt(".text$asmPatch_%llX", addr);
 	fprintf(fp, ".sect \"%s\",\"0\";", sectNm.data);
-	fprintf(fp, ".equ @, .-%#I64X;", start);
+	fprintf(fp, ".equ @, .-%#I64X;", addr);
 	for(auto& symb : RngRBL(Linker::
 	symbols,Linker::nSymbols)) if(symb.Name
 	&&(symb.section == Linker::Type_Relocate))
@@ -329,7 +333,7 @@ cch* def_asmPatch(u64 start, u64 end, char* str)
 		return "ASMPATCH patch too big";
 	IFRET(def_memNop(start, end));
 	Linker::keepSymbol(sectNm);
-	Linker::fixSection(sect, PeFILE::addrToRva64(start));
+	Linker::fixSection(sect, start);
 	remove(tmpName); return 0;
 }
 
@@ -343,14 +347,14 @@ cch* def_sectCreate(char* Name, int align)
 }
 
 cch* def_sectAppend(char* Name,
-	u64 start, u64 end, DWORD offset)
+	u32 start, u32 end, DWORD offset)
 {
 	printf("hello\n");
 
 
 	// check patch range
 	DWORD length = end-start;
-	Void ptr = PeFILE::patchChk(start, length);
+	Void ptr = PeFILE::rvaToPtr(start, length);
 	if(ptr == NULL) return "bad address range";
 	
 	printf("hello\n");

@@ -34,6 +34,7 @@ namespace PeFILE {
 	static Void patchChk(int addr, int len) { return peFile.patchChk(addr, len); }
 	static DWORD ptrToRva(void* p) { return peFile.ptrToRva(p); }
 	static Void rvaToPtr(DWORD rva) { return peFile.rvaToPtr(rva); }
+	static Void rvaToPtr(DWORD rva, u32 len) { return peFile.rvaToPtr(rva, len); }
 
 	// Load/Save interface
 	const char* load(const char* fileName);
