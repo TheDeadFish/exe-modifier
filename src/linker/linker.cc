@@ -39,6 +39,10 @@ DWORD addSection(const char* fileName, const char* Name,
 	sect.relocs = 0; sect.nReloc = 0;
 	sect.type = type; sect.align = align;
 	sect.baseRva = baseRva; sect.length = length; 
+	
+	// create symbol
+	if(Name && *Name) { addSymbol(
+		Name, nSections-1, 0, 0); }
 	return nSections-1;
 };
 
@@ -175,6 +179,8 @@ cch* sectGrow(Section* sect,
 			return "sect symbol referenced";
 		reloc.offset += length; 
 	}}
+	
+	return NULL;
 }
 
 }

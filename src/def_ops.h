@@ -34,7 +34,9 @@ SHITCALL cch* def_import(char* name, char* symb);
 SHITCALL cch* def_export(char* name, SymStrArg* forward);
 
 SHITCALL cch* def_sectCreate(char* Name, int align);
-SHITCALL cch* def_sectAppend(char* Name,
-	u32 start, u32 end, DWORD offset);
+SHITCALL cch* def_sectInsert(char* Name, u32 start, u32 end, DWORD ofs);
+SHITCALL cch* def_sectAppend(char* Name, u32 start, u32 end, DWORD ofs);
+cch* def_sectRevIns(char* Name, u32 start, u32 mid, u32 end);
+
 
 #endif

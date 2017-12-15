@@ -39,8 +39,6 @@ void object_load(const char* fileName,
 	// read symbols
 	DWORD* symMapp = xMalloc(nSymbols);
 	memset(symMapp, -1, nSymbols*4);
-	char** sectName = xMalloc(nSects);
-	memset(sectName, 0, nSects*4);
 	for(int i = 0; i < nSymbols; i++)
 	{
 		// get symbol name
@@ -92,15 +90,6 @@ void object_load(const char* fileName,
 				file_bad("object: weak symbol", fileName);
 			weakSymb = symMapp[weakSymb];
 		}
-		
-		// section name?
-		if(sclass == 3 ) {
-			if(int(sectIndex) < 0)
-				file_corrupt("object", fileName);
-			if(objSym[i].Value == 0)
-				sectName[section-1] = xstrdup(symName);
-			symName = NULL;
-		}
 
 		symMapp[i] = addSymbol((sclass == 3) ? NULL :
 			symName, sectIndex, weakSymb, objSym[i].Value);
@@ -114,11 +103,12 @@ void object_load(const char* fileName,
 	// Read Sections
 	for(int i = 0; i < nSects; i++)
 	{
-		// validate section name
-		const char* Name = sectName[i] ?
-			sectName[i] : "##NO NAME##";
-		const char* const sectList[] = {".data", ".bss",
-			".rdata", ".text", ".idata", "@patch"};
+		// get section name
+		char* Name = (char*)objSects[i].Name;
+		if(Name[0] == '/') { Name = strTab + atoi(Name+1);
+			if(!nullchk(Name, objLimit))
+				file_corrupt("object", fileName); }
+		if(Name[0] == '\0') Name = NULL;
 		int type = sectTypeFromName(Name); if(type < 0) {
 			addSection(fileName, Name, 0, type, 0, 0, 0);
 			continue; }

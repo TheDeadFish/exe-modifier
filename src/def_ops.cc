@@ -244,6 +244,8 @@ cch* def_patchPtr(u32 rva, SymbArg2& s,
 		Linker::addReloc((size&1) ? Linker::Type_DIR64
 			: Linker::Type_DIR32, rva, s.symb);	
 	}
+	
+	return NULL;
 }
 
 SHITCALL cch* def_funcRepl(u32 start, u32 end, SymbArg& s)
@@ -346,18 +348,13 @@ cch* def_sectCreate(char* Name, int align)
 	Linker::addSection(0, Name, 0, type, align, 0, 0);
 }
 
-cch* def_sectAppend(char* Name,
+cch* def_sectInsert(char* Name,
 	u32 start, u32 end, DWORD offset)
 {
-	printf("hello\n");
-
-
 	// check patch range
 	DWORD length = end-start;
 	Void ptr = PeFILE::rvaToPtr(start, length);
 	if(ptr == NULL) return "bad address range";
-	
-	printf("hello\n");
 	
 	// append section
 	auto sect = Linker::findSection(Name);
@@ -366,10 +363,17 @@ cch* def_sectAppend(char* Name,
 		sect->length - (offset&INT_MAX); }
 	IFRET(Linker::sectGrow(sect, offset, length));
 	memcpy(sect->rawData+offset, ptr, length);
-	
-	
-
-
 
 	return NULL;
+}
+
+NEVER_INLINE
+cch* def_sectAppend(char* Name, u32 start, u32 end, DWORD ofs) {
+	return def_sectInsert(Name, start, end, ofs|INT_MIN); }
+
+cch* def_sectRevIns(char* Name,
+	u32 start, u32 mid, u32 end)
+{
+	IFRET(def_sectInsert(Name, start, mid, 0));
+	return def_sectAppend(Name, mid, end, 0);
 }

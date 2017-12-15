@@ -582,10 +582,10 @@ struct ParseDefLine
 	int argc() { return argLst.dataSize; }
 
 	// argument definition
-	struct ArgDef { int val; byte get(int i) { return val>>((i+1)*8); } 
-	int count() { return val&127; } bool va() { return s8(val) < 0; }
+	struct ArgDef { int val; byte get(int i) { return val>>((i*8)+4); }
+	int count() { return val&7; } bool va() { return val<0; }
 	ALWAYS_INLINE int vi(byte a, int i) { return (s8(a)<0)
-		? 0x80 : (a ? (a<<((i+1)*8))|1 : 0); }
+		? INT_MIN : (a ? (a<<((i*8)+4))|1 : 0); }
 	ALWAYS_INLINE ArgDef(byte a1, byte a2=0, byte a3=0, byte a4=0) 
 		: val(vi(a1,0)+vi(a2,1)+vi(a3,2)+vi(a4,3)) { } };
 	enum { None, Num, Raw, SyN, SyN2, SyS, Str, Addr, VArg = -1 };
@@ -595,7 +595,7 @@ struct ParseDefLine
 		SymbArg syn; SymbArg2 syn2; SymStrArg sys;
 		TMPL(T) operator T&() { return *(T*)this; } 
 		Void v() { return Void(this); }};
-	Arg_t a1, a2, a3; xarray<char*> va;
+	Arg_t a1, a2, a3, a4; xarray<char*> va;
 	Arg_t& argn(int i) { return (&a1)[i]; }
 	
 	void defBad(int srcLn, char* err) { fatal_error(
@@ -706,12 +706,11 @@ cch* ParseDefLine::processLine()
 	// section interface
 	FUNC("SECT_CREATE", ArgDef(Raw,Num), def_sectCreate(a1, a2)); 
 	FUNC("SECT_APPEND", ArgDef(Raw,Addr,Addr), def_sectAppend(a1,a2,a3,0));
-	FUNC("SECT_PREPEND", ArgDef(Raw,Addr,Addr), def_sectAppend(a1,a2,a3,INT_MIN));
-	//FUNC("SECT_APPEND", ArgDef(Raw,Num,Num,Num), def_sectAppend(a1,a2,a3,0));
-	//FUNC("SECT_PREPEND", ArgDef(Raw,Num,Num,Num), def_sectAppend(a1,a2,a3,1));
-	
-	
-	
+	FUNC("SECT_PREPEND", ArgDef(Raw,Addr,Addr), def_sectInsert(a1,a2,a3,0));
+	FUNC("SECT_APPEND", ArgDef(Raw,Addr,Addr,Num), def_sectAppend(a1,a2,a3,a4));
+	FUNC("SECT_PREPEND", ArgDef(Raw,Addr,Addr,Num),	def_sectInsert(a1,a2,a3,a4));
+	FUNC("SECT_REVINS", ArgDef(Raw,Addr,Addr,Addr), def_sectRevIns(a1,a2,a3,a4));
+
 	return "invalid command";
 	
 }
