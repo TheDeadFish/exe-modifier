@@ -27,6 +27,9 @@ SHITCALL cch* def_callPatch(u32 rva, SymbArg& s, bool hookMode);
 SHITCALL cch* def_memNop(u32 start, u32 end);
 SHITCALL cch* def_patchPtr(u32 rva, SymbArg2& s,
 	char* hookSymb, int ptrSize);
+	
+SHITCALL cch* def_fixSect(u32 start, u32 end, char* name);
+SHITCALL cch* def_asmSect(char* name, char* str, u32 start);
 SHITCALL cch* def_asmPatch(u32 start, u32 end, char* ins);
 	
 SHITCALL cch* def_funcRepl(u32 start, u32 end, SymbArg& s);

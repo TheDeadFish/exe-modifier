@@ -300,8 +300,21 @@ SHITCALL cch* def_export(char* str, SymStrArg* frwd)
 		symbol, symbOffset, exp->rva);
 	return 0;
 }
-	
-cch* def_asmPatch(u32 start, u32 end, char* str)
+
+cch* def_fixSect(u32 start, u32 end, char* name)
+{
+	auto sect = Linker::findSection(name);
+	if(!sect) return "section not found";
+	if(isNeg(end)) { end = start + sect->length; }
+	ei(sect->length > (end-start)) 
+		return "section/patch too big";
+	IFRET(def_memNop(start, end));
+	Linker::keepSymbol(name);
+	Linker::fixSection(sect, start);
+	return NULL;
+}
+
+cch* def_asmSect(char* name, char* str, u32 start)
 {
 	// start as
 	xstr tmpName = tempName("exm");
@@ -310,35 +323,33 @@ cch* def_asmPatch(u32 start, u32 end, char* str)
 	if(!fp) return "failed to start as";
 	
 	// pipe out assembly
-	u64 addr = PeFILE::rvaToAddr64(start);
-	xstr sectNm = xstrfmt(".text$asmPatch_%llX", addr);
-	fprintf(fp, ".sect \"%s\",\"0\";", sectNm.data);
-	fprintf(fp, ".equ @, .-%#I64X;", addr);
+	fprintf(fp, ".sect \"%s\",\"0\";", name);
+	if(start) { fprintf(fp, ".equ @, .-%#I64X;",
+		PeFILE::rvaToAddr64(start));
 	for(auto& symb : RngRBL(Linker::
 	symbols,Linker::nSymbols)) if(symb.Name
 	&&(symb.section == Linker::Type_Relocate))
-	fprintf(fp,".equ %s, @+%#I64X;", symb.Name, symb.getAddr());
+	fprintf(fp,".equ %s, @+%#I64X;", symb.Name, symb.getAddr()); }
 	fprintf(fp, "%s\n", str);
-	if(pclose(fp)) return "as returned with error";
-
+	if(pclose(fp)) return "as returned with error";	
+	
 	// load the object
 	auto file = loadFile(tmpName);
 	if(!file) load_error("object", tmpName);
 	Linker::object_load(tmpName, file.data, file.size);
-	file.free();
-	
-	// locate section
-	auto sect = Linker::findSection(sectNm);
-	if(!sect) return "ASMPATCH section not found";
-	if(isNeg(end)) { end = start + sect->length; }
-	ei(sect->length > (end-start)) 
-		return "ASMPATCH patch too big";
-	IFRET(def_memNop(start, end));
-	Linker::keepSymbol(sectNm);
-	Linker::fixSection(sect, start);
-	remove(tmpName); return 0;
+	file.free(); remove(tmpName); return 0;
 }
-
+	
+cch* def_asmPatch(u32 start, u32 end, char* str)
+{
+	// create section
+	xstr sectNm = xstrfmt(".text$asmPatch_%X", start);
+	IFRET(def_asmSect(sectNm, str, start));
+	
+	// fixate section
+	IFRET(def_fixSect(start, end, sectNm));
+	return 0;
+}
 
 cch* def_sectCreate(char* Name, int align)
 {
