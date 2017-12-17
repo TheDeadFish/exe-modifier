@@ -45,10 +45,10 @@ void ExmFileWrite(int argc, char* argv[])
 
 	// load existing file
 	ExmFile exmFile;
-	if(argv[1][0] == '+') {
-		auto file = loadFile(argv[1]+1);
+	if(argv[1][0] == '+') { argv[1]++;
+		auto file = loadFile(argv[1]);
 		if((file)&&(!exmFile.load(file.data, file.size)))
-			fatal_error("bad emx file: %s", argv[1]+1);
+			fatal_error("bad emx file: %s", argv[1]);
 	}
 	
 	// read the files
@@ -107,7 +107,8 @@ ExmFile::SetInfo* ExmFile::findSet(cch* setName)
 ExmFile::SetInfo& ExmFile::addSet(cch* setName)
 {
 	auto* set = findSet(setName);
-	if(!set) { set = &setList.push_back();
+	if(set) { set->Clear(); }
+	else { set = &setList.push_back();
 		set->name = setName; }
 	return *set;
 }
