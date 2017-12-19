@@ -314,6 +314,11 @@ cch* def_fixSect(u32 start, u32 end, char* name)
 	return NULL;
 }
 
+const char* nameJmpCall[] = {"JMP", "CALL", "JO", "JNO", "JS", "JNS", "JE", 
+	"JZ", "JNE", "JNZ", "JB", "JNAE", "JC", "JNB", "JAE", "JNC", "JBE", "JNA",
+	"JA", "JNBE", "JL", "JNGE", "JGE", "JNL", "JLE", "JNG", "JG", "JNLE", "JP",
+	"JPE", "JNP", "JPO" };
+
 cch* def_asmSect(char* name, char* str, u32 start)
 {
 	// start as
@@ -322,15 +327,35 @@ cch* def_asmSect(char* name, char* str, u32 start)
 		tmpName.data, ptrSize()), "w");
 	if(!fp) return "failed to start as";
 	
-	// pipe out assembly
+	// pipe assembly header
 	fprintf(fp, ".sect \"%s\",\"0\";", name);
+	fprintf(fp, ".equ @B, %#I64X;", PeFILE::baseAddr64());
 	if(start) { fprintf(fp, ".equ @, .-%#I64X;",
 		PeFILE::rvaToAddr64(start));
 	for(auto& symb : RngRBL(Linker::
 	symbols,Linker::nSymbols)) if(symb.Name
 	&&(symb.section == Linker::Type_Relocate))
 	fprintf(fp,".equ %s, @+%#I64X;", symb.Name, symb.getAddr()); }
-	fprintf(fp, "%s\n", str);
+	
+	// pipe out assembly body
+	cParse cp; if(cp.load2_(str, 0)) 
+		return "bad asm input";
+	while(auto stmt = cp.tokLst.tok(CTOK_SEMCOL)) {
+		if(auto colon = stmt.splitR(CTOK_COLON)) {
+			fprintf(fp, "%.*s", colon.text().prn()); }
+			
+		// check jump to constant
+		if((stmt.count() == 2)&&(stmt[0].value() == CTOK_NAME)
+		&&(stmt[1].value() == CTOK_NUM)) { cstr op = stmt[0].getStr();
+		for(cch* nm : nameJmpCall) if(!op.icmp(nm)){ fprintf(
+			fp, start ? "%.*s %@+%.*s;" : "%.*s @R+(%.*s-@B);",
+				op.prn(), stmt[1].getStr().prn()); goto L1; 
+		}}
+		
+		fprintf(fp, "%s;", stmt.nTerm()); L1:;
+	}
+	
+	fprintf(fp, "\n");
 	if(pclose(fp)) return "as returned with error";	
 	
 	// load the object

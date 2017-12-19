@@ -3,6 +3,9 @@
 
 void dfLink_init()
 {
+	Linker::addSymbol("@Z", Linker::Type_Absolute, -1, 0);
+	Linker::addSymbol("@R", Linker::Type_Relocate, -1, 0);
+
 	Linker::keepSymbol((char*)archStr->hookEntryPoint);
 	Linker::keepSymbol((char*)archStr->dllHookStartup);
 
