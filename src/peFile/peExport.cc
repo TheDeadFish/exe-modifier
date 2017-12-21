@@ -99,8 +99,8 @@ xarray<PeBlock> PeExport::getBlocks(void)
 		strcmp(nzStr(a.name.data), nzStr(b.name.data)); });
 	blocks[1].length = strsize(dllName);
 	PeBlock* curBlock = blocks+2;
-	for(auto& slot : exports) { curBlock->length =
-		strsize(slot.name); curBlock++; };
+	for(auto& slot : exports) if(slot.name) { curBlock
+		->length = strsize(slot.name); curBlock++; };
 		
 	return {blocks, curBlock};
 }
