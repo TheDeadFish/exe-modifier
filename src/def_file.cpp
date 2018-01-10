@@ -41,8 +41,8 @@ SHITCALL cch* defFileGetNumber(u64& out, char* str)
 SHITCALL cch* defFileGetAddr(u64& out, char* str)
 {
 	IFRET(defFileGetNumber(out, str));
-	out -= PeFILE::baseAddr64();
-	return RI(&out,4) ? "invalid address" : 0;
+	return (!PeFILE::chkAddrToRva64(out))
+		? "invalid address" : 0;
 }
 
 SHITCALL bool defFileIsAddress(char* str)

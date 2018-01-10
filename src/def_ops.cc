@@ -166,11 +166,7 @@ cch* def_const(u32 value, char* name)
 
 cch* def_callPatch(u32 rva, SymbArg& s, bool hookMode)
 {
-	printf("hello\n");
-
-	printf("%d\n", rva);
-
-
+	char* hook_name = NULL;
 	Void ptr = PeFILE::rvaToPtr(rva, 5);
 	if(ptr == NULL) return "bad patch address";
 	auto cp = callPatchCore(ptr, true);
@@ -188,8 +184,8 @@ cch* def_callPatch(u32 rva, SymbArg& s, bool hookMode)
 
 		Linker::addSymbol(s.name, Linker::Type_Relocate, -1, oldCall);
 		
-		s.name = Linker::symbcat(s.name, "_hook");
-	} SCOPE_EXIT(if(hookMode == true) free(s.name););
+		s.name = hook_name = Linker::symbcat(s.name, "_hook");
+	} SCOPE_EXIT(free(hook_name));
 	
 	// apply patch
 	PeFILE::Relocs_Remove(rva, cp.patchOffset+4);
@@ -228,7 +224,9 @@ cch* def_patchPtr(u32 rva, SymbArg2& s,
 	// handle hook mode
 	if(hookSymb) { u64 addr = (size&1) ?
 		ptr.ref<u64>() : ptr.dword();
-		if(size & 2){ def_symbol(addr, hookSymb);
+		if(size & 2){ if(!PeFILE::chkAddrToRva64(addr))
+			return "hook value invalid as rva";
+			def_symbol(addr, hookSymb);
 		} else { def_const(addr, hookSymb); }	
 	}
 		

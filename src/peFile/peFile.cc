@@ -451,8 +451,8 @@ PeFile::Section* PeFile::ptrToSect(void* ptr, u32 len) {
 	for(auto& sect : sects) { if((sect.data <= (byte*)ptr)
 	  &&( sect.end() >= (byte*)ptr+len)) return &sect; } return 0; }
 PeFile::Section* PeFile::rvaToSect(u32 rva, u32 len) {
-	for(auto& sect : sects) { if(( sect.baseRva <= rva ) 
-	  &&( sect.endRva() >= (rva+len))) return &sect; } return 0; }
+	FOR_REV(auto& sect, sects, if(( sect.baseRva <= rva ) 
+	  &&( sect.endRva() >= (rva+len))) return &sect; ) return 0; }
 	  
 Void PeFile::patchChk(u64 addr, u32 len) {
 	 if((addr-=ImageBase) > 0xFFFFFFFF) return 0;

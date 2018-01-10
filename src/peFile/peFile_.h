@@ -20,8 +20,8 @@ namespace PeFILE {
 	static u64 baseAddr64(void) { return peFile.ImageBase; }
 	static u64 rvaToAddr64(int rva) { return rva+baseAddr64(); }
 	static DWORD addrToRva64(u64 addr) { return addr-baseAddr64(); }
-	
-	
+	static bool chkAddrToRva64(u64& addr) {
+		addr -= baseAddr64(); return !RI(&addr,4); }
 	
 	static DWORD addrToRva(int addr) { return addr-baseAddr(); }
 	static DWORD& entryPoint() { return peFile.AddressOfEntryPoint; }

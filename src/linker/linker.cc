@@ -127,14 +127,12 @@ int symbolRva(int symbol)
 	return symbols[symbol].getRva();
 }
 
-char* symbcat(char* symb, const char* str)
+char* symbcat(cch* symb, cch* str)
 {
-	int len = strlen(symb);
-	char* result = xmalloc(strlen(str)+len+1);
-	char* end = strrchr(symb, '@');
-	if(end == NULL) end = symb+len;
-	sprintf(result, "%.*s%s%s",  end-symb, symb, str, end);
-	return result;
+	cstr symb1 = symb;
+	cstr symb2 = cstr_split(symb1, '@');
+	return xstrfmt("%v%s%s", symb2, str, 
+		symb1.data ? symb1.data-1 : "");
 }
 
 void fixSection(Section* sect, DWORD rva)

@@ -42,5 +42,8 @@ SHITCALL cstr tempName(cch* prefix);
 
 #define RngRBL Range
 
+#define FOR_REV(var, rng, ...) { auto && __range = rng; \
+	auto __begin = __range.end(); auto __end = __range.begin(); \
+	while(__begin != __end) { var = *--__begin; __VA_ARGS__; }}
 	
 #endif
