@@ -138,7 +138,7 @@ callPatchCore_t callPatchCore(
 
 cch* def_keepSymbol(char* name)
 {
-	Linker::keepSymbol(name);
+	Linker::keepSymbol(xstrdup(name));
 	return 0;
 }
 
@@ -307,7 +307,7 @@ cch* def_fixSect(u32 start, u32 end, char* name)
 	ei(sect->length > (end-start)) 
 		return "section/patch too big";
 	IFRET(def_memNop(start, end));
-	Linker::keepSymbol(name);
+	def_keepSymbol(name);
 	Linker::fixSection(sect, start);
 	return NULL;
 }
