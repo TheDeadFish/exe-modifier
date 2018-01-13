@@ -685,6 +685,7 @@ cch* ParseDefLine::processLine()
 	FUNC("CALLPATCH", ArgDef(Addr,SyN), def_callPatch(a1,a2,0));
 	FUNC("CALLHOOK", ArgDef(Addr,SyN), def_callPatch(a1,a2,1));
 	FUNC("MEMNOP", ArgDef(Addr,Addr), def_memNop(a1,a2));	
+	FUNC("MEMTRAP", ArgDef(Addr,Addr), def_memTrap(a1,a2));	
 	FUNC("FUNCREPL", ArgDef(Addr,Addr,SyN), def_funcRepl(a1,a2,a3));
 	
 	FUNC("ASMSECT", ArgDef(Raw,Str), def_asmSect(a1,a2,0));

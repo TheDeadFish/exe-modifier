@@ -214,6 +214,15 @@ cch* def_memNop(u32 start, u32 end)
 	memset(ptr, 0x90, length); return 0;
 }
 
+cch* def_memTrap(u32 start, u32 end)
+{
+	DWORD length = end-start;
+	Void ptr = PeFILE::rvaToPtr(start, length);
+	if(ptr == NULL) return "bad address range";
+	PeFILE::Relocs_Remove(start, length);
+	memset(ptr, 0xCC, length); return 0;
+}
+
 cch* def_patchPtr(u32 rva, SymbArg2& s,
 	char* hookSymb, int size)
 {
@@ -316,6 +325,18 @@ const char* nameJmpCall[] = {"JMP", "CALL", "JO", "JNO", "JS", "JNS", "JE",
 	"JZ", "JNE", "JNZ", "JB", "JNAE", "JC", "JNB", "JAE", "JNC", "JBE", "JNA",
 	"JA", "JNBE", "JL", "JNGE", "JGE", "JNL", "JLE", "JNG", "JG", "JNLE", "JP",
 	"JPE", "JNP", "JPO" };
+	
+cch* getRegName(int ch)
+{
+	switch(ch)
+	{
+	case 'a': return "%eax"; case 'b': return "%ebx";
+	case 'c': return "%ecx"; case 'd': return "%edx";
+	case 'S': return "%esi"; case 'D': return "%edi";
+	default: fatalError("getRegName: %c\n", ch);
+	}
+}
+	
 
 cch* def_asmSect(char* name, char* str, u32 start)
 {
@@ -341,6 +362,17 @@ cch* def_asmSect(char* name, char* str, u32 start)
 	while(auto stmt = cp.tokLst.tok(CTOK_SEMCOL)) {
 		if(auto colon = stmt.splitR(CTOK_COLON)) {
 			fprintf(fp, "%.*s", colon.text().prn()); }
+			
+		// check push/pop special
+		if((stmt.count() == 1)&&(stmt[0].value() == CTOK_NAME)) {
+			auto str = stmt[0].getStr().ptr();
+			if(char* regs = strSicmp(str, "ph_")) {
+				for(; str.chk(regs); regs++) { fprintf(fp,
+				"push %s;", getRegName(*regs)); } goto L1; }
+			if(char* regs = strSicmp(str, "pl_")) {
+				for(; str.chk(regs);) { fprintf(fp,
+				"pop %s;", getRegName(str.ld())); } goto L1; }
+		}
 			
 		// check jump to constant
 		if((stmt.count() == 2)&&(stmt[0].value() == CTOK_NAME)
