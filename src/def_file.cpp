@@ -713,6 +713,9 @@ cch* ParseDefLine::processLine()
 	FUNC("SECT_APPEND", ArgDef(Raw,Addr,Addr,Num), def_sectAppend(a1,a2,a3,a4));
 	FUNC("SECT_PREPEND", ArgDef(Raw,Addr,Addr,Num),	def_sectInsert(a1,a2,a3,a4));
 	FUNC("SECT_REVINS", ArgDef(Raw,Addr,Addr,Addr), def_sectRevIns(a1,a2,a3,a4));
+	
+	FUNC("FUNCHOOK", ArgDef(Addr,Num,Raw), def_funcHook(a1,a2,a3));
+	FUNC("PLGMOVE", ArgDef(Addr,Num,Raw), def_prologMove(a1,a2,a3));
 
 	return "invalid command";
 	

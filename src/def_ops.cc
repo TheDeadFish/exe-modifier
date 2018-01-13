@@ -443,3 +443,30 @@ cch* def_sectRevIns(char* Name,
 	IFRET(def_sectInsert(Name, start, mid, 0));
 	return def_sectAppend(Name, mid, end, 0);
 }
+
+cch* def_prologMove(u32 rva, int prologSz, char* name)
+{
+	Void ptr = PeFILE::rvaToPtr(rva, prologSz);
+	
+	// build the assembly argument
+	Bstr buff; buff.fmtcat(".globl %s; %s: .byte ", name, name);
+	for(int i = 0; i < prologSz; i++) {
+		buff.fmtcat("%d,", ptr[i]); }
+	buff.slen--; buff.fmtcat("; jmp 0x%llX", 
+		PeFILE::rvaToAddr64(rva+prologSz));
+	char sectName[128];
+	sprintf(sectName, ".text$plgMove%X", rva);
+	return def_asmSect(sectName, buff, 0);
+}
+
+
+cch* def_funcHook(u32 rva, int prologSz, char* name)
+{
+	IFRET(def_prologMove(rva, prologSz, name));
+
+	Void ptr = PeFILE::rvaToPtr(rva, 5);
+	char sectName[128];
+	sprintf(sectName, "jmp %s", 
+		xstr(Linker::symbcat(name, "_hook")).data);
+	return def_asmPatch(rva, -1, sectName);
+}

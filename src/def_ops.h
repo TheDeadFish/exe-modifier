@@ -42,5 +42,7 @@ SHITCALL cch* def_sectInsert(char* Name, u32 start, u32 end, DWORD ofs);
 SHITCALL cch* def_sectAppend(char* Name, u32 start, u32 end, DWORD ofs);
 cch* def_sectRevIns(char* Name, u32 start, u32 mid, u32 end);
 
+SHITCALL cch* def_funcHook(u32 rva, int prologSz, char* name);
+SHITCALL cch* def_prologMove(u32 rva, int prologSz, char* name);
 
 #endif
