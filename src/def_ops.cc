@@ -375,14 +375,14 @@ cch* def_asmSect(char* name, char* str, u32 start)
 		}
 			
 		// check jump to constant
-		if((stmt.count() == 2)&&(stmt[0].value() == CTOK_NAME)
-		&&(stmt[1].value() == CTOK_NUM)) { cstr op = stmt[0].getStr();
-		for(cch* nm : nameJmpCall) if(!op.icmp(nm)){ fprintf(
-			fp, start ? "%.*s %@+%.*s;" : "%.*s @R+(%.*s-@B);",
-				op.prn(), stmt[1].getStr().prn()); goto L1; 
-		}}
+		if((stmt.count() == 2)&&((stmt[1].getStr().slen > 2))&&
+		(stmt[0].value() == CTOK_NAME)&&(stmt[1].value() == CTOK_NUM))
+		{ cstr op = stmt[0].getStr(); for(cch* nm : nameJmpCall) 
+		if(!op.icmp(nm)){ fprintf(fp, start ? "%.*s %@+%.*s;" : 
+		"%.*s @R+(%.*s-@B);", op.prn(), stmt[1].getStr().prn()); goto L1; }}
 		
-		fprintf(fp, "%s;", stmt.nTerm()); L1:;
+		{ char* tmp = stmt.nTerm();
+		fprintf(fp, "%s;", tmp ? tmp : ""); } L1:;
 	}
 	
 	fprintf(fp, "\n");
@@ -444,29 +444,59 @@ cch* def_sectRevIns(char* Name,
 	return def_sectAppend(Name, mid, end, 0);
 }
 
-cch* def_prologMove(u32 rva, int prologSz, char* name)
+
+cch* prologMove_core(Bstr& buff, u32 rva, int prologSz)
 {
 	Void ptr = PeFILE::rvaToPtr(rva, prologSz);
-	
-	// build the assembly argument
-	Bstr buff; buff.fmtcat(".globl %s; %s: .byte ", name, name);
+	if(ptr == NULL) return "bad address range";
+	buff.fmtcat(".byte ");
 	for(int i = 0; i < prologSz; i++) {
 		buff.fmtcat("%d,", ptr[i]); }
 	buff.slen--; buff.fmtcat("; jmp 0x%llX", 
-		PeFILE::rvaToAddr64(rva+prologSz));
-	char sectName[128];
-	sprintf(sectName, ".text$plgMove%X", rva);
-	return def_asmSect(sectName, buff, 0);
+		PeFILE::rvaToAddr64(rva+prologSz));	
+	return NULL;
 }
 
+
+cch* def_asmSect(cch* name, u32 i, char* str, u32 start)
+{
+	char sectName[128];
+	sprintf(sectName, ".text$%s%X", name, i);
+	return def_asmSect(sectName, str, start);
+}
+
+cch* def_prologMove(u32 rva, int prologSz, char* name)
+{
+	Bstr buff; buff.fmtcat(".globl %s; %s:", name, name);
+	IFRET(prologMove_core(buff, rva, prologSz));
+	return def_asmSect("plgMove",rva,buff,0);
+}
 
 cch* def_funcHook(u32 rva, int prologSz, char* name)
 {
 	IFRET(def_prologMove(rva, prologSz, name));
 
 	Void ptr = PeFILE::rvaToPtr(rva, 5);
-	char sectName[128];
-	sprintf(sectName, "jmp %s", 
+	char buff[128]; sprintf(buff, "jmp %s", 
 		xstr(Linker::symbcat(name, "_hook")).data);
-	return def_asmPatch(rva, -1, sectName);
+	return def_asmPatch(rva, -1, buff);
+}
+
+cch* def_makeJump(u32 rva, char* name)
+{
+	char buff[128]; sprintf(buff, "jmp %s", name);
+	return def_asmPatch(rva, -1, buff);	
+}
+
+cch* def_codeHook(u32 rva, int prologSz, char* str)
+{
+	Bstr buff; buff.fmtcat("%s;", str);
+	prologMove_core(buff, rva, prologSz);
+	
+	printf("!! %s\n", buff.data);
+	
+	char sectName[128];
+	sprintf(sectName, ".text$def_codeHook%X", rva);
+	IFRET(def_asmSect(sectName, buff, 0));
+	return def_makeJump(rva, sectName);
 }

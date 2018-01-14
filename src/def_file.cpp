@@ -716,6 +716,9 @@ cch* ParseDefLine::processLine()
 	
 	FUNC("FUNCHOOK", ArgDef(Addr,Num,Raw), def_funcHook(a1,a2,a3));
 	FUNC("PLGMOVE", ArgDef(Addr,Num,Raw), def_prologMove(a1,a2,a3));
+	FUNC("CODEHOOK", ArgDef(Addr,Num,Str), def_codeHook(a1,a2,a3));
+	
+	FUNC("MAKEJUMP", ArgDef(Addr,Raw), def_makeJump(a1,a2))
 
 	return "invalid command";
 	

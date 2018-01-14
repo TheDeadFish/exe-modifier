@@ -44,5 +44,7 @@ cch* def_sectRevIns(char* Name, u32 start, u32 mid, u32 end);
 
 SHITCALL cch* def_funcHook(u32 rva, int prologSz, char* name);
 SHITCALL cch* def_prologMove(u32 rva, int prologSz, char* name);
+SHITCALL cch* def_codeHook(u32 rva, int prologSz, char* str);
+SHITCALL cch* def_makeJump(u32 rva, char* name);
 
 #endif
