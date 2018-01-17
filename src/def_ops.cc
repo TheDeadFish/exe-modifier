@@ -465,6 +465,15 @@ cch* def_asmSect(cch* name, u32 i, char* str, u32 start)
 	return def_asmSect(sectName, str, start);
 }
 
+cch* def_asmSect2(u32 rva, char* str)
+{
+	// create section
+	char sectName[32]; sprintf(
+		sectName, ".text$asmSect%X", rva);
+	IFRET(def_asmSect(sectName, str, 0));
+	return def_makeJump(rva, sectName);
+}
+
 cch* def_prologMove(u32 rva, int prologSz, char* name)
 {
 	Bstr buff; buff.fmtcat(".globl %s; %s:", name, name);
@@ -499,4 +508,15 @@ cch* def_codeHook(u32 rva, int prologSz, char* str)
 	sprintf(sectName, ".text$def_codeHook%X", rva);
 	IFRET(def_asmSect(sectName, buff, 0));
 	return def_makeJump(rva, sectName);
+}
+
+cch* def_funcKill(u32 start, u32 end, u64* val)
+{
+	char buff[128]; buff[0] = 0;
+	if(val) sprintf(buff, "movl $%d, %eax;", RI(val));
+	strcat(buff, "ret");
+	
+	int len = val ? 6 : 1;
+	IFRET(def_freeBlock(start, end, len));
+	return def_asmPatch(start, start+len, buff);
 }

@@ -689,6 +689,7 @@ cch* ParseDefLine::processLine()
 	FUNC("FUNCREPL", ArgDef(Addr,Addr,SyN), def_funcRepl(a1,a2,a3));
 	
 	FUNC("ASMSECT", ArgDef(Raw,Str), def_asmSect(a1,a2,0));
+	FUNC("ASMSECT2", ArgDef(Addr,Str), def_asmSect2(a1,a2));
 	FUNC("ASMPATCH", ArgDef(Addr,Str), def_asmPatch(a1,-1,a2)) ;
 	FUNC("ASMPATCH", ArgDef(Addr,Addr,Str), def_asmPatch(a1,a2,a3));
 
@@ -719,6 +720,12 @@ cch* ParseDefLine::processLine()
 	FUNC("CODEHOOK", ArgDef(Addr,Num,Str), def_codeHook(a1,a2,a3));
 	
 	FUNC("MAKEJUMP", ArgDef(Addr,Raw), def_makeJump(a1,a2))
+	
+	FUNC("FUNCKILL", ArgDef(Addr,Addr), def_funcKill(a1,a2,0))
+	FUNC("FUNCKILL", ArgDef(Addr,Addr,Num), def_funcKill(a1,a2,&a3.num))
+	
+	
+	
 
 	return "invalid command";
 	
