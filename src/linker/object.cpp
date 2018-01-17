@@ -35,6 +35,37 @@ void object_load(const char* fileName,
 	char* strTab = (char*)(objSym+nSymbols);
 	if(objLimit < (strTab+4))
 		file_corrupt("object", fileName);
+		
+	// read sections
+	DWORD* sectMapp = xMalloc(nSects);
+	memset(sectMapp, -1, nSects*4);
+	for(int i = 0; i < nSects; i++)
+	{
+		// get section name
+		char* Name = (char*)objSects[i].Name;
+		if(Name[0] == '/') { Name = strTab + atoi(Name+1);
+			if(!nullchk(Name, objLimit))
+				file_corrupt("object", fileName); }
+		if(Name[0] == '\0') Name = NULL;
+		int type = sectTypeFromName(Name); 
+		if(type < 0) { continue; }
+		
+		// register section
+		if( objSects[i].VirtualAddress != 0 )
+			file_bad("object", fileName);
+		DWORD sectSize = objSects[i].SizeOfRawData;
+		if(!sectSize && (type!=4)) { continue; }
+		Void sectData = NULL;
+		if( objSects[i].PointerToRawData != 0 )	{
+			sectData = objFile + objSects[i].PointerToRawData;
+			if( (sectData + sectSize) > objLimit )
+				file_corrupt("object", fileName); 
+		}
+		int align = (objSects[i].Characteristics>>20)&15;
+		if(align != 0) align = 1 << (align-1);
+		sectMapp[i] = addSection(fileName, Name, 
+			sectData, type, align, 0, sectSize);
+	}
 	
 	// read symbols
 	DWORD* symMapp = xMalloc(nSymbols);
@@ -76,15 +107,16 @@ void object_load(const char* fileName,
 			sectIndex = Type_Undefined;
 		else {
 			if(section > nSects)
-				file_corrupt("object", fileName);
-			sectIndex = (section-1)+nSections;
+				file_corrupt("object1", fileName);
+			sectIndex = sectMapp[section-1];
+			if(isNeg(sectIndex)) continue;
 		}
 		
 		// weak symbol
 		DWORD weakSymb = -1;
 		if(sclass == 105) {
 			if(objSym[i].NumberOfAuxSymbols != 1)
-				file_corrupt("object", fileName);
+				file_corrupt("object2", fileName);
 			weakSymb = objSym[i+1].Name1;
 			if(weakSymb >= i)
 				file_bad("object: weak symbol", fileName);
@@ -93,47 +125,22 @@ void object_load(const char* fileName,
 
 		symMapp[i] = addSymbol((sclass == 3) ? NULL :
 			symName, sectIndex, weakSymb, objSym[i].Value);
-		if(symMapp[i] < 0) {
+		/*if(isNeg(symMapp[i])) {
 			FATAL_ERROR("object:duplicate symbol, %s",
 				symName ? symName : "##NO NAME##", fileName);
-		}
+		}*/
 		i += objSym[i].NumberOfAuxSymbols;
 	}
 
-	// Read Sections
+	// read relocs
 	for(int i = 0; i < nSects; i++)
 	{
-		// get section name
-		char* Name = (char*)objSects[i].Name;
-		if(Name[0] == '/') { Name = strTab + atoi(Name+1);
-			if(!nullchk(Name, objLimit))
-				file_corrupt("object", fileName); }
-		if(Name[0] == '\0') Name = NULL;
-		int type = sectTypeFromName(Name); if(type < 0) {
-			addSection(fileName, Name, 0, type, 0, 0, 0);
-			continue; }
-				
-		// register section
-		if( objSects[i].VirtualAddress != 0 )
-			file_bad("object", fileName);
-		DWORD sectSize = objSects[i].SizeOfRawData;
-		if( sectSize == 0 ) type = -1;
-		Void sectData = NULL;
-		if( objSects[i].PointerToRawData != 0 )	{
-			sectData = objFile + objSects[i].PointerToRawData;
-			if( (sectData + sectSize) > objLimit )
-				file_corrupt("object", fileName); 
-		}
-		int align = (objSects[i].Characteristics>>20)&15;
-		if(align != 0) align = 1 << (align-1);
-		DWORD sectIndex = addSection(fileName, Name, 
-			sectData, type, align, 0, sectSize);
-		
-		// read relocs
+		if(isNeg(sectMapp[i])) continue;
+		auto& sect = sections[sectMapp[i]];
 		ObjRelocs* relocs = objFile + objSects[i].PointerToRelocations;
 		DWORD nRelocs = objSects[i].NumberOfRelocations;
 		if((relocs + nRelocs) > objLimit)
-			file_corrupt("object", fileName);
+			file_corrupt("object3", fileName);
 		
 		for(auto& reloc : Range(relocs, nRelocs))
 		{
@@ -160,9 +167,9 @@ void object_load(const char* fileName,
 			// register reloc
 			if((reloc.symbol >= nSymbols)
 			||(int(symMapp[reloc.symbol]) < 0))
-				file_corrupt("object", fileName);
-			sections[sectIndex].addReloc(type, 
-				reloc.offset, symMapp[reloc.symbol]);
+				file_corrupt("object4", fileName);
+			sect.addReloc(type, reloc.offset,
+				symMapp[reloc.symbol]);
 		}
 	}
 }
