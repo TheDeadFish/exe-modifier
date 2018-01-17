@@ -493,8 +493,18 @@ cch* def_funcHook(u32 rva, int prologSz, char* name)
 
 cch* def_makeJump(u32 rva, char* name)
 {
-	char buff[128]; sprintf(buff, "jmp %s", name);
-	return def_asmPatch(rva, -1, buff);	
+	SymbArg s; IFRET(s.parse(name));
+	
+	Void ptr = PeFILE::rvaToPtr(rva, 5);
+	if(ptr == NULL) return "bad patch address";
+	PeFILE::Relocs_Remove(rva, 5); WRI(PB(ptr),0xE9);
+	if(s.name) { ptr.dword() = s.symInit();
+		Linker::addReloc(Linker::Type_REL32, rva+1, s.symb);
+	} else {
+		ptr.dword() = PeFILE::addrToRva64(s.offset)-(rva+5);
+	}
+	
+	return NULL;
 }
 
 cch* def_codeHook(u32 rva, int prologSz, char* str)
