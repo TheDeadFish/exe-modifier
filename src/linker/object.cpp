@@ -125,10 +125,10 @@ void object_load(const char* fileName,
 
 		symMapp[i] = addSymbol((sclass == 3) ? NULL :
 			symName, sectIndex, weakSymb, objSym[i].Value);
-		/*if(isNeg(symMapp[i])) {
+		if(isNeg(symMapp[i])) {
 			FATAL_ERROR("object:duplicate symbol, %s",
 				symName ? symName : "##NO NAME##", fileName);
-		}*/
+		}
 		i += objSym[i].NumberOfAuxSymbols;
 	}
 

@@ -80,8 +80,6 @@ void LibraryLoad::load()
 	Void exportLimit = exportData + exportSize;
 	int exportCount = bswap32(*exportData.ptr<int>()++);
 	char* exportStr = exportData + exportCount*4;
-	char* objectRef = xmalloc(exportCount);
-	int lockupCheck = 0;
 	
 	// check extended names
 	char* extNames = NULL;
@@ -90,41 +88,39 @@ void LibraryLoad::load()
 	&&(*(DWORD*)extNames_->fileName == 0x20202F2F))
 		extNames = extNames_->getData(); }
 		
+	int lastExport = -1;
 RECHECK_EXPORTS:
 	// resolve undefined symbols
 	const char* curPos = exportStr;
-	memset(objectRef, 0, exportCount);
 	for(int i = 0; i < exportCount; i++)
 	{
+		if(i == lastExport) return;
+	
+		// check for undefined symbol
 		const char* newPos = nullchk(curPos, exportLimit);
 		if(!newPos) eofErr(curPos);
 		int symbIndex = findSymbol(curPos);
 		if(( symbIndex >= 0 )
-		&&( symbols[symbIndex].section == Type_Undefined ))
-			objectRef[i] = 1;
-		curPos = newPos;
-	}
-	
-	// load objects
-	bool recheck = false;
-	for(int i = 0; i < exportCount; i++)
-	  if(objectRef[i] != 0)
-	{
+		&&( symbols[symbIndex].section == Type_Undefined )) {
+		
+		// get object file
 		int objIndex = bswap32(exportData.dword(i));
 		Header* objHedr = fileData+objIndex;
 		int objSize = objHedr->check(fileLimit);
-		if(objSize < 0) eofErr(&exportData.dword(i));
+		if(objSize < 0) eofErr(&exportData.dword(i));		
 		
+		// load the object
 		cstr objName = getName(objHedr, extNames);
 		object_load(Xstrfmt("%s:%$s", fileName, objName), 
-			objHedr->getData(), objSize);
-		recheck = true;
+			objHedr->getData(), objSize);	
+		lastExport = i;
+		}
+
+		curPos = newPos;
 	}
-	if(recheck == true) {
-		if(lockupCheck++ > 20)
-			fileBad("recursion depth exceeded", 0);
-		goto RECHECK_EXPORTS; 
-	}
+	
+	if(lastExport >= 0)
+		goto RECHECK_EXPORTS;
 }
 
 void library_load(const char* fileName, 
