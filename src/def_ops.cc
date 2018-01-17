@@ -522,11 +522,9 @@ cch* def_codeHook(u32 rva, int prologSz, char* str)
 
 cch* def_funcKill(u32 start, u32 end, u64* val)
 {
-	char buff[128]; buff[0] = 0;
-	if(val) sprintf(buff, "movl $%d, %eax;", RI(val));
-	strcat(buff, "ret");
-	
 	int len = val ? 6 : 1;
-	IFRET(def_freeBlock(start, end, len));
-	return def_asmPatch(start, start+len, buff);
+	IFRET(def_freeBlock(start, end, len));	
+	Void ptr = PeFILE::rvaToPtr(start, len);
+	if(val) { ptr[0] = 0xB8; ptr.Dword(1) = *val; 
+		ptr += 5;} ptr[0] = 0xC3; return NULL;
 }
