@@ -511,9 +511,7 @@ cch* def_codeHook(u32 rva, int prologSz, char* str)
 {
 	Bstr buff; buff.fmtcat("%s;", str);
 	prologMove_core(buff, rva, prologSz);
-	
-	printf("!! %s\n", buff.data);
-	
+
 	char sectName[128];
 	sprintf(sectName, ".text$def_codeHook%X", rva);
 	IFRET(def_asmSect(sectName, buff, 0));
