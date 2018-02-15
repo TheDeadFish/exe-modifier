@@ -725,7 +725,10 @@ cch* ParseDefLine::processLine()
 	FUNC("FUNCKILL", ArgDef(Addr,Addr,Num), def_funcKill(a1,a2,&a3.num))
 	
 	
-	
+	FUNC("MAKERET", ArgDef(Addr), def_makeRet(RU(&a1), 0, 0))
+	FUNC("MAKERET", ArgDef(Addr,Num), def_makeRet(RU(&a1), 0, &a2.num))
+	FUNC("MAKERETn", ArgDef(Addr,Num), def_makeRet(RU(&a1), a2, 0))
+	FUNC("MAKERETn", ArgDef(Addr,Num,Num), def_makeRet(RU(&a1), 0, &a3.num))
 
 	return "invalid command";
 	

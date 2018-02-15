@@ -518,11 +518,27 @@ cch* def_codeHook(u32 rva, int prologSz, char* str)
 	return def_makeJump(rva, sectName);
 }
 
+cch* def_makeRet(DWORD& rva, u32 sz, u64* val)
+{
+	// clear patch address
+	int len = val ? 6 : 1; if(sz) len += 2;
+	Void ptr = PeFILE::rvaToPtr(rva, len);
+	if(!ptr) return "bad patch address";
+	PeFILE::Relocs_Remove(rva, len);
+	
+	// encode the return
+	if(val) { ptr[0] = 0xB8; ptr.
+		Dword(1) = *val; ptr += 5;}
+	if(sz) { ptr[0] = 0xC2; RW(ptr) = sz;
+	} else { ptr[0] = 0xC3; } return NULL;
+}
+
 cch* def_funcKill(u32 start, u32 end, u64* val)
 {
 	int len = val ? 6 : 1;
 	IFRET(def_freeBlock(start, end, len));	
 	Void ptr = PeFILE::rvaToPtr(start, len);
+	if(!ptr) return "bad patch address";
 	if(val) { ptr[0] = 0xB8; ptr.Dword(1) = *val; 
 		ptr += 5;} ptr[0] = 0xC3; return NULL;
 }
