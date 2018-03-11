@@ -9,6 +9,11 @@ struct FreeLst2_t : FreeLst_t { word align, iSect;
 		u32 rva, u32 end, u32 align, u32 iSect); 
 };
 
+struct FreeLst0 : xArray<FreeLst_t> 
+{
+	void mark(u32 rva, u32 end);
+};
+
 struct FreeLst : xArray<FreeLst2_t> 
 {
 	PeFile* peFile; 

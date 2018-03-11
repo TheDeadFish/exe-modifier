@@ -49,6 +49,9 @@ void FreeLst2_t::mark(void* xa, u32 sz,
 	}
 }
 
+void FreeLst0::mark(u32 rva, u32 end) {
+	FreeLst2_t::mark(this, 8, rva, end, 0, 0); }
+
 Void FreeLst::mark(u32 rva, u32 len, u32 align) {
 	return mark(rva, len,  align, true); }
 
@@ -71,11 +74,9 @@ char* FreeLst::markStrDup(u32 rva)
 
 struct FreeSect
 {
-	struct Sect : xArray<FreeLst_t> {
+	struct Sect : FreeLst0 {
 		WORD type; WORD iSect; 
 		u32 extent; u32 endRva;
-		void mark(u32 rva, u32 end) { FreeLst2_t::
-			mark(this, 8, rva, end, 0, 0); }
 	}; xArray<Sect> sects;
 	PeFile& peFile;
 	

@@ -24,6 +24,8 @@ SHITCALL cch* def_freeBlock(u32 start, u32 end, int offset);
 SHITCALL cch* def_symbol(u32 rva, char* name);
 SHITCALL cch* def_const(u32 value, char* name);
 SHITCALL cch* def_callPatch(u32 rva, SymbArg& s, bool hookMode);
+
+SHITCALL cch* def_memKeep(u32 start, u32 end);
 SHITCALL cch* def_memNop(u32 start, u32 end);
 SHITCALL cch* def_memTrap(u32 start, u32 end);
 SHITCALL cch* def_patchPtr(u32 rva, SymbArg2& s,

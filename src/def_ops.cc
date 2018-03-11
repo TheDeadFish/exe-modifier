@@ -2,6 +2,48 @@
 #include "exe_mod.h"
 #include "def_ops.h"
 
+static FreeLst0 memKeep;
+
+struct MemKeepSeq {
+	FreeLst_t* nextPos; u32 end;
+	std::pair<u32,u32> init(u32 start, u32 end);
+	std::pair<u32,u32> next();
+};
+
+std::pair<u32,u32> MemKeepSeq
+	::init(u32 start, u32 end)
+{
+	for(auto& x : memKeep) if(x.rva >= start) { 
+		if(x.rva >= end) break; nextPos = &x;
+		this->end = end; end = x.rva; 
+		if(end == start) return next(); 
+		return {start, end}; }
+	nextPos = 0; return {start, end};
+}
+
+std::pair<u32,u32> MemKeepSeq::next()
+{
+	// get start position
+	if(!nextPos) return {0,0};
+	u32 start = nextPos->end;
+	u32 end = this->end;
+	if(start >= end) return {0,0};
+	
+	// get end position
+	if((++nextPos < memKeep.end())
+	&&(end > nextPos->rva)) {
+		end = nextPos->rva;
+	} else { nextPos = 0; }
+	return {start, end};
+}
+
+#define MEMKEEP_LOOP(...) {	MemKeepSeq mks; \
+	std::tie(start,end) = mks.init(start, end); \
+	while(start) { DWORD length = end-start; \
+		Void ptr = PeFILE::rvaToPtr(start, length); \
+		if(ptr == NULL) return "bad address range"; \
+		__VA_ARGS__; std::tie(start,end) = mks.next(); }} 
+
 SHITCALL cch* defFileGetNumber(u64& out, char* str);
 SHITCALL bool defFileIsAddress(char* str);
 SHITCALL char* defFileGetNumPos(char* str);
@@ -145,10 +187,8 @@ cch* def_keepSymbol(char* name)
 cch* def_freeBlock(u32 start,
 	u32 end, int offset)
 {
-	DWORD length = end-start;
-	Void ptr = PeFILE::rvaToPtr(start, length);
-	if(ptr == NULL) return "bad address range";
-	PeFILE::clearSpace(start, length, offset);
+	MEMKEEP_LOOP(PeFILE::clearSpace(
+		start, length, offset)); 
 	return 0;
 }
 
@@ -205,22 +245,32 @@ cch* def_callPatch(u32 rva, SymbArg& s, bool hookMode)
 	return 0;
 }
 
-cch* def_memNop(u32 start, u32 end)
+cch* def_memKeep(u32 start, u32 end)
 {
 	DWORD length = end-start;
 	Void ptr = PeFILE::rvaToPtr(start, length);
 	if(ptr == NULL) return "bad address range";
-	PeFILE::Relocs_Remove(start, length);
-	memset(ptr, 0x90, length); return 0;
+	memKeep.mark(start, end); 
+	return 0;
+}
+
+cch* def_memFill8(u32 start, u32 end, int val)
+{
+	MEMKEEP_LOOP(
+		PeFILE::Relocs_Remove(start, length);
+		memset(ptr, val, length)); 
+	return 0;
+
+}
+
+cch* def_memNop(u32 start, u32 end)
+{
+	return def_memFill8(start, end, 0x90);
 }
 
 cch* def_memTrap(u32 start, u32 end)
 {
-	DWORD length = end-start;
-	Void ptr = PeFILE::rvaToPtr(start, length);
-	if(ptr == NULL) return "bad address range";
-	PeFILE::Relocs_Remove(start, length);
-	memset(ptr, 0xCC, length); return 0;
+	return def_memFill8(start, end, 0xCC);
 }
 
 cch* def_patchPtr(u32 rva, SymbArg2& s,
