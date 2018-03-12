@@ -575,6 +575,7 @@ void processLine(void)
 struct ParseDefLine
 {
 	// parsing state
+	char* def_file;
 	cParse cp; char* funcName; 
 	xVector<cParse::Parse_t> argLst;
 	char*& argStr(int i) { return 
@@ -599,9 +600,9 @@ struct ParseDefLine
 	Arg_t& argn(int i) { return (&a1)[i]; }
 	
 	void defBad(int srcLn, char* err) { fatal_error(
-		"def file:%d:%d: bad (%d)", cp.getLine(err), srcLn); }
+		"%s: %d:%d: bad (%d)", def_file, cp.getLine(err), srcLn); }
 	void defBad(cch* str, char* err) { fatal_error(
-		"def file:%d:%d: %s", cp.getLine(err), str); }
+		"%s: %d:%d: %s", def_file, cp.getLine(err), str); }
 		
 	bool check(cch* name, ArgDef argDef);
 		
@@ -613,6 +614,7 @@ void parse_def_file(
 {
 	// load def file
 	ParseDefLine defLine{};
+	defLine.def_file = def_file;
 	char* err = defLine.cp.load2_(
 		data, cParse::FLAG_STRCOMBINE);
 	if(err) defLine.defBad("load failed", err);
