@@ -305,10 +305,10 @@ cch* def_patchPtr(u32 rva, SymbArg2& s,
 	return NULL;
 }
 
-SHITCALL cch* def_funcRepl(u32 start, u32 end, SymbArg& s)
+SHITCALL cch* def_funcRepl(u32 start, u32 end, char* name)
 {
 	IFRET(def_freeBlock(start, end, 5));
-	return def_callPatch(start, s, 0);
+	return def_makeJump(start, name);
 }
 
 SHITCALL cch* def_import(char* name, char* symb)

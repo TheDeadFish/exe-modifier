@@ -688,7 +688,7 @@ cch* ParseDefLine::processLine()
 	FUNC("MEMKEEP", ArgDef(Addr,Addr), def_memKeep(a1,a2));	
 	FUNC("MEMNOP", ArgDef(Addr,Addr), def_memNop(a1,a2));	
 	FUNC("MEMTRAP", ArgDef(Addr,Addr), def_memTrap(a1,a2));	
-	FUNC("FUNCREPL", ArgDef(Addr,Addr,SyN), def_funcRepl(a1,a2,a3));
+	FUNC("FUNCREPL", ArgDef(Addr,Addr,Raw), def_funcRepl(a1,a2,a3));
 	
 	FUNC("ASMSECT", ArgDef(Raw,Str), def_asmSect(a1,a2,0));
 	FUNC("ASMSECT2", ArgDef(Addr,Str), def_asmSect2(a1,a2));
