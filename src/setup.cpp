@@ -6,7 +6,7 @@ const char progName[] = "test";
 xArray<cch*> lib_path32;
 xArray<cch*> lib_path64;
 
-bool addPath(cstr fName)
+bool addPath(cstr fName, int mode)
 {
 	// determin architecture
 	xArray<byte> file = loadFile(fName);
@@ -16,6 +16,7 @@ bool addPath(cstr fName)
 		(file.getr<u32>(72)),62);
 	if(!objPtr) return false;
 	bool is64 = RW(objPtr+60) == 0x8664;
+	if(!(is64 ^ mode)) return false;
 	
 	// add path to list
 	cstr path = getPath(fName);
@@ -31,7 +32,7 @@ size_t __stdcall locatePathCb(int err, FindFiles_t& ff)
 	if((!strcmp(name, "libmsvcrt.a"))
 	||(!strcmp(name, "libgcc.a"))
 	||(!strcmp(name, "libgcc_s.a"))) {
-		addPath(ff.fName); }
+		addPath(ff.fName, size_t(ff.ctx)); }
 	return 0;
 }
 
@@ -39,7 +40,7 @@ size_t __stdcall locatePathCb2(int err, FindFiles_t& ff)
 {
 	cstr ext = getExt(ff.getName());
 	if(!ext.icmp(".a")) {
-		addPath(ff.fName); }
+		addPath(ff.fName, size_t(ff.ctx)); }
 	return 0;
 }
 
@@ -51,24 +52,34 @@ void print_path(FILE* fp, cch* name, xArray<cch*>& lp)
 	fprintf(fp, "\n");
 }
 
-int main()
+void find_paths(cch* mingwPath, int x86Mode)
 {
 	// locate libraries
-	char* mingwPath = inputBox(NULL, "exe modifier setup",
-		"Please enter path to MinGW", "C:\\MinGW");
-	if(mingwPath == NULL) return 0;
 	mingwPath = getFullPath(xstr(mingwPath));
-	findFiles(mingwPath, 0, 0, locatePathCb);
+	findFiles(mingwPath, 0, (void*)x86Mode, locatePathCb);
 	if(!lib_path32.len && !lib_path64.len)
-		fatalError("mingw libraries not found");
-	
+		fatalError("mingw libraries not found");	
+}
+
+int main()
+{
+	// select the paths
+	cch* x86Path = selectFolder(NULL, 
+		"select MinGW x86 path", 0);
+	cch* x64Path = selectFolder(NULL, 
+		"select MinGW x64 path", x86Path);
+		
+	if(!x86Path && !x64Path) return 0;
+	find_paths(x86Path, 1);
+	find_paths(x64Path, 0);
+		
 	// add other paths of interest
-	mingwPath = getEnvironmentVariable("PREFIX");
+	cch* mingwPath = getEnvironmentVariable("PREFIX");
 	if(mingwPath) findFiles(xstr(getFullPathF(
-		mingwPath)), 0, 0, locatePathCb2);
+		mingwPath)), 0, (void*)-1, locatePathCb2);
 	mingwPath = getEnvironmentVariable("PROGRAMS");
 	if(mingwPath) findFiles(xstr(fullNameCat(
-		mingwPath,"local")), 0, 0, locatePathCb2);
+		mingwPath,"local")), 0, (void*)-1, locatePathCb2);	
 	
 	// output the exe_mod.cfg
 	FILE* fp = fopen("exe_mod.cfg", "w");
