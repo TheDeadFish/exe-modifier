@@ -152,7 +152,7 @@ bool ExmFile::save(cch* fileName)
 	for(auto& set : setList) for(auto& arg : set) 
 	if(arg.fileId >= 0)	fileList[arg.fileId].fileId = 1;
 	for(auto& file : fileList) if(file.fileId)
-		file.fileId = nFiles++; 
+		file.fileId = ++nFiles; 
 		
 	// write header
 	FILE* fp = xfopen(fileName, "wb");
@@ -162,8 +162,8 @@ bool ExmFile::save(cch* fileName)
 	
 	// write files
 	for(auto& file : fileList) {
-		xfwrite(file.size, fp);
-		xfwrite(file.data, file.size, fp);
+		if(file.fileId) { xfwrite(file.size, fp);
+		xfwrite(file.data, file.size, fp); }
 	}
 	
 	// write sets
@@ -171,7 +171,7 @@ bool ExmFile::save(cch* fileName)
 	writeArg(fp, set.len, set.name);
 	for(auto& arg : set) {
 		WORD fileId = (arg.fileId < 0) ?
-			0 : fileList[arg.fileId].fileId+1;
+			0 : fileList[arg.fileId].fileId;
 		writeArg(fp, fileId, arg.arg);
 	}}
 }
