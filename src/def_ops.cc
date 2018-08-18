@@ -579,7 +579,7 @@ cch* def_makeRet(DWORD& rva, u32 sz, u64* val)
 	// encode the return
 	if(val) { ptr[0] = 0xB8; ptr.
 		Dword(1) = *val; ptr += 5;}
-	if(sz) { ptr[0] = 0xC2; RW(ptr) = sz;
+	if(sz) { ptr[0] = 0xC2; RW(ptr+1) = sz;
 	} else { ptr[0] = 0xC3; } return NULL;
 }
 
