@@ -706,6 +706,8 @@ cch* ParseDefLine::processLine()
 	// ptr patch functions
 	FUNC("PATCH_PTR", ArgDef(Addr,SyN2), def_patchPtr(a1,a2,0,2));
 	FUNC("PATCH_PTR", ArgDef(Addr,SyN2,Raw), def_patchPtr(a1,a2,a3,2));
+	FUNC("PATCH_P32", ArgDef(Addr,SyN2), def_patchPtr(a1,a2,0,4));
+	FUNC("PATCH_P32", ArgDef(Addr,SyN2,Raw), def_patchPtr(a1,a2,a3,4));
 	FUNC("PATCH_I32", ArgDef(Addr,SyN2), def_patchPtr(a1,a2,0,0));
 	FUNC("PATCH_I32", ArgDef(Addr,SyN2,Raw), def_patchPtr(a1,a2,a3,0));
 	FUNC("PATCH_I64", ArgDef(Addr,SyN2), def_patchPtr(a1,a2,0,1));

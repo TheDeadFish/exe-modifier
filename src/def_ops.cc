@@ -87,6 +87,7 @@ cch* SymbArg::parse(char* str)
 	if(char* numPos = defFileGetNumPos(str)) {
 		cch* ret = parseNum(numPos); 
 		*numPos = '\0'; return ret; }
+	return NULL;
 }
 
 cch* SymbArg2::parse(char* str)
@@ -283,7 +284,9 @@ cch* def_patchPtr(u32 rva, SymbArg2& s,
 	// handle hook mode
 	if(hookSymb) { u64 addr = (size&1) ?
 		ptr.ref<u64>() : ptr.dword();
-		if(size & 2){ if(!PeFILE::chkAddrToRva64(addr))
+		if((size & 4) && x64Mode())
+			addr += PeFILE::rvaToAddr(rva)+4;
+		if(size & 6){ if(!PeFILE::chkAddrToRva64(addr))
 			return "hook value invalid as rva";
 			def_symbol(addr, hookSymb);
 		} else { def_const(addr, hookSymb); }	
@@ -297,9 +300,10 @@ cch* def_patchPtr(u32 rva, SymbArg2& s,
 	
 	// register relocation
 	if(s.name) { s.symInit();
-		PeFILE::Relocs_Remove(rva);
-		Linker::addReloc((size&1) ? Linker::Type_DIR64
-			: Linker::Type_DIR32, rva, s.symb);	
+		PeFILE::Relocs_Remove(rva);		
+		int mode = ((size & 4) && x64Mode()) ? Linker::Type_REL32
+			: ((size&1) ? Linker::Type_DIR64 : Linker::Type_DIR32);
+		Linker::addReloc(mode, rva, s.symb);
 	}
 	
 	return NULL;
