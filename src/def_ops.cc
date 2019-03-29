@@ -466,6 +466,7 @@ cch* def_sectCreate(char* Name, int align)
 	int type = Linker::sectTypeFromName(Name);
 	if(type < 0) type = 2; // .rdata
 	Linker::addSection(0, Name, 0, type, align, 0, 0);
+	return 0;
 }
 
 cch* def_sectInsert(char* Name,

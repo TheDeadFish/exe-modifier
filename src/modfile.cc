@@ -174,6 +174,8 @@ bool ExmFile::save(cch* fileName)
 			0 : fileList[arg.fileId].fileId;
 		writeArg(fp, fileId, arg.arg);
 	}}
+	
+	return true;
 }
 
 bool ExmFile::load(byte* data, int size)

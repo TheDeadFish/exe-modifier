@@ -25,7 +25,7 @@ struct LibraryLoad {
 	Void fileLimit;
 	
 	void load(void);
-	void fileBad(cch* msg, Void addr);
+	__attribute__((noreturn)) void fileBad(cch* msg, Void addr);
 	void eofErr(Void addr) {
 		fileBad("unexpected end of file", addr); }	
 	cstr getName(Header* h, cch* extNames);

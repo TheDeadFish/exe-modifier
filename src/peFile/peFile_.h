@@ -56,7 +56,7 @@ namespace PeFILE {
 	
 	void clearSpace(int rva, int length, int offset);
 	extern DWORD* relocs; extern DWORD nRelocs;
-	template <class F> Relocs_Find(int rva, int len, F func) { 
+	template <class F> void Relocs_Find(int rva, int len, F func) { 
 		for(int i = 0; i < nRelocs; i++) if((relocs[i] >= rva)
 		  &&(relocs[i] < (rva+len))) func(relocs[i]); }
 	

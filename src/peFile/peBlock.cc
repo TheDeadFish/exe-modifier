@@ -176,6 +176,8 @@ bool FreeSect::allocBlocks(xarray<PeBlock> blocks)
 			
 		}
 	}
+	
+	return true;
 }
 
 bool FreeSect::resolveBlocks(xarray<PeBlock> blocks)
