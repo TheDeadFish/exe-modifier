@@ -53,6 +53,8 @@ void fixSection(Section* sect, DWORD rva);
 int sectTypeFromName(cch* name);
 cch* sectGrow(Section* sect, 
 	DWORD offset, DWORD length);
+cch* sectName(DWORD sectId);
+cch* sectFile(DWORD sectId);
 
 // symbol interface
 enum : DWORD {

@@ -91,7 +91,7 @@ int addSymbol(const char* Name, DWORD section, DWORD weakSym, DWORD value)
 	if( section == Type_Undefined )
 		return symIndex;
 	if( symbols[symIndex].section != Type_Undefined )
-		return -1;
+		return symIndex | INT_MIN;
 	symbols[symIndex].section = section;
 	symbols[symIndex].weakSym = weakSym;
 	symbols[symIndex].value = value;
@@ -179,6 +179,24 @@ cch* sectGrow(Section* sect,
 	}}
 	
 	return NULL;
+}
+
+cch* sectName(DWORD sectId)
+{
+	switch(sectId) {
+	case Type_Undefined: return "[undefined]";
+	case Type_Relocate: return "[relocate]";
+	case Type_Absolute: return "[absolute]";
+	case Type_Import: return "[import]"; }
+	cch* name = sections[sectId].name;
+	return name ? name : "[no name]";
+}
+
+cch* sectFile(DWORD sectId)
+{
+	if(sectId >= nSections) return "[no file]";
+	cch* name = sections[sectId].fileName;
+	return name ? name : "[no file]";
 }
 
 }

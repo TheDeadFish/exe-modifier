@@ -88,7 +88,7 @@ void object_load(const char* fileName,
 		
 		// check StorageClass
 		DWORD sclass = objSym[i].StorageClass;
-		if(sclass == 6) sclass = 2; // I have not idea
+		if(sclass == 6) sclass = 3; // I have not idea
 		if((sclass != 2)&&(sclass != 3)&&(sclass != 105)){
 			if((sclass == 103)||(sclass == 0))
 				continue;
@@ -126,8 +126,12 @@ void object_load(const char* fileName,
 		symMapp[i] = addSymbol((sclass == 3) ? NULL :
 			symName, sectIndex, weakSymb, objSym[i].Value);
 		if(isNeg(symMapp[i])) {
-			FATAL_ERROR("object:duplicate symbol, %s",
-				symName ? symName : "##NO NAME##", fileName);
+			int prevSect = symbols[symMapp[i] & INT_MAX].section;
+			fatal_error("object:duplicate symbol, %s\n"
+				"defined in: %s;%s\nprevious in: %s;%s\n", 
+				symName ? symName : "##NO NAME##",
+				fileName, sectName(sectIndex), 
+				sectFile(prevSect), sectName(prevSect));
 		}
 		i += objSym[i].NumberOfAuxSymbols;
 	}
