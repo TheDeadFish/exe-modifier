@@ -9,7 +9,7 @@ int  SetDisplayText_hook(HWND hDlg, LPCWSTR lpString)
 {
 	WCHAR tmp[256];
 	wsprintfW(tmp, L"DeadFish Shitware, %s", lpString);
-	SetDisplayText(hDlg, tmp);
+	return SetDisplayText(hDlg, tmp);
 }
 
 extern "C"

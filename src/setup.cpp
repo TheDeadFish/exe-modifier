@@ -85,7 +85,7 @@ int main()
 	FILE* fp = fopen("exe_mod.cfg", "w");
 	print_path(fp, "lib_path32=", lib_path32);
 	print_path(fp, "lib_path64=", lib_path64);
-	fprintf(fp, "def_libs=-lmisc -lmingw32 -lmingwex -lgcc -lmoldname -lmisc "
+	fprintf(fp, "def_libs=-lmisc -lmingwex -lmingw32 -lgcc -lmoldname -lmisc "
 		"-lmsvcrt -lgdi32 -lcomdlg32 -ladvapi32 -lshell32 -luser32 -lkernel32");
 	fprintf(fp, "\nkeep_list=.idata$7\n");
 	fclose(fp);
