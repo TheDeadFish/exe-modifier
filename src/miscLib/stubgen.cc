@@ -26,8 +26,8 @@ void mame_library(int bits)
 {
 	cch* ins_jmp_imp = (bits==64) ? ins_jmp_imp64 : ins_jmp_imp32;
 	make_object("atexit", "atexit", ins_jmp_imp, bits);
-	make_object("snprintf", "snprintf", ins_jmp_imp, bits);
-	make_object("vsnprintf", "vsnprintf", ins_jmp_imp, bits);
+	//make_object("snprintf", "snprintf", ins_jmp_imp, bits);
+	//make_object("vsnprintf", "vsnprintf", ins_jmp_imp, bits);
 	make_object("assert", "_assert", ins_jmp_imp, bits);
 	make_object("matherr", "__mingw_raise_matherr", ins_ret, bits);
 	sysfmt("ar -rcs ..\\..\\bin\\libmisc%d.a obj%d\\*.o", bits, bits);
