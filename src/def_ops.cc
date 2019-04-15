@@ -546,6 +546,48 @@ cch* def_funcHook(u32 rva, int prologSz, char* name)
 	return def_asmPatch(rva, -1, buff);
 }
 
+// simple reloc killing patch
+DEF_RETPAIR(patchChk_t, cch*, err, Void, ptr);
+static patchChk_t patchChk (u32 rva, u32 len) {
+	Void ptr = PeFILE::rvaToPtr(rva, len);
+	if(ptr == NULL) return {"bad patch address", 0};
+	PeFILE::Relocs_Remove(rva, len); return {0,ptr}; }
+#define PATCH_CHECK(ptr, rva, len) Void ptr; \
+	{ auto tmp = patchChk(rva, len); ptr = tmp.ptr; \
+	if(!ptr) return tmp.err; }
+
+// jump helpers
+static inline
+bool i386Jump_chk8(int offset) {
+	return inRng(offset+2, -128, 127); }
+static inline
+void i386Jump_short(Void ptr, int offset) {
+	*ptr = 0xEB; ptr.Byte(1) = offset-2; }
+static inline
+void i386Jump_near(Void ptr, int offset) {
+	*ptr = 0xE9; ptr.Dword(1) = offset-5; }
+	
+static 
+cch* makeJump(u32 rva, u32 target)
+{
+	// prepare patch
+	u32 offset = target-rva;
+	u32 len = i386Jump_chk8(offset) ? 5 : 2;
+	PATCH_CHECK(ptr, rva, len);
+	
+	// apply patch
+	if(len > 2) i386Jump_near(ptr, offset);
+	else i386Jump_short(ptr, offset);
+	return NULL;
+}
+
+cch* def_codeSkip(u32 start, u32 end)
+{
+	IFRET(def_memFill8(start, end, 0x90));
+	if(end-start <= 2) return NULL;
+	return makeJump(start, end);
+}
+
 cch* def_makeJump(u32 rva, char* name)
 {
 	SymbArg s; IFRET(s.parse(name));
@@ -597,3 +639,5 @@ cch* def_funcKill(u32 start, u32 end, u64* val)
 	if(val) { ptr[0] = 0xB8; ptr.Dword(1) = *val; 
 		ptr += 5;} ptr[0] = 0xC3; return NULL;
 }
+
+
