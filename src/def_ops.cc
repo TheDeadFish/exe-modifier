@@ -588,6 +588,11 @@ cch* def_codeSkip(u32 start, u32 end)
 	return makeJump(start, end);
 }
 
+cch* def_codeSkip(u32 start)
+{
+	return def_codeSkip(start, start+5);
+}
+
 cch* def_makeJump(u32 rva, char* name)
 {
 	SymbArg s; IFRET(s.parse(name));

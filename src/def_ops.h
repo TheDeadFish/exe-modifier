@@ -31,6 +31,7 @@ SHITCALL cch* def_memTrap(u32 start, u32 end);
 SHITCALL cch* def_patchPtr(u32 rva, SymbArg2& s,
 	char* hookSymb, int ptrSize);
 SHITCALL cch* def_codeSkip(u32 start, u32 end);
+SHITCALL cch* def_codeSkip(u32 start);
 	
 SHITCALL cch* def_fixSect(u32 start, u32 end, char* name);
 SHITCALL cch* def_asmSect(char* name, char* str, u32 start);
