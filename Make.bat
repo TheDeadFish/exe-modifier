@@ -1,6 +1,9 @@
+setlocal
 call egcc.bat
-gcc -I. src\*.cc src\peFile\*.cc  src\linker\*.cc %CCFLAGS2% -g -c
-gcc -I. src\main.cpp %CCFLAGS2% -g *.o -o bin\exe_mod.exe -limagehlp -lexshit -lstdshit
+pushd build
+%CMAKE% -DCMAKE_EXE_LINKER_FLAGS="%LFLAGS%" ..\.
+mingw32-make
+popd
 
 if exist %PROGRAMS%\progs\exe_mod (
   copy /Y bin\exe_mod.exe %PROGRAMS%\progs\exe_mod
