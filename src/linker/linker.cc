@@ -145,11 +145,19 @@ void fixSection(Section* sect, DWORD rva)
 
 int sectTypeFromName(cch* Name)
 {
-	const char* const sectList[] = {".data", ".bss",
-		".rdata", ".text", ".idata", "@patch"};
-	for(int i = 0; i < ARRAYSIZE(sectList); i++) {
-		if(strScmp(Name, sectList[i])) return i; }
-	return -1;
+	static const std::pair<cch*,int> typeList[] = {
+		{".data", PeSecTyp::Data}, {".bss", PeSecTyp::Bss},
+		{".rdata", PeSecTyp::RData}, {".text", PeSecTyp::Text},
+		{".idata", SHRT_MIN}, {"@patch", SHRT_MIN}};
+	
+	cch* end = Name+1;
+	for(;!is_one_of(*end, '$', '.', 0); end++);
+	cstr str((char*)Name, (char*)end);
+	
+	for(auto& type : typeList) {
+		if(!str.cmp(type.first)) 
+			return type.second; }
+	return 0;
 }
 
 cch* sectGrow(Section* sect, 

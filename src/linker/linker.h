@@ -40,7 +40,10 @@ struct Section {
 	Void endPtr() { return rawData+length; }
 	
 	
-	bool isExec() { return is_one_of(type, 3, 4); }
+	bool isAlive() { return type != 0xFFFF; }
+	bool isLinked() { return !isNeg(type); }
+	bool isExec() { return isLinked() && (type & 
+		PeSecTyp::Exec) && (type & PeSecTyp::Intd); }
 };
 extern Section* sections;
 extern DWORD nSections;

@@ -1,6 +1,7 @@
+#include "..\exe_mod.h"
+
 #ifndef _PEFILE__H_
 #define _PEFILE__H_
-#include "..\exe_mod.h"
 #include "peFile.h"
 #include "peBlock.h"
 #include "peImport.h"

@@ -17,6 +17,13 @@ struct ObjRelocs
 	WORD type;
 } __attribute__((packed));
 
+static
+DWORD sect_align(DWORD flags) {
+	DWORD align = (flags>>20)&15;
+	if(align != 0) align = 1 << (align-1);
+	return align;
+}
+
 void object_load(const char* fileName,
 	Void objFile, DWORD objSize)
 {
@@ -41,30 +48,41 @@ void object_load(const char* fileName,
 	memset(sectMapp, -1, nSects*4);
 	for(int i = 0; i < nSects; i++)
 	{
+		// reference section members
+		auto& sect = objSects[i];
+		DWORD& size = sect.SizeOfRawData;
+		DWORD& flags = sect.Characteristics;
+		DWORD& data = sect.PointerToRawData;
+		
+		// verify section
+		if(flags & IMAGE_SCN_MEM_DISCARDABLE) continue;
+		if(sect.VirtualAddress) file_bad("object", fileName);
+		if(data&&((objSize < data)||(size > (objSize-data))))
+			file_bad("object", fileName);
+			
 		// get section name
 		char* Name = (char*)objSects[i].Name;
 		if(Name[0] == '/') { Name = strTab + atoi(Name+1);
 			if(!nullchk(Name, objLimit))
 				file_corrupt("object", fileName); }
 		if(Name[0] == '\0') Name = NULL;
-		int type = sectTypeFromName(Name); 
-		if(type < 0) { continue; }
 		
-		// register section
-		if( objSects[i].VirtualAddress != 0 )
-			file_bad("object", fileName);
-		DWORD sectSize = objSects[i].SizeOfRawData;
-		if(!sectSize && (type!=4)) { continue; }
-		Void sectData = NULL;
-		if( objSects[i].PointerToRawData != 0 )	{
-			sectData = objFile + objSects[i].PointerToRawData;
-			if( (sectData + sectSize) > objLimit )
-				file_corrupt("object", fileName); 
+		// get section type
+		if(flags & IMAGE_SCN_LNK_COMDAT) {
+			if(findSection(Name)) continue; }
+		int type = sectTypeFromName(Name);
+		if(type == 0) {	type = PeFile::Section::
+			type(flags & ~IMAGE_SCN_LNK_COMDAT);
+			if(type < 0) { fatal_error("object:Characteristics"
+				" %X, \"%s\", \"%s\"", flags, Name, fileName); }
+			printf("%s, %s\n", Name, fileName); continue;
 		}
-		int align = (objSects[i].Characteristics>>20)&15;
-		if(align != 0) align = 1 << (align-1);
+
+		// create new section
+		Void pData = data ? objFile + data : Void(0);
+		DWORD align = sect_align(flags);
 		sectMapp[i] = addSection(fileName, Name, 
-			sectData, type, align, 0, sectSize);
+			pData, type, align, 0, size);
 	}
 	
 	// read symbols

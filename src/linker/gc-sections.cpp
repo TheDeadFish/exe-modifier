@@ -27,7 +27,7 @@ RECHECK_MASK:
 	bool maskChange = false;
 	for(int i = 0; i < nSections; i++)
 	  if((sectMask[i] == 1)
-	  &&(int(sections[i].type) >= 0))
+	  &&(sections[i].isAlive()))
 	{
 		sectMask[i] = 2;
 		for(auto& reloc : Range(sections[i]
@@ -36,7 +36,7 @@ RECHECK_MASK:
 			if(int(symbol.section) < 0)
 				continue;
 			if((sectMask[symbol.section] == 0)
-			&&(int(sections[symbol.section].type) >= 0)) {
+			&&(sections[i].isAlive())) {
 				sectMask[symbol.section] = 1;
 					maskChange = true; }
 		}
@@ -47,7 +47,7 @@ RECHECK_MASK:
 	// kill unreferenced sections
 	for(int i = 0; i < nSections; i++)
 	  if((sectMask[i] != 2)
-	  &&(int(sections[i].type) >= 0)) {
+	  &&(sections[i].isAlive())) {
 		assert(sectMask[i] == 0);
 		destroy_section(sections[i]); 
 	}

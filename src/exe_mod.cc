@@ -228,14 +228,10 @@ int exe_mod(int argc, char* argv[])
 	PeBlock* blocks = xCalloc(Linker::nSections);
 	int blockCount = 0;
 	for(int i = 0; i < Linker::nSections; i++) {
-		if(( Linker::sections[i].type >= 4 ) 
+		if((!Linker::sections[i].isLinked())
 		||( Linker::sections[i].baseRva )) continue;
 		
-		static const byte types[] = {
-			PeSecTyp::Data, PeSecTyp::Bss, 
-			PeSecTyp::RData, PeSecTyp::Text };
-		blocks[blockCount].type = types[Linker::sections[i].type];
-		
+		blocks[blockCount].type = Linker::sections[i].type;
 		blocks[blockCount].align = Linker::sections[i].align;
 		blocks[blockCount].length = Linker::sections[i].length;
 		blocks[blockCount++].lnSect = i; }
