@@ -27,6 +27,8 @@ void relocs_fixup(void);
 
 // section interface	
 struct Section {
+	Section* next;
+
 	const char* fileName;
 	char* name; Void rawData;
 	Reloc* relocs; DWORD nReloc;
@@ -58,6 +60,8 @@ cch* sectGrow(Section* sect,
 	DWORD offset, DWORD length);
 cch* sectName(DWORD sectId);
 cch* sectFile(DWORD sectId);
+extern Section* sectRoot;
+
 
 static
 Section* sectPtr(DWORD sectId) {
@@ -118,6 +122,9 @@ extern xarray<char*> keep_list;
 static inline
 void keepSymbol(char* name) {
 	keep_list.push_back(name); }
+	
+#define LINKER_ENUM_SECTIONS(sect, ...) \
+	RingList_enum(Linker::sectRoot, sect, __VA_ARGS__)
 
 }
 #endif

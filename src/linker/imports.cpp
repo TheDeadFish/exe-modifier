@@ -159,9 +159,9 @@ void imports_parse(void)
 		// redirect relocations
 		int iSymb = &iatsym-symbols;
 		import_fixReloc(0, iSymb, expsymb, relocs, nRelocs);
-		for(auto* sect : Range(sections, nSections))
-		if(sect->isExec()) {	import_fixReloc(sect->rawData,
-			iSymb, expsymb, sect->relocs, sect->nReloc); }
+		LINKER_ENUM_SECTIONS(sect,
+			if(sect->isExec()) { import_fixReloc(sect->rawData,
+				iSymb, expsymb, sect->relocs, sect->nReloc); })
 			
 		// redirect thunk symbols
 		if(thunkSect >= 0) {
@@ -174,7 +174,7 @@ void imports_parse(void)
 	}
 	
 	// destroy import data
-	for(auto* section : Range(sections, nSections))
-	  if(strScmp(section->name, ".idata"))
-		destroy_section(*section);
+	LINKER_ENUM_SECTIONS(sect,
+		if(strScmp(sect->name, ".idata"))
+			destroy_section(*sect); )
 }

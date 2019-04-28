@@ -17,6 +17,7 @@ DWORD nSymbols;
 Reloc* relocs;
 DWORD nRelocs;
 xarray<char*> keep_list;
+Section* sectRoot;
 
 const char* nullchk(const char* str, const char* limit)
 {
@@ -32,6 +33,7 @@ DWORD addSection(const char* fileName, const char* Name,
 {
 	auto& sect = *(Section*)xMalloc(1);
 	xNextAlloc(sections, nSections) = &sect;
+	ringList_add(sectRoot, &sect);
 
 	sect.fileName = fileName;
 	sect.name = xstrdup(Name);
@@ -60,11 +62,9 @@ void destroy_section(Section& section)
 
 Section* findSection(const char* name)
 {
-	for(int i = 0; i < nSections; i++)
-	  if((sections[i]->name != NULL)
-	  &&(!strcmp(sections[i]->name, name)))
-		return sections[i];
-	return NULL;
+	LINKER_ENUM_SECTIONS(sect, 
+		if(sect->name && !strcmp(sect->name, name))
+			return sect; ); return NULL;
 }
 
 int findSymbol(const char* Name)
