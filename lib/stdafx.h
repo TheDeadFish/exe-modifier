@@ -46,4 +46,14 @@ SHITCALL cstr tempName(cch* prefix);
 	auto __begin = __range.end(); auto __end = __range.begin(); \
 	while(__begin != __end) { var = *--__begin; __VA_ARGS__; }}
 	
+template <class T>
+T* ringList_add(T*& root, T* node) {
+	if(root == NULL) { node->next = node; }
+	else { node->next = root->next;
+		root->next = node; } return root = node;	
+}
+
+#define RingList_enum(root, pos, ...) { if(auto* pos = root) { \
+	do { pos = pos->next; __VA_ARGS__; } while(pos != root); }}
+	
 #endif

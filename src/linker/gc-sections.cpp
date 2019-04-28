@@ -10,7 +10,7 @@ void gc_sections(void)
 		&&(int(symbols[symbol].section) >= 0))
 			sectMask[symbols[symbol].section] = 1;
 		for(int j = 0; j < nSections; j++) {
-		  if(strScmp(sections[j].name, keep))
+		  if(strScmp(sections[j]->name, keep))
 			sectMask[j] = 1; }
 	}
 	
@@ -27,16 +27,16 @@ RECHECK_MASK:
 	bool maskChange = false;
 	for(int i = 0; i < nSections; i++)
 	  if((sectMask[i] == 1)
-	  &&(sections[i].isAlive()))
+	  &&(sections[i]->isAlive()))
 	{
 		sectMask[i] = 2;
 		for(auto& reloc : Range(sections[i]
-		  .relocs, sections[i].nReloc)) {
+		  ->relocs, sections[i]->nReloc)) {
 			auto& symbol = symbols[reloc.symbol];
 			if(int(symbol.section) < 0)
 				continue;
 			if((sectMask[symbol.section] == 0)
-			&&(sections[i].isAlive())) {
+			&&(sections[i]->isAlive())) {
 				sectMask[symbol.section] = 1;
 					maskChange = true; }
 		}
@@ -47,8 +47,8 @@ RECHECK_MASK:
 	// kill unreferenced sections
 	for(int i = 0; i < nSections; i++)
 	  if((sectMask[i] != 2)
-	  &&(sections[i].isAlive())) {
+	  &&(sections[i]->isAlive())) {
 		assert(sectMask[i] == 0);
-		destroy_section(sections[i]); 
+		destroy_section(*sections[i]); 
 	}
 }

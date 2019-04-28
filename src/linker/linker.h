@@ -45,7 +45,7 @@ struct Section {
 	bool isExec() { return isLinked() && (type & 
 		PeSecTyp::Exec) && (type & PeSecTyp::Intd); }
 };
-extern Section* sections;
+extern Section** sections;
 extern DWORD nSections;
 DWORD addSection(const char* fileName, const char* Name,
 	void* rawData, WORD type, WORD align, 
@@ -58,6 +58,11 @@ cch* sectGrow(Section* sect,
 	DWORD offset, DWORD length);
 cch* sectName(DWORD sectId);
 cch* sectFile(DWORD sectId);
+
+static
+Section* sectPtr(DWORD sectId) {
+	return (sectId < nSections) ?
+		sections[sectId] : 0; }
 
 // symbol interface
 enum : DWORD {

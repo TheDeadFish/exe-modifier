@@ -158,7 +158,7 @@ void object_load(const char* fileName,
 	for(int i = 0; i < nSects; i++)
 	{
 		if(isNeg(sectMapp[i])) continue;
-		auto& sect = sections[sectMapp[i]];
+		auto& sect = *sections[sectMapp[i]];
 		ObjRelocs* relocs = objFile + objSects[i].PointerToRelocations;
 		DWORD nRelocs = objSects[i].NumberOfRelocations;
 		if((relocs + nRelocs) > objLimit)

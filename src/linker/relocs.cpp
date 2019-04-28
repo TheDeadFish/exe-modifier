@@ -69,9 +69,9 @@ void addReloc(WORD type,
 
 void relocs_fixup(void)
 {
-	for(auto& sect : Range(sections, nSections)) {
-	  for(auto& reloc : Range(sect.relocs, sect.nReloc))
-		reloc.fixup(&sect); }
+	for(auto* sect : Range(sections, nSections)) {
+	  for(auto& reloc : Range(sect->relocs, sect->nReloc))
+		reloc.fixup(sect); }
 	for(auto& reloc : Range(relocs, nRelocs))
 		reloc.fixup(NULL);
 	if(undef_symbol_flag) exit(1);

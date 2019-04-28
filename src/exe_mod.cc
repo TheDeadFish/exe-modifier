@@ -228,18 +228,18 @@ int exe_mod(int argc, char* argv[])
 	PeBlock* blocks = xCalloc(Linker::nSections);
 	int blockCount = 0;
 	for(int i = 0; i < Linker::nSections; i++) {
-		if((!Linker::sections[i].isLinked())
-		||( Linker::sections[i].baseRva )) continue;
+		if((!Linker::sections[i]->isLinked())
+		||( Linker::sections[i]->baseRva )) continue;
 		
-		blocks[blockCount].type = Linker::sections[i].type;
-		blocks[blockCount].align = Linker::sections[i].align;
-		blocks[blockCount].length = Linker::sections[i].length;
+		blocks[blockCount].type = Linker::sections[i]->type;
+		blocks[blockCount].align = Linker::sections[i]->align;
+		blocks[blockCount].length = Linker::sections[i]->length;
 		blocks[blockCount++].lnSect = i; }
 	PeFILE::allocBlocks(blocks, blockCount);
 	
 	// initialize sections
 	for(int i = 0; i < blockCount; i++) {
-		auto& sect = Linker::sections[blocks[i].lnSect];
+		auto& sect = *Linker::sections[blocks[i].lnSect];
 		Linker::fixSection(&sect, blocks[i].baseRva); }
 	Linker::imports_resolve();
 	Linker::exports_resolve();

@@ -10,7 +10,7 @@ namespace Linker {
 #include "exports.cpp"
 #include "gc-sections.cpp"
 
-Section* sections;
+Section** sections;
 DWORD nSections;
 Symbol* symbols;
 DWORD nSymbols;
@@ -30,7 +30,9 @@ DWORD addSection(const char* fileName, const char* Name,
 	void* rawData, WORD type, WORD align,
 		DWORD baseRva, DWORD length)
 {
-	auto& sect = xNextAlloc(sections, nSections);
+	auto& sect = *(Section*)xMalloc(1);
+	xNextAlloc(sections, nSections) = &sect;
+
 	sect.fileName = fileName;
 	sect.name = xstrdup(Name);
 	sect.rawData = xcalloc(length);
@@ -59,9 +61,9 @@ void destroy_section(Section& section)
 Section* findSection(const char* name)
 {
 	for(int i = 0; i < nSections; i++)
-	  if((sections[i].name != NULL)
-	  &&(!strcmp(sections[i].name, name)))
-		return &sections[i];
+	  if((sections[i]->name != NULL)
+	  &&(!strcmp(sections[i]->name, name)))
+		return sections[i];
 	return NULL;
 }
 
@@ -112,7 +114,7 @@ DWORD Symbol::getRva(void)
 	||( section == Type_Undefined ))
 		fatal_error("undefined symbol: %s\n", getName());
 	return (isNeg(section) ? 0 : 
-		sections[section].baseRva) + value;
+		sections[section]->baseRva) + value;
 }
 
 u64 Symbol::getAddr(void)
@@ -171,9 +173,9 @@ cch* sectGrow(Section* sect,
 	sect->length += length; }
 	
 	// alter symbols
-	int iSect = sect-sections; int iSectSymb = -1;
+	int iSectSymb = -1;
 	for(auto& symb : RngRBL(symbols, nSymbols))
-	if(symb.section == iSect) { 
+	if(sectPtr(symb.section) == sect) {
 	if(symb.nmcmp(sect->name)) { iSectSymb = &symb-symbols; }
 	ei(symb.value >= offset) { symb.value += length; }}
 
@@ -196,14 +198,14 @@ cch* sectName(DWORD sectId)
 	case Type_Relocate: return "[relocate]";
 	case Type_Absolute: return "[absolute]";
 	case Type_Import: return "[import]"; }
-	cch* name = sections[sectId].name;
+	cch* name = sections[sectId]->name;
 	return name ? name : "[no name]";
 }
 
 cch* sectFile(DWORD sectId)
 {
 	if(sectId >= nSections) return "[no file]";
-	cch* name = sections[sectId].fileName;
+	cch* name = sections[sectId]->fileName;
 	return name ? name : "[no file]";
 }
 
