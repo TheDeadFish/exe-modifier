@@ -5,10 +5,9 @@ void gc_sections(void)
 	char* sectMask = xMalloc(nSections);
 	memset(sectMask, 0, nSections);
 	for(char* keep : keep_list) {
-		int symbol = findSymbol(keep);
-		if((symbol >= 0)
-		&&(int(symbols[symbol].section) >= 0))
-			sectMask[symbols[symbol].section] = 1;
+		auto* symb = findSymbol2(keep);
+		if(symb && !isNeg(symb->section)) {
+			sectMask[symb->section] = 1; }
 		for(int j = 0; j < nSections; j++) {
 		  if(strScmp(sections[j]->name, keep))
 			sectMask[j] = 1; }
@@ -31,13 +30,13 @@ RECHECK_MASK:
 	{
 		sectMask[i] = 2;
 		for(auto& reloc : Range(sections[i]
-		  ->relocs, sections[i]->nReloc)) {
-			auto& symbol = symbols[reloc.symbol];
-			if(int(symbol.section) < 0)
-				continue;
-			if((sectMask[symbol.section] == 0)
+		  ->relocs, sections[i]->nReloc)) 
+		{
+			auto* symbol = reloc.getSymb();
+			if(symbol == NULL) continue;
+			if((sectMask[symbol->section] == 0)
 			&&(sections[i]->isAlive())) {
-				sectMask[symbol.section] = 1;
+				sectMask[symbol->section] = 1;
 					maskChange = true; }
 		}
 	}

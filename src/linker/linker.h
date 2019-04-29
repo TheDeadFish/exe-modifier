@@ -3,6 +3,9 @@
 
 namespace Linker {
 
+// forward decl
+struct Symbol;
+
 // reloc interace
 enum {
 	Type_DIR32 = 0,
@@ -10,16 +13,13 @@ enum {
 	Type_DIR32NB = 2,
 	Type_DIR64 = 3 };
 	
-	
-	
 struct Reloc {
 	WORD type;
 	DWORD offset;
 	DWORD symbol;
 	void fixup(struct Section* sect);
-
-
-	};
+	inline Symbol* getSymb(void);
+};
 extern Reloc* relocs;
 extern DWORD nRelocs;
 void addReloc(WORD type, DWORD offset, DWORD symbol);
@@ -32,7 +32,10 @@ struct Section {
 	const char* fileName;
 	char* name; Void rawData;
 	Reloc* relocs; DWORD nReloc;
-	WORD type; WORD align;
+	union { WORD type; struct { BYTE 
+		peType, :6, keep:1, noLink:1; }; };
+	
+	WORD align;
 	DWORD baseRva, length;
 	
 	void addReloc(WORD type, DWORD 
@@ -46,6 +49,7 @@ struct Section {
 	bool isLinked() { return !isNeg(type); }
 	bool isExec() { return isLinked() && (type & 
 		PeSecTyp::Exec) && (type & PeSecTyp::Intd); }
+	xarray<Reloc> rlcs() { return {relocs, nReloc}; }
 };
 extern Section** sections;
 extern DWORD nSections;
@@ -89,6 +93,11 @@ struct Symbol {
 	
 	bool nmcmp(cch* str) { return 
 		Name && !strcmp(Name, str); }
+		
+	Section* getSect() { 
+		if(!this || isNeg(section)) return 0;
+		return notNull(sections[section]); }
+		
 };
 extern Symbol* symbols;
 extern DWORD nSymbols;
@@ -98,6 +107,13 @@ int addImport(const char* Name, const char* dllName, const char* importName);
 static inline bool isUndefSymb(int symb) { return (symb < 0)
 	|| (symbols[symb].section == Type_Undefined); }
 char* symbcat(cch* symb, cch* str);
+
+static inline
+Symbol* getSymbol(DWORD symb) { return 
+	isNeg(symb) ? 0 : notNull(symbols+symb); }
+static inline
+Symbol* findSymbol2(const char* name) {
+	return getSymbol(findSymbol(name)); }
 
 // object functions
 void library_load(const char* fileName,
@@ -125,6 +141,10 @@ void keepSymbol(char* name) {
 	
 #define LINKER_ENUM_SECTIONS(sect, ...) \
 	RingList_enum(Linker::sectRoot, sect, __VA_ARGS__)
+	
+// 
+Symbol* Reloc::getSymb(void) {
+	return getSymbol(symbol); }
 
 }
 #endif
