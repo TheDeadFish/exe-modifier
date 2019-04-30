@@ -12,12 +12,13 @@ namespace Linker {
 
 Section** sections;
 DWORD nSections;
-Symbol* symbols;
+Symbol* symbols = xMalloc(65536);
 DWORD nSymbols;
 Reloc* relocs;
 DWORD nRelocs;
 xarray<char*> keep_list;
 Section* sectRoot;
+Symbol* symbRoot;
 
 const char* nullchk(const char* str, const char* limit)
 {
@@ -82,7 +83,10 @@ int addSymbol(const char* Name, DWORD section, DWORD weakSym, DWORD value)
 	// allocate new symbol ?
 	int symIndex = findSymbol(Name);
 	if( symIndex < 0 ) {
-		Symbol& symb = xNextAlloc(symbols, nSymbols);
+		//Symbol& symb = xNextAlloc(symbols, nSymbols);
+		Symbol& symb = symbols[nSymbols++];
+		ringList_add(symbRoot, &symb);
+		
 		symb.Name = xstrdup(Name);
 		symb.section = section;
 		symb.weakSym = weakSym;
@@ -174,10 +178,11 @@ cch* sectGrow(Section* sect,
 	
 	// alter symbols
 	int iSectSymb = -1;
-	for(auto& symb : RngRBL(symbols, nSymbols))
-	if(sectPtr(symb.section) == sect) {
-	if(symb.nmcmp(sect->name)) { iSectSymb = &symb-symbols; }
-	ei(symb.value >= offset) { symb.value += length; }}
+	LINKER_ENUM_SYMBOLS(symb, 
+		if(sectPtr(symb->section) == sect) {
+		if(symb->nmcmp(sect->name)) { iSectSymb = symb-symbols; }
+		ei(symb->value >= offset) { symb->value += length; }}
+	);
 
 	// alter relocs
 	for(auto& reloc : RngRBL(

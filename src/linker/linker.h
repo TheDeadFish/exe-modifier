@@ -79,6 +79,8 @@ enum : DWORD {
 	Type_Absolute = DWORD(-3),
 	Type_Import	= DWORD(-4) };
 struct Symbol {
+	Symbol* next;
+
 	char* Name;
 	DWORD section;
 	DWORD weakSym;
@@ -107,6 +109,7 @@ int addImport(const char* Name, const char* dllName, const char* importName);
 static inline bool isUndefSymb(int symb) { return (symb < 0)
 	|| (symbols[symb].section == Type_Undefined); }
 char* symbcat(cch* symb, cch* str);
+extern Symbol* symbRoot;
 
 static inline
 Symbol* getSymbol(DWORD symb) { return 
@@ -141,6 +144,8 @@ void keepSymbol(char* name) {
 	
 #define LINKER_ENUM_SECTIONS(sect, ...) \
 	RingList_enum(Linker::sectRoot, sect, __VA_ARGS__)
+#define LINKER_ENUM_SYMBOLS(symb, ...) \
+	RingList_enum(Linker::symbRoot, symb, __VA_ARGS__)
 	
 // 
 Symbol* Reloc::getSymb(void) {

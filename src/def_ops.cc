@@ -405,10 +405,10 @@ cch* def_asmSect(char* name, char* str, u32 start)
 	fprintf(fp, ".equ @B, %#I64X;", PeFILE::baseAddr64());
 	if(start) { fprintf(fp, ".equ @, .-%#I64X;",
 		PeFILE::rvaToAddr64(start));
-	for(auto& symb : RngRBL(Linker::
-	symbols,Linker::nSymbols)) if(symb.Name
-	&&(symb.section == Linker::Type_Relocate))
-	fprintf(fp,".equ %s, @+%#I64X;", symb.Name, symb.getAddr()); }
+	LINKER_ENUM_SYMBOLS(symb, if(symb->Name
+		&&(symb->section == Linker::Type_Relocate))
+		fprintf(fp,".equ %s, @+%#I64X;", symb->Name, symb->getAddr()); 
+	); }
 	
 	// pipe out assembly body
 	cParse cp; if(cp.load2_(str, 0)) 
