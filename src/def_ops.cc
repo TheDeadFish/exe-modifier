@@ -70,7 +70,7 @@ int getDir32Rva(Void ptr) {
 u64 SymbArg::symInit()
 {
 	symb = Linker::addSymbol(name, 
-	Linker::Type_Undefined, -1, 0);
+	Linker::Type_Undefined, 0, 0);
 	return offset;
 }
 
@@ -196,13 +196,13 @@ cch* def_freeBlock(u32 start,
 cch* def_symbol(u32 rva, char* name)
 {
 	Linker::addSymbol(name, Linker::Type_Relocate, 
-		-1, rva); return 0;
+		0, rva); return 0;
 }
 
 cch* def_const(u32 value, char* name)
 {
 	Linker::addSymbol(name, Linker::Type_Absolute,
-		-1, value); return 0;
+		0, value); return 0;
 }
 
 cch* def_callPatch(u32 rva, SymbArg& s, bool hookMode)
@@ -223,7 +223,7 @@ cch* def_callPatch(u32 rva, SymbArg& s, bool hookMode)
 			? getDir32Rva(ptr+cp.patchOffset)
 			: getRel32Rva(ptr+cp.patchOffset);
 
-		Linker::addSymbol(s.name, Linker::Type_Relocate, -1, oldCall);
+		Linker::addSymbol(s.name, Linker::Type_Relocate, 0, oldCall);
 		
 		s.name = hook_name = Linker::symbcat(s.name, "_hook");
 	} SCOPE_EXIT(free(hook_name));
@@ -321,7 +321,7 @@ SHITCALL cch* def_import(char* name, char* symb)
 	char* impName = strtok(NULL, ";");	
 	if(!impName) return "IMPORTDEF import name bad";
 	
-	if(Linker::addImport(symb, dllName, impName) < 0)
+	if(!Linker::addImport(symb, dllName, impName))
 		return "IMPORTDEF symbol allready defined";
 	return 0;
 }
@@ -353,11 +353,11 @@ SHITCALL cch* def_export(char* str, SymStrArg* frwd)
 		PeFILE::addrToRva64(frwd->offset)); return 0; }}
 		
 	// handle symbol
-	DWORD symbol = Linker::addSymbol(frwd ? frwd->name
-		: name, Linker::Type_Undefined, -1, 0);
+	auto* symbol = Linker::addSymbol(frwd ? frwd->name
+		: name, Linker::Type_Undefined, 0, 0);
 	DWORD symbOffset = frwd ? frwd->offset : 0;
 	if(exp->frwd) PeFILE::peExp.setFrwd(*exp, 0);
-	Linker::addExport(name, iOrd, Linker::symbols+
+	Linker::addExport(name, iOrd,
 		symbol, symbOffset, exp->rva);
 	return 0;
 }

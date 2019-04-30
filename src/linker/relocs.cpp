@@ -21,7 +21,7 @@ void Reloc::fixup(Section* sect)
 {
 	// check symbol
 	if(this->type == (WORD)-1) return;
-	auto& symb = symbols[this->symbol];
+	auto& symb = *this->symbol;
 	if(symb.section == Type_Undefined)
 		undef_symbol(&symb, sect, this->offset);
 			
@@ -50,7 +50,7 @@ void Reloc::fixup(Section* sect)
 }
 
 void Section::addReloc(WORD type, 
-	DWORD offset, DWORD symbol)
+	DWORD offset, Symbol* symbol)
 {
 	auto& reloc = xNextAlloc(relocs, nReloc);
 	reloc.type = type;
@@ -59,7 +59,7 @@ void Section::addReloc(WORD type,
 }
 
 void addReloc(WORD type, 
-	DWORD offset, DWORD symbol)
+	DWORD offset,Symbol* symbol)
 {
 	auto& reloc = xNextAlloc(relocs, nRelocs);
 	reloc.type = type;

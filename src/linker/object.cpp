@@ -86,8 +86,7 @@ void object_load(const char* fileName,
 	}
 	
 	// read symbols
-	DWORD* symMapp = xMalloc(nSymbols);
-	memset(symMapp, -1, nSymbols*4);
+	Symbol** symMapp = xCalloc(nSymbols);
 	for(int i = 0; i < nSymbols; i++)
 	{
 		// get symbol name
@@ -131,20 +130,20 @@ void object_load(const char* fileName,
 		}
 		
 		// weak symbol
-		DWORD weakSymb = -1;
+		Symbol* weakSymb = 0;
 		if(sclass == 105) {
 			if(objSym[i].NumberOfAuxSymbols != 1)
 				file_corrupt("object2", fileName);
-			weakSymb = objSym[i+1].Name1;
-			if(weakSymb >= i)
+			DWORD iWeakSymb = objSym[i+1].Name1;
+			if(iWeakSymb >= i)
 				file_bad("object: weak symbol", fileName);
-			weakSymb = symMapp[weakSymb];
+			weakSymb = symMapp[iWeakSymb];
 		}
 
 		symMapp[i] = addSymbol((sclass == 3) ? NULL :
 			symName, sectIndex, weakSymb, objSym[i].Value);
-		if(isNeg(symMapp[i])) {
-			int prevSect = symbols[symMapp[i] & INT_MAX].section;
+		if(symMapp[i] == NULL) {
+			int prevSect = findSymbol(symName)->section;
 			fatal_error("object:duplicate symbol, %s\n"
 				"defined in: %s;%s\nprevious in: %s;%s\n", 
 				symName ? symName : "##NO NAME##",

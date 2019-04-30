@@ -16,13 +16,14 @@ enum {
 struct Reloc {
 	WORD type;
 	DWORD offset;
-	DWORD symbol;
+	Symbol* symbol;
 	void fixup(struct Section* sect);
-	inline Symbol* getSymb(void);
+	inline Symbol* getSymb(void) {
+		return symbol; }	
 };
 extern Reloc* relocs;
 extern DWORD nRelocs;
-void addReloc(WORD type, DWORD offset, DWORD symbol);
+void addReloc(WORD type, DWORD offset, Symbol* symbol);
 void relocs_fixup(void);
 
 // section interface	
@@ -39,7 +40,7 @@ struct Section {
 	DWORD baseRva, length;
 	
 	void addReloc(WORD type, DWORD 
-		offset, DWORD symbol);
+		offset, Symbol* symbol);
 	
 	
 	Void endPtr() { return rawData+length; }
@@ -83,7 +84,7 @@ struct Symbol {
 
 	char* Name;
 	DWORD section;
-	DWORD weakSym;
+	Symbol* weakSym;
 	DWORD value; 
 	u64 getAddr(void); 
 	
@@ -103,9 +104,9 @@ struct Symbol {
 };
 extern Symbol* symbols;
 extern DWORD nSymbols;
-int findSymbol(const char* name); int symbolRva(int symbol);
-int addSymbol(const char* name, DWORD section, DWORD weakSym, DWORD value);
-int addImport(const char* Name, const char* dllName, const char* importName);
+Symbol* findSymbol(const char* name); int symbolRva(Symbol* symbol);
+Symbol* addSymbol(const char* name, DWORD section, Symbol* weakSym, DWORD value);
+Symbol* addImport(const char* Name, const char* dllName, const char* importName);
 static inline bool isUndefSymb(int symb) { return (symb < 0)
 	|| (symbols[symb].section == Type_Undefined); }
 char* symbcat(cch* symb, cch* str);
@@ -116,7 +117,7 @@ Symbol* getSymbol(DWORD symb) { return
 	isNeg(symb) ? 0 : notNull(symbols+symb); }
 static inline
 Symbol* findSymbol2(const char* name) {
-	return getSymbol(findSymbol(name)); }
+	return findSymbol(name); }
 
 // object functions
 void library_load(const char* fileName,
@@ -134,7 +135,7 @@ void addExport(char* name, uint ord,
 void exports_symbfix();
 void exports_resolve();
 void exports_addSymb(Symbol* symb, char* importName);
-int exports_getExpSym(
+Symbol* exports_getExpSym(
 	char*& dllNane, char*& importName);
 
 extern xarray<char*> keep_list;
@@ -146,10 +147,6 @@ void keepSymbol(char* name) {
 	RingList_enum(Linker::sectRoot, sect, __VA_ARGS__)
 #define LINKER_ENUM_SYMBOLS(symb, ...) \
 	RingList_enum(Linker::symbRoot, symb, __VA_ARGS__)
-	
-// 
-Symbol* Reloc::getSymb(void) {
-	return symbols+symbol; }
 
 }
 #endif

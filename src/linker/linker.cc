@@ -68,40 +68,39 @@ Section* findSection(const char* name)
 			return sect; ); return NULL;
 }
 
-int findSymbol(const char* Name)
+Symbol* findSymbol(const char* Name)
 {
 	if(Name != NULL)
-	  for(int i = 0; i < nSymbols; i++)
-		if((symbols[i].Name != NULL)
-		&&(!strcmp(symbols[i].Name, Name)))
-		  return i;
-	return -1;
+	LINKER_ENUM_SYMBOLS(symb,
+		if((symb->Name != NULL)
+		&&(!strcmp(symb->Name, Name)))
+		  return symb; );
+	return NULL;
 }
 
-int addSymbol(const char* Name, DWORD section, DWORD weakSym, DWORD value)
+Symbol* addSymbol(const char* Name, DWORD section, Symbol* weakSym, DWORD value)
 {
-	// allocate new symbol ?
-	int symIndex = findSymbol(Name);
-	if( symIndex < 0 ) {
-		//Symbol& symb = xNextAlloc(symbols, nSymbols);
-		Symbol& symb = symbols[nSymbols++];
-		ringList_add(symbRoot, &symb);
-		
-		symb.Name = xstrdup(Name);
-		symb.section = section;
-		symb.weakSym = weakSym;
-		symb.value = value; 
-		return nSymbols-1; }
+	auto* symb = findSymbol(Name);
+	if(!symb) {
 	
-	// update existing symbol
-	if( section == Type_Undefined )
-		return symIndex;
-	if( symbols[symIndex].section != Type_Undefined )
-		return symIndex | INT_MIN;
-	symbols[symIndex].section = section;
-	symbols[symIndex].weakSym = weakSym;
-	symbols[symIndex].value = value;
-	return symIndex;
+		// create new symbol
+		symb = &symbols[nSymbols++];
+		ringList_add(symbRoot, symb);
+		symb->Name = xstrdup(Name);
+		
+	} else {
+	
+		// update existing symbol
+		if( section == Type_Undefined ) 
+			return symb;
+		if( symb->section != Type_Undefined ) 
+			return NULL;
+	}
+
+	symb->section = section;
+	symb->weakSym = weakSym;
+	symb->value = value; 
+	return symb;
 }
 
 /*
@@ -127,10 +126,9 @@ u64 Symbol::getAddr(void)
 	value : PeFILE::rvaToAddr64(getRva());
 }
 
-int symbolRva(int symbol) 
+int symbolRva(Symbol* symbol) 
 {
-	assert(symbol >= 0);
-	return symbols[symbol].getRva();
+	return symbol ? symbol->getRva() : 0;
 }
 
 char* symbcat(cch* symb, cch* str)
@@ -177,10 +175,10 @@ cch* sectGrow(Section* sect,
 	sect->length += length; }
 	
 	// alter symbols
-	int iSectSymb = -1;
+	Symbol* iSectSymb = 0;
 	LINKER_ENUM_SYMBOLS(symb, 
 		if(sectPtr(symb->section) == sect) {
-		if(symb->nmcmp(sect->name)) { iSectSymb = symb-symbols; }
+		if(symb->nmcmp(sect->name)) { iSectSymb = symb; }
 		ei(symb->value >= offset) { symb->value += length; }}
 	);
 

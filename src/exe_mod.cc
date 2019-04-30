@@ -246,8 +246,8 @@ int exe_mod(int argc, char* argv[])
 	Linker::relocs_fixup();
 
 	// write output file
-	int entryPoint = dfLink_entryPoint();
-	if(entryPoint >= 0)
+	auto entryPoint = dfLink_entryPoint();
+	if(entryPoint != NULL)
 		PeFILE::entryPoint() = Linker::symbolRva(entryPoint);
 	result = PeFILE::save(argv[2]);
 	if(result != NULL) {

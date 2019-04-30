@@ -52,7 +52,7 @@ void exports_symbfix()
 		// create symbol to original export
 		if(slot.oldRva) { xstr name(symbcat
 		(slot.symbol->Name, "_org"));
-		addSymbol(name, Type_Relocate, -1,
+		addSymbol(name, Type_Relocate, 0,
 			PeFILE::rvaToAddr(slot.oldRva)); }
 	}
 }
@@ -80,12 +80,12 @@ void exports_addSymb(Symbol* symb, char* importName)
 	expSymb.push_back(xstrdup(importName), symb);
 }
 
-int exports_getExpSym(
+Symbol* exports_getExpSym(
 	char*& dllName, char*& importName)
 {
 	// lookup export name
 	if((!PeFILE::peExp.dllName)
-	||(stricmp(PeFILE::peExp.dllName, dllName))) return -1;
+	||(stricmp(PeFILE::peExp.dllName, dllName))) return 0;
 	auto* slot = PeFILE::peExp.find(importName);
 	if(!slot) { fatal_error("exported function"
 		" does not exist: %s", importName); }
@@ -94,10 +94,10 @@ int exports_getExpSym(
 	if(slot->frwd) { char* dotPos = strchr(slot->frwd, '.');
 	if(!dotPos) fatal_error("bad export forwarder: %s", importName);
 	dotPos = importName; dllName = xstrdup(slot->frwd, dotPos-slot->frwd);
-	return -2; }
+	return 0; }
 	
 	// create export symbol
-	int symb = addSymbol(NULL, Type_Relocate, 0, 0);
-	exports_addSymb(symbols+symb, importName);
+	auto symb = addSymbol(NULL, Type_Relocate, 0, 0);
+	exports_addSymb(symb, importName);
 	return symb;
 }

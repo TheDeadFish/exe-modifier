@@ -2,8 +2,8 @@
 #define _DEF_OPS_H_
 
 struct SymbArg {
-	u64 offset; union { 
-	char* name; DWORD symb; };
+	u64 offset; union { char* name; 
+		Linker::Symbol* symb; };
 	u64 symInit(void);
 	cch* parse(char* str);
 	cch* parseNum(char* str);

@@ -31,7 +31,7 @@ void recurse_error(const char* type) {
 int exe_mod(int argc, char* argv[]);
 void dfLink_init();
 void dfLink_main();
-int dfLink_entryPoint();
+Linker::Symbol* dfLink_entryPoint();
 
 // exmod file interface
 struct FileOrMem { char* name;

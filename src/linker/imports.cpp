@@ -12,15 +12,15 @@ void makeImportSymbol(Symbol& iatsym,
 	iatsym.section = Type_Import;
 }
 
-int addImport(const char* Name,
+Symbol* addImport(const char* Name,
 	const char* dllName, const char* importName)
 {
 	// todo - generate import symbol
 	assert(Name != NULL);
 
-	int symbol = addSymbol(Name, Type_Import, 0, 0);
-	if(symbol >= 0)
-		makeImportSymbol(symbols[symbol], dllName, importName);
+	auto* symbol = addSymbol(Name, Type_Import, 0, 0);
+	if(symbol)
+		makeImportSymbol(*symbol, dllName, importName);
 	return symbol;
 }
 
@@ -44,11 +44,11 @@ void imports_resolve(void)
 
 
 void import_fixReloc(byte* base, 
-	DWORD iatSymb, DWORD expsymb,
+	Symbol* iatSymb, Symbol* expsymb,
 	Reloc* relocs, int nRelocs)
 {
 	for(auto& reloc : Range(relocs, nRelocs)) 
-	if(reloc.symbol == iatSymb) 
+	if(reloc.getSymb() == iatSymb) 
 	{
 		byte* base2 = base ? base :
 		PeFILE::peFile.rvaToSect(reloc.offset, 0)->data;
@@ -95,8 +95,8 @@ void imports_parse(void)
 		||(idata5->nReloc != 1)) {
 	ERROR_IDATA5: fatal_error(
 			"imports_parse: .idata$5 bad, %s\n", iatsym->Name); }
-		int idata5_symbol = idata5->relocs->symbol;
-		int idata6_section = symbols[idata5_symbol].section;
+		auto idata5_symbol = idata5->relocs->getSymb();
+		int idata6_section = idata5_symbol->section;
 		if(idata6_section == (WORD)-1)
 			goto ERROR_IDATA5;
 		
@@ -114,8 +114,8 @@ void imports_parse(void)
 		||(idata7->nReloc != 1)) {
 	ERROR_IDATA7: fatal_error(
 			"imports_parse: .idata$7 bad, %s\n", iatsym->Name); }
-		int idata7_symbol = idata7->relocs->symbol;
-		int idata2_section = symbols[idata7_symbol].section;
+		auto idata7_symbol = idata7->relocs->symbol;
+		int idata2_section = idata7_symbol->section;
 		if(idata2_section == (WORD)-1)
 			goto ERROR_IDATA7;
 
@@ -126,8 +126,8 @@ void imports_parse(void)
 		||(idata2->nReloc != 3)) {
 	ERROR_IDATA2: fatal_error(
 			"imports_parse: .idata$2 bad, %s\n", iatsym->Name); }
-		int idata2_symbol = idata2->relocs[1].symbol;
-		int idata7b_section = symbols[idata2_symbol].section;
+		auto idata2_symbol = idata2->relocs[1].symbol;
+		int idata7b_section = idata2_symbol->section;
 		if(idata7b_section == (WORD)-1)
 			goto ERROR_IDATA2;
 			
@@ -143,25 +143,24 @@ void imports_parse(void)
 		int thunkSect = -1;
 		for(int i = idata6_section; --i >= 0;)
 		if(!strcmp(sections[i]->name, ".text")) {
-			DWORD& relocSymb = sections[i]->relocs->symbol;
+			auto& relocSymb = sections[i]->relocs->symbol;
 			if((sections[i]->nReloc == 1)
-			&&( symbols[relocSymb].section == iatsym->section )) {
-				relocSymb = iatsym-symbols; 
+			&&( relocSymb->section == iatsym->section )) {
+				relocSymb = iatsym; 
 				thunkSect = i; }
 			break; }
 		
 		// check for import from self
-		int expsymb = exports_getExpSym(dllName, importName);
-		if(expsymb < 0) { PeFILE::Import_Add(dllName, importName);
+		auto expsymb = exports_getExpSym(dllName, importName);
+		if(!expsymb) { PeFILE::Import_Add(dllName, importName);
 			makeImportSymbol(
 			*iatsym, dllName, importName); continue; }
 			
 		// redirect relocations
-		int iSymb = iatsym-symbols;
-		import_fixReloc(0, iSymb, expsymb, relocs, nRelocs);
+		import_fixReloc(0, iatsym, expsymb, relocs, nRelocs);
 		LINKER_ENUM_SECTIONS(sect,
 			if(sect->isExec()) { import_fixReloc(sect->rawData,
-				iSymb, expsymb, sect->relocs, sect->nReloc); })
+				iatsym, expsymb, sect->relocs, sect->nReloc); })
 			
 		// redirect thunk symbols
 		if(thunkSect >= 0) {
