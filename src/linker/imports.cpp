@@ -1,20 +1,8 @@
 
-void makeImportSymbol(Symbol& iatsym,
-	const char* dllName, const char* importName)
-{
-	int totalSize = strlen(iatsym.Name) + 
-		strlen(dllName) + strlen(importName);
-	char* symName = xmalloc(totalSize+30);
-	sprintf(symName, "%s%c%s%c%s", iatsym.Name, 
-		0, dllName, 0, importName);
-	::free(iatsym.Name);
-	iatsym.Name = symName;
-	iatsym.section = Type_Import;
-}
-
 Symbol* addImport(const char* Name,
 	const char* dllName, const char* importName)
 {
+#if 0
 	// todo - generate import symbol
 	assert(Name != NULL);
 
@@ -22,26 +10,20 @@ Symbol* addImport(const char* Name,
 	if(symbol)
 		makeImportSymbol(*symbol, dllName, importName);
 	return symbol;
+#endif
 }
+
+struct ImportSects {
+	char *dllName, *importName; 
+	Section* section; };
+xarray<ImportSects> impSects;
 
 void imports_resolve(void)
 {
-	LINKER_ENUM_SYMBOLS(symb,
-	  if(symb->section == Type_Import)
-	{
-		char* dllName = strchr(symb->Name, '\0')+1;
-		char* impName = strchr(dllName, '\0')+1;
-		int impRva = PeFILE::Import_Find(dllName, impName);
-		assert(impRva > 0);
-		symb->section = Type_Relocate;
-		symb->value = impRva;
-	})
+	for(auto& is : impSects) {
+		is.section->baseRva = PeFILE::
+			Import_Find(is.dllName, is.importName); }
 }
-
-
-
-
-
 
 void import_fixReloc(byte* base, 
 	Symbol* iatSymb, Symbol* expsymb,
@@ -139,23 +121,12 @@ void imports_parse(void)
 				iatsym->Name); }
 		char* dllName = idata7b->rawData;
 		
-		// fix thunk reloc
-		int thunkSect = -1;
-		for(int i = idata6_section; --i >= 0;)
-		if(!strcmp(sections[i]->name, ".text")) {
-			auto& relocSymb = sections[i]->relocs->symbol;
-			if((sections[i]->nReloc == 1)
-			&&( relocSymb->section == iatsym->section )) {
-				relocSymb = iatsym; 
-				thunkSect = i; }
-			break; }
-		
 		// check for import from self
 		auto expsymb = exports_getExpSym(dllName, importName);
 		if(!expsymb) { PeFILE::Import_Add(dllName, importName);
-			makeImportSymbol(
-			*iatsym, dllName, importName); continue; }
-			
+			impSects.push_back(dllName, importName, idata5); continue; }
+		
+#if 0
 		// redirect relocations
 		import_fixReloc(0, iatsym, expsymb, relocs, nRelocs);
 		LINKER_ENUM_SECTIONS(sect,
@@ -170,10 +141,6 @@ void imports_parse(void)
 				exports_addSymb(symb, importName); }
 			destroy_section(*sections[thunkSect]); )
 		}
+#endif
 	})
-	
-	// destroy import data
-	LINKER_ENUM_SECTIONS(sect,
-		if(strScmp(sect->name, ".idata"))
-			destroy_section(*sect); )
 }

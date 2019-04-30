@@ -70,6 +70,7 @@ void addReloc(WORD type,
 void relocs_fixup(void)
 {
 	LINKER_ENUM_SECTIONS(sect, 
+		if(!sect->isLinked()) continue;
 		for(auto& reloc : Range(sect->relocs, sect->nReloc))
 			reloc.fixup(sect); )
 	
