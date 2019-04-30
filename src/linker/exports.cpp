@@ -2,12 +2,9 @@
 struct ExportSlot
 {
 	cch* name;
-	DWORD symbol;
+	Symbol* symbol;
 	DWORD offset;
 	DWORD oldRva;
-	
-	Symbol* getSymb(void) {
-		return symbols+symbol; }
 };
 
 xarray<ExportSlot> exports;
@@ -15,31 +12,31 @@ xarray<ExportSlot> exports;
 struct ExportSymb
 {
 	cch* name;
-	DWORD symbol;
+	Symbol* symbol;
 };
 
 xarray<ExportSymb> expSymb;
 
 void addExport(char* name, uint ord, 
-	DWORD symbol, DWORD offset, DWORD oldRva)
+	Symbol* symbol, DWORD offset, DWORD oldRva)
 {
 	if(ord) { name = xstrfmt("#%d", ord); }
 	else { name = xstrdup(name); }
 	exports.push_back(name, symbol, offset, oldRva);
 }
 
-int findSymbolExp(const char* Name)
+Symbol* findSymbolExp(const char* Name)
 {
 	if(Name != NULL)
-	  for(int i = 0; i < nSymbols; i++) {
-		char* nm = symbols[i].Name;
+		LINKER_ENUM_SYMBOLS(symb,
+		char* nm = symb->Name;
 		if(nm && *nm == '_') { 
 		  nm = strScmp(nm+1, Name);
 		  if(nm && is_one_of(*nm, 0, '@'))
-			  return i;
+			  return symb;
 		}
-	}
-	return -1;
+	);
+	return NULL;
 }
 
 void exports_symbfix()
@@ -47,14 +44,14 @@ void exports_symbfix()
 	for(auto& slot : exports)
 	{
 		// match symbol
-		auto& symb = symbols[slot.symbol];
+		auto& symb = *slot.symbol;
 		if(symb.section == Type_Undefined) {
-			int iSymb = findSymbolExp(symb.Name);
-			if(iSymb < 0) continue; slot.symbol = iSymb; }
+			auto* iSymb = findSymbolExp(symb.Name);
+			if(!iSymb) continue; slot.symbol = iSymb; }
 		
 		// create symbol to original export
 		if(slot.oldRva) { xstr name(symbcat
-		(symbols[slot.symbol].Name, "_org"));
+		(slot.symbol->Name, "_org"));
 		addSymbol(name, Type_Relocate, -1,
 			PeFILE::rvaToAddr(slot.oldRva)); }
 	}
@@ -64,7 +61,7 @@ void exports_resolve()
 {
 	// resolve new exports
 	for(auto& slot : exports) {
-		auto& symb = symbols[slot.symbol];
+		auto& symb = *slot.symbol;
 		if(symb.section == Type_Undefined)
 			undef_symbol(&symb, 0, 0);
 		PeFILE::peExp.setRva(slot.name, 
@@ -73,12 +70,12 @@ void exports_resolve()
 	
 	// update export symbols
 	for(auto& slot : expSymb) {
-		symbols[slot.symbol].value = 
+		slot.symbol->value = 
 			PeFILE::peExp.find(slot.name)->rva;
 	}
 }
 
-void exports_addSymb(int symb, char* importName)
+void exports_addSymb(Symbol* symb, char* importName)
 {
 	expSymb.push_back(xstrdup(importName), symb);
 }
@@ -101,6 +98,6 @@ int exports_getExpSym(
 	
 	// create export symbol
 	int symb = addSymbol(NULL, Type_Relocate, 0, 0);
-	exports_addSymb(symb, importName);
+	exports_addSymb(symbols+symb, importName);
 	return symb;
 }

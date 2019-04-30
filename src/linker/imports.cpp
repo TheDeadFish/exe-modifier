@@ -165,11 +165,11 @@ void imports_parse(void)
 			
 		// redirect thunk symbols
 		if(thunkSect >= 0) {
-			for(int iSymb : Range(0, int(nSymbols)))
-			if(symbols[iSymb].section == thunkSect) {
-				symbols[iSymb].section = Type_Relocate;
-				exports_addSymb(iSymb, importName); }
-			destroy_section(*sections[thunkSect]); 
+			LINKER_ENUM_SYMBOLS(symb,
+			if(symb->section == thunkSect) {
+				symb->section = Type_Relocate;
+				exports_addSymb(symb, importName); }
+			destroy_section(*sections[thunkSect]); )
 		}
 	})
 	

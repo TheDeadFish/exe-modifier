@@ -357,7 +357,7 @@ SHITCALL cch* def_export(char* str, SymStrArg* frwd)
 		: name, Linker::Type_Undefined, -1, 0);
 	DWORD symbOffset = frwd ? frwd->offset : 0;
 	if(exp->frwd) PeFILE::peExp.setFrwd(*exp, 0);
-	Linker::addExport(name, iOrd, 
+	Linker::addExport(name, iOrd, Linker::symbols+
 		symbol, symbOffset, exp->rva);
 	return 0;
 }

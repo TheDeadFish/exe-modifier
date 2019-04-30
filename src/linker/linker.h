@@ -130,10 +130,10 @@ void gc_sections(void);
 
 // exports interface
 void addExport(char* name, uint ord, 
-	DWORD symbol, DWORD offset, DWORD oldRva);
+	Symbol* symbol, DWORD offset, DWORD oldRva);
 void exports_symbfix();
 void exports_resolve();
-void exports_addSymb(int symb, char* importName);
+void exports_addSymb(Symbol* symb, char* importName);
 int exports_getExpSym(
 	char*& dllNane, char*& importName);
 
