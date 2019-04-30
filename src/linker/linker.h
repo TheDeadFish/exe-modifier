@@ -20,6 +20,8 @@ struct Reloc {
 	void fixup(struct Section* sect);
 	inline Symbol* getSymb(void) {
 		return symbol; }	
+	inline Section* getSect();
+	
 };
 extern Reloc* relocs;
 extern DWORD nRelocs;
@@ -51,6 +53,14 @@ struct Section {
 	bool isExec() { return isLinked() && (type & 
 		PeSecTyp::Exec) && (type & PeSecTyp::Intd); }
 	xarray<Reloc> rlcs() { return {relocs, nReloc}; }
+	
+	
+	bool nameIs(cch* nn) {
+		return name && !strcmp(name, nn); }
+	
+		
+		
+		
 };
 extern Section** sections;
 extern DWORD nSections;
@@ -137,6 +147,9 @@ void keepSymbol(char* name) {
 	RingList_enum(Linker::sectRoot, sect, __VA_ARGS__)
 #define LINKER_ENUM_SYMBOLS(symb, ...) \
 	RingList_enum(Linker::symbRoot, symb, __VA_ARGS__)
+	
+Section* Reloc::getSect() {
+	return symbol->getSect(); }
 
 }
 #endif

@@ -2,6 +2,8 @@
 Symbol* addImport(const char* Name,
 	const char* dllName, const char* importName)
 {
+	assert(0); return 0;
+
 #if 0
 	// todo - generate import symbol
 	assert(Name != NULL);
@@ -62,69 +64,49 @@ void import_fixReloc(byte* base,
 	}
 };
 
+void import_bad(Section* idata5, cch* name)
+{
+	fatal_error("import_bad, %s\n", name);
+}
+
 
 void imports_parse(void)
 {
-	LINKER_ENUM_SYMBOLS(iatsym,
-	  if((iatsym->Name && strScmp(iatsym->Name, "__imp_"))
-	  &&(int(iatsym->section) >= 0)
-	  &&(strScmp(sections[iatsym->section]->name, ".idata$")))
-	{
-		// check .idata$5
-		auto idata5 = sections[iatsym->section];
-		if((iatsym->section == 0)
-		||(strcmp(idata5->name, ".idata$5"))
-		||(idata5->nReloc != 1)) {
-	ERROR_IDATA5: fatal_error(
-			"imports_parse: .idata$5 bad, %s\n", iatsym->Name); }
-		auto idata5_symbol = idata5->relocs->getSymb();
-		int idata6_section = idata5_symbol->section;
-		if(idata6_section == (WORD)-1)
-			goto ERROR_IDATA5;
+	LINKER_ENUM_SECTIONS(sect, 
+	
+		// check for import
+		if(!sect->nameIs(".idata$7")) continue;
+		auto idata5 = sect->next;
+		if(!idata5->nameIs(".idata$5")) continue;
+		auto idata6 = idata5->next->next;
+		if(idata5->nReloc != 1) import_bad(NULL, ".idata$5");
+		if(sect->nReloc != 1) import_bad(idata5, ".idata$7");
 		
-		// get/check .idata6 (import name)
-		auto idata6 = sections[idata6_section];
-		if((strcmp(idata6->name, ".idata$6"))
-		||( !nullchk(idata6->rawData+2, idata6->endPtr()))) {
-			fatal_error("imports_parse: .idata$6 bad, %s\n", 
-				iatsym->Name); }
+		// get import name (.idata$6)
+		if((!idata6->nameIs(".idata$6"))
+		||( !nullchk(idata6->rawData+2, idata6->endPtr())))
+			import_bad(idata5, ".idata$6");
 		char* importName = idata6->rawData+2;
 		
-		// get/check .idata7
-		auto idata7 = sections[iatsym->section-1];
-		if((strcmp(idata7->name, ".idata$7"))
-		||(idata7->nReloc != 1)) {
-	ERROR_IDATA7: fatal_error(
-			"imports_parse: .idata$7 bad, %s\n", iatsym->Name); }
-		auto idata7_symbol = idata7->relocs->symbol;
-		int idata2_section = idata7_symbol->section;
-		if(idata2_section == (WORD)-1)
-			goto ERROR_IDATA7;
-
-		// get/check .idata2 (import directory)
-		auto idata2 = sections[idata2_section];
-		if((strcmp(idata2->name, ".idata$2"))
-		||(idata2->length != 20)
-		||(idata2->nReloc != 3)) {
-	ERROR_IDATA2: fatal_error(
-			"imports_parse: .idata$2 bad, %s\n", iatsym->Name); }
-		auto idata2_symbol = idata2->relocs[1].symbol;
-		int idata7b_section = idata2_symbol->section;
-		if(idata7b_section == (WORD)-1)
-			goto ERROR_IDATA2;
+		// get import directory (.idata$2)
+		auto idata2 = sect->relocs->getSect();
+		if(!idata2 || !idata2->nameIs(".idata$2") ||
+		(idata2->length != 20)||(idata2->nReloc != 3))
+			import_bad(idata5, ".idata$2");
 			
-		// get/check .data7(b) (dll name)
-		auto idata7b = sections[idata7b_section];
-		if((strcmp(idata7b->name, ".idata$7"))
-		||( !nullchk(idata7b->rawData, idata7b->endPtr()))) {
-			fatal_error("imports_parse: .idata$7b bad, %s\n", 
-				iatsym->Name); }
+		// get module name (.idata7)
+		auto idata7b = idata2->relocs[1].getSect();
+		if(!idata7b->nameIs(".idata$7")
+		||( !nullchk(idata7b->rawData, idata7b->endPtr())))
+			import_bad(idata5, ".idata$7b");
 		char* dllName = idata7b->rawData;
 		
 		// check for import from self
 		auto expsymb = exports_getExpSym(dllName, importName);
 		if(!expsymb) { PeFILE::Import_Add(dllName, importName);
 			impSects.push_back(dllName, importName, idata5); continue; }
+		assert(0);			
+	)
 		
 #if 0
 		// redirect relocations
@@ -142,5 +124,4 @@ void imports_parse(void)
 			destroy_section(*sections[thunkSect]); )
 		}
 #endif
-	})
 }
