@@ -12,8 +12,6 @@ namespace Linker {
 
 Section** sections;
 DWORD nSections;
-Symbol* symbols = xMalloc(65536);
-DWORD nSymbols;
 Reloc* relocs;
 DWORD nRelocs;
 xarray<char*> keep_list;
@@ -84,7 +82,7 @@ Symbol* addSymbol(const char* Name, DWORD section, Symbol* weakSym, DWORD value)
 	if(!symb) {
 	
 		// create new symbol
-		symb = &symbols[nSymbols++];
+		symb = xCalloc(1);
 		ringList_add(symbRoot, symb);
 		symb->Name = xstrdup(Name);
 		

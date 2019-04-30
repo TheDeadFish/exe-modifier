@@ -102,22 +102,12 @@ struct Symbol {
 		return notNull(sections[section]); }
 		
 };
-extern Symbol* symbols;
-extern DWORD nSymbols;
+
 Symbol* findSymbol(const char* name); int symbolRva(Symbol* symbol);
 Symbol* addSymbol(const char* name, DWORD section, Symbol* weakSym, DWORD value);
 Symbol* addImport(const char* Name, const char* dllName, const char* importName);
-static inline bool isUndefSymb(int symb) { return (symb < 0)
-	|| (symbols[symb].section == Type_Undefined); }
 char* symbcat(cch* symb, cch* str);
 extern Symbol* symbRoot;
-
-static inline
-Symbol* getSymbol(DWORD symb) { return 
-	isNeg(symb) ? 0 : notNull(symbols+symb); }
-static inline
-Symbol* findSymbol2(const char* name) {
-	return findSymbol(name); }
 
 // object functions
 void library_load(const char* fileName,

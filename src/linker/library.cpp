@@ -99,7 +99,7 @@ RECHECK_EXPORTS:
 		// check for undefined symbol
 		const char* newPos = nullchk(curPos, exportLimit);
 		if(!newPos) eofErr(curPos);
-		auto* symb = findSymbol2(curPos);
+		auto* symb = findSymbol(curPos);
 		if(symb && (symb->section == Type_Undefined)) {
 		
 		// get object file
