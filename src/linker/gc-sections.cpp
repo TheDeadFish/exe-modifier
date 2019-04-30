@@ -1,53 +1,39 @@
+	
+void mark_section(Section* sect);
+void mark_reloc(xarray<Reloc> relocs)
+{
+	for(auto& reloc : relocs) {
+		auto* symb = reloc.getSymb();
+		mark_section(symb->getSect()); }
+}
+
+void mark_section(Section* sect)
+{
+	if(!sect || sect->keep) return;
+	sect->keep = 1;
+	mark_reloc(sect->rlcs());
+}
 
 void gc_sections(void)
 {
 	// mark keep sections
-	char* sectMask = xMalloc(nSections);
-	memset(sectMask, 0, nSections);
 	for(char* keep : keep_list) {
 		auto* symb = findSymbol2(keep);
-		if(symb && !isNeg(symb->section)) {
-			sectMask[symb->section] = 1; }
-		for(int j = 0; j < nSections; j++) {
-		  if(strScmp(sections[j]->name, keep))
-			sectMask[j] = 1; }
+		mark_section(symb->getSect());
+		
+		// mark matching sections
+		LINKER_ENUM_SECTIONS(sect, 
+			if(strScmp(sect->name, keep))
+				mark_section(sect));
 	}
 	
 	// mark -1 refernced sections
-	for(auto& reloc : Range(relocs, nRelocs))
-	  if(int(symbols[reloc.symbol].section) >= 0)
-		 sectMask[symbols[reloc.symbol].section] = 1;
-	for(auto& slot : exports)
-	  if(int(symbols[slot.symbol].section) >= 0)
-		sectMask[symbols[slot.symbol].section] = 1;
-	
-	// mark referenced sections
-RECHECK_MASK:
-	bool maskChange = false;
-	for(int i = 0; i < nSections; i++)
-	  if((sectMask[i] == 1)
-	  &&(sections[i]->isAlive()))
-	{
-		sectMask[i] = 2;
-		for(auto& reloc : Range(sections[i]
-		  ->relocs, sections[i]->nReloc)) 
-		{
-			auto* symbol = reloc.getSymb();
-			if(symbol == NULL) continue;
-			if((sectMask[symbol->section] == 0)
-			&&(sections[i]->isAlive())) {
-				sectMask[symbol->section] = 1;
-					maskChange = true; }
-		}
-	}
-	if(maskChange == true)
-		goto RECHECK_MASK;
+	mark_reloc({relocs, nRelocs});
+	for(auto& slot : exports) {
+		auto* symb = slot.getSymb();
+		mark_section(symb->getSect()); }
 		
 	// kill unreferenced sections
-	for(int i = 0; i < nSections; i++)
-	  if((sectMask[i] != 2)
-	  &&(sections[i]->isAlive())) {
-		assert(sectMask[i] == 0);
-		destroy_section(*sections[i]); 
-	}
+	LINKER_ENUM_SECTIONS(sect, 
+		if(!sect->keep) destroy_section(*sect))
 }

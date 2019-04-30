@@ -144,7 +144,7 @@ void keepSymbol(char* name) {
 	
 // 
 Symbol* Reloc::getSymb(void) {
-	return getSymbol(symbol); }
+	return symbols+symbol; }
 
 }
 #endif

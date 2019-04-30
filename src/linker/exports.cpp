@@ -5,6 +5,9 @@ struct ExportSlot
 	DWORD symbol;
 	DWORD offset;
 	DWORD oldRva;
+	
+	Symbol* getSymb(void) {
+		return symbols+symbol; }
 };
 
 xarray<ExportSlot> exports;

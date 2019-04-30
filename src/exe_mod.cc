@@ -231,7 +231,7 @@ int exe_mod(int argc, char* argv[])
 		if((!Linker::sections[i]->isLinked())
 		||( Linker::sections[i]->baseRva )) continue;
 		
-		blocks[blockCount].type = Linker::sections[i]->type;
+		blocks[blockCount].type = Linker::sections[i]->peType;
 		blocks[blockCount].align = Linker::sections[i]->align;
 		blocks[blockCount].length = Linker::sections[i]->length;
 		blocks[blockCount++].lnSect = i; }
