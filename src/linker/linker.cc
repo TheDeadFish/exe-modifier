@@ -10,8 +10,6 @@ namespace Linker {
 #include "exports.cpp"
 #include "gc-sections.cpp"
 
-Section** sections;
-DWORD nSections;
 Reloc* relocs;
 DWORD nRelocs;
 xarray<char*> keep_list;
@@ -26,12 +24,11 @@ const char* nullchk(const char* str, const char* limit)
 	return NULL;
 }
 
-DWORD addSection(const char* fileName, const char* Name,
+Section* addSection(const char* fileName, const char* Name,
 	void* rawData, WORD type, WORD align,
 		DWORD baseRva, DWORD length)
 {
 	auto& sect = *(Section*)xMalloc(1);
-	xNextAlloc(sections, nSections) = &sect;
 	ringList_add(sectRoot, &sect);
 
 	sect.fileName = fileName;
@@ -45,8 +42,8 @@ DWORD addSection(const char* fileName, const char* Name,
 	
 	// create symbol
 	if(Name && *Name) { addSymbol(
-		Name, nSections-1, 0, 0); }
-	return nSections-1;
+		Name, &sect, 0, 0); }
+	return &sect;
 };
 
 void destroy_section(Section& section)
@@ -76,7 +73,7 @@ Symbol* findSymbol(const char* Name)
 	return NULL;
 }
 
-Symbol* addSymbol(const char* Name, DWORD section, Symbol* weakSym, DWORD value)
+Symbol* addSymbol(const char* Name, Section* section, Symbol* weakSym, DWORD value)
 {
 	auto* symb = findSymbol(Name);
 	if(!symb) {
@@ -114,8 +111,8 @@ DWORD Symbol::getRva(void)
 	if(( section == Type_Absolute)
 	||( section == Type_Undefined ))
 		fatal_error("undefined symbol: %s\n", getName());
-	return (isNeg(section) ? 0 : 
-		sections[section]->baseRva) + value;
+	return (!section->isReal() ? 0 : 
+		section->baseRva) + value;
 }
 
 u64 Symbol::getAddr(void)
@@ -175,7 +172,7 @@ cch* sectGrow(Section* sect,
 	// alter symbols
 	Symbol* iSectSymb = 0;
 	LINKER_ENUM_SYMBOLS(symb, 
-		if(sectPtr(symb->section) == sect) {
+		if(symb->section == sect) {
 		if(symb->nmcmp(sect->name)) { iSectSymb = symb; }
 		ei(symb->value >= offset) { symb->value += length; }}
 	);
@@ -192,21 +189,19 @@ cch* sectGrow(Section* sect,
 	return NULL;
 }
 
-cch* sectName(DWORD sectId)
+cch* sectName(Section* sectId)
 {
-	switch(sectId) {
-	case Type_Undefined: return "[undefined]";
-	case Type_Relocate: return "[relocate]";
-	case Type_Absolute: return "[absolute]";
-	case Type_Import: return "[import]"; }
-	cch* name = sections[sectId]->name;
+	if(sectId == Type_Undefined)  return "[undefined]";
+	if(sectId == Type_Relocate)  return "[relocate]";
+	if(sectId == Type_Absolute)  return "[absolute]";
+	cch* name = sectId->name;
 	return name ? name : "[no name]";
 }
 
-cch* sectFile(DWORD sectId)
+cch* sectFile(Section* sectId)
 {
-	if(sectId >= nSections) return "[no file]";
-	cch* name = sections[sectId]->fileName;
+	if(sectId <= Type_Absolute) return "[no file]";
+	cch* name = sectId->fileName;
 	return name ? name : "[no file]";
 }
 

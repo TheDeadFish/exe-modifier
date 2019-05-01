@@ -58,13 +58,12 @@ struct Section {
 	bool nameIs(cch* nn) {
 		return name && !strcmp(name, nn); }
 	
-		
+	inline bool isReal();	
 		
 		
 };
-extern Section** sections;
-extern DWORD nSections;
-DWORD addSection(const char* fileName, const char* Name,
+
+Section* addSection(const char* fileName, const char* Name,
 	void* rawData, WORD type, WORD align, 
 	DWORD baseRva, DWORD length);
 void destroy_section(Section& sect);
@@ -73,27 +72,20 @@ void fixSection(Section* sect, DWORD rva);
 int sectTypeFromName(cch* name);
 cch* sectGrow(Section* sect, 
 	DWORD offset, DWORD length);
-cch* sectName(DWORD sectId);
-cch* sectFile(DWORD sectId);
+cch* sectName(Section* sectId);
+cch* sectFile(Section* sectId);
 extern Section* sectRoot;
 
-
-static
-Section* sectPtr(DWORD sectId) {
-	return (sectId < nSections) ?
-		sections[sectId] : 0; }
-
 // symbol interface
-enum : DWORD {
-	Type_Undefined = DWORD(-1),
-	Type_Relocate = DWORD(-2),
-	Type_Absolute = DWORD(-3),
-	Type_Import	= DWORD(-4) };
+static const auto Type_Undefined = (Section*)0;
+static const auto Type_Relocate = (Section*)1;
+static const auto Type_Absolute = (Section*)2;
+
 struct Symbol {
 	Symbol* next;
 
 	char* Name;
-	DWORD section;
+	Section* section;
 	Symbol* weakSym;
 	DWORD value; 
 	u64 getAddr(void); 
@@ -108,13 +100,13 @@ struct Symbol {
 		Name && !strcmp(Name, str); }
 		
 	Section* getSect() { 
-		if(!this || isNeg(section)) return 0;
-		return notNull(sections[section]); }
+		if(!this || !section->isReal()) return 0;
+		return notNull(section); }
 		
 };
 
 Symbol* findSymbol(const char* name); int symbolRva(Symbol* symbol);
-Symbol* addSymbol(const char* name, DWORD section, Symbol* weakSym, DWORD value);
+Symbol* addSymbol(const char* name, Section* section, Symbol* weakSym, DWORD value);
 Symbol* addImport(const char* Name, const char* dllName, const char* importName);
 char* symbcat(cch* symb, cch* str);
 extern Symbol* symbRoot;
@@ -150,6 +142,9 @@ void keepSymbol(char* name) {
 	
 Section* Reloc::getSect() {
 	return symbol->getSect(); }
+	
+bool Section::isReal() {
+	return this > Type_Absolute; }
 
 }
 #endif

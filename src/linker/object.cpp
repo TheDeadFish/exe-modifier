@@ -44,8 +44,7 @@ void object_load(const char* fileName,
 		file_corrupt("object", fileName);
 		
 	// read sections
-	DWORD* sectMapp = xMalloc(nSects);
-	memset(sectMapp, -1, nSects*4);
+	Section** sectMapp = xCalloc(nSects);
 	for(int i = 0; i < nSects; i++)
 	{
 		// reference section members
@@ -115,7 +114,7 @@ void object_load(const char* fileName,
 		
 		// section type
 		DWORD section = objSym[i].Section;
-		DWORD sectIndex;
+		Section* sectIndex;
 		if(section == WORD(-2))
 			file_bad("object", fileName);
 		ei(section == WORD(-1))
@@ -126,7 +125,7 @@ void object_load(const char* fileName,
 			if(section > nSects)
 				file_corrupt("object1", fileName);
 			sectIndex = sectMapp[section-1];
-			if(isNeg(sectIndex)) continue;
+			if(sectIndex == NULL) continue;
 		}
 		
 		// weak symbol
@@ -143,7 +142,7 @@ void object_load(const char* fileName,
 		symMapp[i] = addSymbol((sclass == 3) ? NULL :
 			symName, sectIndex, weakSymb, objSym[i].Value);
 		if(symMapp[i] == NULL) {
-			int prevSect = findSymbol(symName)->section;
+			Section* prevSect = findSymbol(symName)->section;
 			fatal_error("object:duplicate symbol, %s\n"
 				"defined in: %s;%s\nprevious in: %s;%s\n", 
 				symName ? symName : "##NO NAME##",
@@ -156,8 +155,8 @@ void object_load(const char* fileName,
 	// read relocs
 	for(int i = 0; i < nSects; i++)
 	{
-		if(isNeg(sectMapp[i])) continue;
-		auto& sect = *sections[sectMapp[i]];
+		if(sectMapp[i] == NULL) continue;
+		auto& sect = *sectMapp[i];
 		ObjRelocs* relocs = objFile + objSects[i].PointerToRelocations;
 		DWORD nRelocs = objSects[i].NumberOfRelocations;
 		if((relocs + nRelocs) > objLimit)
