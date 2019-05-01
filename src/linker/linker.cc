@@ -40,9 +40,6 @@ Section* addSection(const char* fileName, const char* Name,
 	sect.type = type; sect.align = align;
 	sect.baseRva = baseRva; sect.length = length; 
 	
-	// create symbol
-	if(Name && *Name) { addSymbol(
-		Name, &sect, 0, 0); }
 	return &sect;
 };
 
@@ -157,6 +154,16 @@ int sectTypeFromName(cch* Name)
 		if(!str.cmp(type.first)) 
 			return type.second; }
 	return 0;
+}
+
+bool sectTypeNormal(cch* Name)
+{
+	if(strScmp(Name, ".idata")) return true;
+	static const cch* names[] = {
+		".data", ".bss", ".rdata", ".text"};
+	for(cch* x : names) {
+		if(!strcmp(Name, x)) return true; }
+	return false;
 }
 
 cch* sectGrow(Section* sect, 

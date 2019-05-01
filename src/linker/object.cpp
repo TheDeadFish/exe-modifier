@@ -138,10 +138,21 @@ void object_load(const char* fileName,
 				file_bad("object: weak symbol", fileName);
 			weakSymb = symMapp[iWeakSymb];
 		}
+		
+		// check section symbol
+		bool sectSymb = false;
+		if(sclass == 3) {
+			if(!objSym[i].Value	&& sectIndex->isReal()
+			&& sectIndex->nameIs(symName)) { sectSymb = true; 
+				if(sectTypeNormal(symName)) goto L1;
+			} else { L1: symName = NULL; }
+		}
 
-		symMapp[i] = addSymbol((sclass == 3) ? NULL :
+SYMB_RETRY:
+		symMapp[i] = addSymbol(
 			symName, sectIndex, weakSymb, objSym[i].Value);
-		if(symMapp[i] == NULL) {
+		if(symMapp[i] == NULL) { 
+			if(sectSymb) { symName = 0; goto SYMB_RETRY; }
 			Section* prevSect = findSymbol(symName)->section;
 			fatal_error("object:duplicate symbol, %s\n"
 				"defined in: %s;%s\nprevious in: %s;%s\n", 
@@ -149,6 +160,8 @@ void object_load(const char* fileName,
 				fileName, sectName(sectIndex), 
 				sectFile(prevSect), sectName(prevSect));
 		}
+		
+		if(sectSymb) sectIndex->symbol = symMapp[i];
 		i += objSym[i].NumberOfAuxSymbols;
 	}
 

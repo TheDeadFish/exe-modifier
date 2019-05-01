@@ -40,6 +40,8 @@ struct Section {
 	
 	WORD align;
 	DWORD baseRva, length;
+	Symbol* symbol;
+	
 	
 	void addReloc(WORD type, DWORD 
 		offset, Symbol* symbol);
@@ -70,6 +72,7 @@ void destroy_section(Section& sect);
 Section* findSection(const char* name);
 void fixSection(Section* sect, DWORD rva);
 int sectTypeFromName(cch* name);
+bool sectTypeNormal(cch* Name);
 cch* sectGrow(Section* sect, 
 	DWORD offset, DWORD length);
 cch* sectName(Section* sectId);
