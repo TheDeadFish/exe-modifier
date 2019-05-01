@@ -225,22 +225,20 @@ int exe_mod(int argc, char* argv[])
 	Linker::imports_parse();
 
 	// allocate sections
-	PeBlock* blocks = xCalloc(Linker::nSections);
-	int blockCount = 0;
-	for(int i = 0; i < Linker::nSections; i++) {
-		if((!Linker::sections[i]->isLinked())
-		||( Linker::sections[i]->baseRva )) continue;
-		
-		blocks[blockCount].type = Linker::sections[i]->peType;
-		blocks[blockCount].align = Linker::sections[i]->align;
-		blocks[blockCount].length = Linker::sections[i]->length;
-		blocks[blockCount++].lnSect = i; }
-	PeFILE::allocBlocks(blocks, blockCount);
+	xarray<PeBlock> blocks = {};
+	LINKER_ENUM_SECTIONS(sect,
+		if(!sect->isLinked() || sect->baseRva) continue;
+		auto& block = blocks.push_back();
+		block.type = sect->peType;
+		block.align = sect->align;
+		block.length = sect->length;		
+		block.lnSect = (size_t)sect; );
+	PeFILE::allocBlocks(blocks, blocks.len);
 	
 	// initialize sections
-	for(int i = 0; i < blockCount; i++) {
-		auto& sect = *Linker::sections[blocks[i].lnSect];
-		Linker::fixSection(&sect, blocks[i].baseRva); }
+	for(auto& block : blocks) {
+		auto* sect = (Linker::Section*)block.lnSect;
+		Linker::fixSection(sect, block.baseRva); }
 	Linker::imports_resolve();
 	Linker::exports_resolve();
 	Linker::relocs_fixup();

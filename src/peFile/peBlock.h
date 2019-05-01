@@ -26,7 +26,7 @@ struct FreeLst : xArray<FreeLst2_t>
 struct PeBlock {
 	WORD type; WORD align;
 	DWORD baseRva; DWORD length; 
-	int lnSect; union {
+	size_t lnSect; union {
 	void* data; int peSect; };
 	int order() const; static int cmpFn(
 		const PeBlock& a, const PeBlock& b);

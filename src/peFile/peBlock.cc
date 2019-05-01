@@ -231,7 +231,7 @@ int PeBlock::order() const
 int PeBlock::cmpFn(const PeBlock& a, const PeBlock& b)
 {
 	int diff = a.order()-b.order();
-	if(!diff) diff = a.lnSect-b.lnSect;
+	if(!diff) diff = PTRDIFF(a.data,b.data);
 	return diff;
 }
 
@@ -255,7 +255,9 @@ void allocBlocks(xarray<PeBlock> blocks, PeFile&
 	}
 	
 	// sort the blocks
+	for(auto& block: blocks) block.data = &block;
 	qsort(blocks.data, blocks.size, PeBlock::cmpFn);
+	for(auto& block: blocks) block.data = 0;
 	PeBlock* rdatPos = blocks;
 	for(auto& block : blocks) { rdatPos = &block;
 		if(((block.type & 7) <= 4)) break; }
