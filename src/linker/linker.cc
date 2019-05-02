@@ -47,7 +47,7 @@ void destroy_section(Section& section)
 {
 	free_ref(section.relocs);
 	free_ref(section.rawData);
-	section.name[0] = '\0';
+	free_ref(section.name);
 	section.type = -1;
 	section.length = 0;
 	section.nReloc = 0;	
@@ -134,9 +134,11 @@ char* symbcat(cch* symb, cch* str)
 void fixSection(Section* sect, DWORD rva)
 {
 	sect->baseRva = rva;
-	Void basePtr = PeFILE::rvaToPtr(rva);
-	memcpy(basePtr, sect->rawData, sect->length);
-	free(sect->rawData); sect->rawData = basePtr;
+	if(sect->rawData) {
+		Void basePtr = PeFILE::rvaToPtr(rva);
+		memcpy(basePtr, sect->rawData, sect->length);
+		free(sect->rawData); sect->rawData = basePtr;
+	}
 }
 
 int sectTypeFromName(cch* Name)
@@ -210,6 +212,63 @@ cch* sectFile(Section* sectId)
 	if(sectId <= Type_Absolute) return "[no file]";
 	cch* name = sectId->fileName;
 	return name ? name : "[no file]";
+}
+
+struct MergeList { 
+	cch* name; Symbol* symbol; };
+xarray<MergeList> mergeList;
+
+static
+Symbol* mergeSect_symb(Section* sect,
+	 cch* prefix, cch* sect_name)
+{
+	xstr name = symbcat(prefix, sect_name);
+	Symbol* symb = addSymbol(name, sect, 0, 0);
+	if(!symb) fatal_error("duplicate symbol: %s", name.data);
+	return symb;
+}
+
+void mergeSect_init(Section* sect)
+{
+	Section* ms;
+	Symbol* stop;
+	
+	// find the section
+	for(auto& x : mergeList) {
+		if(sect->nameIs(x.name)) { stop = x.symbol; 
+			ms = stop->section; goto FOUND_SECT; }}
+		
+	// create the section
+	ms = addSection(NULL, NULL, 0, 0, 0, 0, 0);
+	mergeSect_symb(ms, archStr->sectionStart, sect->name);
+	stop = mergeSect_symb(ms, archStr->sectionStop, sect->name);
+	mergeList.push_back(sect->name, stop);
+	
+FOUND_SECT:
+	max_ref(ms->align, sect->align);
+	ms->type |= sect->type;
+	DWORD offset = ALIGN(ms->length, sect->align-1);
+	stop->value = ms->length = offset + sect->length;
+	ms->addReloc(-1, offset, sect->symbol);
+}
+
+void mergeSect_step1(void)
+{
+	for(auto& x : mergeList) {
+		auto* sect = x.symbol->section;
+		for(auto& reloc : sect->rlcs()) {
+			reloc.symbol->section->baseRva = 1; }
+	}
+}
+
+void mergeSect_step2(void)
+{
+	for(auto& x : mergeList) {
+		auto* sect = x.symbol->section;
+		for(auto& reloc : sect->rlcs()) {
+			fixSection(reloc.symbol->section,
+				sect->baseRva+reloc.offset); }
+	}
 }
 
 }

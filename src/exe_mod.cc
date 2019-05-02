@@ -6,10 +6,12 @@ const char progName[] = "exe modifier";
 
 const ArchStr archStr32 = { "-lmisc32", "lib_path32",
 	"_RawEntryPoint", "_HookEntryPoint",
-	"_DllMainCRTStartup@12", "_DllHookCRTStartup@12" };
+	"_DllMainCRTStartup@12", "_DllHookCRTStartup@12",
+	"___start_", "___stop_"	};
 const ArchStr archStr64 = { "-lmisc64", "lib_path64",
 	"RawEntryPoint", "HookEntryPoint",
-	"DllMainCRTStartup", "DllHookCRTStartup" };
+	"DllMainCRTStartup", "DllHookCRTStartup",
+	"__start_", "__stop_"	};
 const ArchStr* archStr;
 
 int FileOrMem::open(int extra)
@@ -223,6 +225,7 @@ int exe_mod(int argc, char* argv[])
 	Linker::exports_symbfix();
 	Linker::gc_sections();
 	Linker::imports_parse();
+	Linker::mergeSect_step1();
 
 	// allocate sections
 	xarray<PeBlock> blocks = {};
@@ -239,6 +242,7 @@ int exe_mod(int argc, char* argv[])
 	for(auto& block : blocks) {
 		auto* sect = (Linker::Section*)block.lnSect;
 		Linker::fixSection(sect, block.baseRva); }
+	Linker::mergeSect_step2();
 	Linker::imports_resolve();
 	Linker::exports_resolve();
 	Linker::relocs_fixup();

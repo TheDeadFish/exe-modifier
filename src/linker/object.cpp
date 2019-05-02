@@ -74,7 +74,6 @@ void object_load(const char* fileName,
 			type(flags & ~IMAGE_SCN_LNK_COMDAT);
 			if(type < 0) { fatal_error("object:Characteristics"
 				" %X, \"%s\", \"%s\"", flags, Name, fileName); }
-			printf("%s, %s\n", Name, fileName); continue;
 		}
 
 		// create new section
@@ -161,7 +160,11 @@ SYMB_RETRY:
 				sectFile(prevSect), sectName(prevSect));
 		}
 		
-		if(sectSymb) sectIndex->symbol = symMapp[i];
+		// initialize merged section
+		if(sectSymb) { sectIndex->symbol = symMapp[i];
+			if(!sectTypeFromName(sectIndex->name))
+				mergeSect_init(sectIndex); 	}
+		
 		i += objSym[i].NumberOfAuxSymbols;
 	}
 

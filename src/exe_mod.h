@@ -55,6 +55,7 @@ void WINAPI ExmFileCall(char mode, int argc, char* argv[]);
 struct ArchStr { cch* libMisc; cch* libPath;
 cch* rawEntryPoint; cch* hookEntryPoint;
 cch* dllMainStartup; cch* dllHookStartup;
+cch* sectionStart; cch* sectionStop;
 }; extern const ArchStr* archStr;
 
 #endif

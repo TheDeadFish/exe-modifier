@@ -148,6 +148,12 @@ Section* Reloc::getSect() {
 	
 bool Section::isReal() {
 	return this > Type_Absolute; }
+	
+	
+// section merging
+void mergeSect_init(Section* sect);
+void mergeSect_step1(void);
+void mergeSect_step2(void);
 
 }
 #endif
