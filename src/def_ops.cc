@@ -312,7 +312,7 @@ cch* def_patchPtr(u32 rva, SymbArg2& s,
 SHITCALL cch* def_funcRepl(u32 start, u32 end, char* name)
 {
 	IFRET(def_freeBlock(start, end, 5));
-	return def_makeJump(start, name);
+	return def_makeJump(start, name, false);
 }
 
 SHITCALL cch* def_import(char* name, char* symb)
@@ -526,7 +526,7 @@ cch* def_asmSect2(u32 rva, char* str)
 	char sectName[32]; sprintf(
 		sectName, ".text$asmSect%X", rva);
 	IFRET(def_asmSect(sectName, str, 0));
-	return def_makeJump(rva, sectName);
+	return def_makeJump(rva, sectName, false);
 }
 
 cch* def_prologMove(u32 rva, int prologSz, char* name)
@@ -593,13 +593,14 @@ cch* def_codeSkip(u32 start)
 	return def_codeSkip(start, start+5);
 }
 
-cch* def_makeJump(u32 rva, char* name)
+cch* def_makeJump(u32 rva, char* name, bool call)
 {
 	SymbArg s; IFRET(s.parse(name));
 	
 	Void ptr = PeFILE::rvaToPtr(rva, 5);
 	if(ptr == NULL) return "bad patch address";
-	PeFILE::Relocs_Remove(rva, 5); WRI(PB(ptr),0xE9);
+	PeFILE::Relocs_Remove(rva, 5); 
+	WRI(PB(ptr), call ? 0xE8 : 0xE9);
 	if(s.name) { ptr.dword() = s.symInit();
 		Linker::addReloc(Linker::Type_REL32, rva+1, s.symb);
 	} else {
@@ -617,7 +618,7 @@ cch* def_codeHook(u32 rva, int prologSz, char* str)
 	char sectName[128];
 	sprintf(sectName, ".text$def_codeHook%X", rva);
 	IFRET(def_asmSect(sectName, buff, 0));
-	return def_makeJump(rva, sectName);
+	return def_makeJump(rva, sectName, false);
 }
 
 cch* def_makeRet(DWORD& rva, u32 sz, u64* val)

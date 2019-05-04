@@ -727,7 +727,8 @@ cch* ParseDefLine::processLine()
 	FUNC("PLGMOVE", ArgDef(Addr,Num,Raw), def_prologMove(a1,a2,a3));
 	FUNC("CODEHOOK", ArgDef(Addr,Num,Str), def_codeHook(a1,a2,a3));
 	
-	FUNC("MAKEJUMP", ArgDef(Addr,Raw), def_makeJump(a1,a2))
+	FUNC("MAKEJUMP", ArgDef(Addr,Raw), def_makeJump(a1,a2, false))
+	FUNC("MAKECALL", ArgDef(Addr,Raw), def_makeJump(a1,a2, true))
 	
 	FUNC("FUNCKILL", ArgDef(Addr,Addr), def_funcKill(a1,a2,0))
 	FUNC("FUNCKILL", ArgDef(Addr,Addr,Num), def_funcKill(a1,a2,&a3.num))
