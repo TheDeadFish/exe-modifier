@@ -543,3 +543,11 @@ int PeFile::sectCreate2(cch* name, int type)
 		
 	return sectCreate(name, ch);
 }
+
+void PeFile::setRes(void* data, DWORD size)
+{
+	if(rsrcSect == NULL)
+		sectCreate(".rsrc", 0x40000040);
+	sectResize(rsrcSect, size);
+	memcpy(rsrcSect->data, data, size);
+}

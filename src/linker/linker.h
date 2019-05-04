@@ -29,6 +29,11 @@ void addReloc(WORD type, DWORD offset, Symbol* symbol);
 void relocs_fixup(void);
 
 // section interface	
+enum : short { 
+	Type_NoLink = SHRT_MIN,
+	Type_Keep = 0x4000 };
+	
+
 struct Section {
 	Section* next;
 
@@ -154,6 +159,8 @@ bool Section::isReal() {
 void mergeSect_init(Section* sect);
 void mergeSect_step1(void);
 void mergeSect_step2(void);
+
+void rsrc_build(void);
 
 }
 #endif

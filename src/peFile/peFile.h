@@ -159,6 +159,10 @@ struct PeFile
 	
 	//void rebase(u32 delta);
 	
+	void setRes(void* data, DWORD size);
+	
+	
+	
 	
 	
 	

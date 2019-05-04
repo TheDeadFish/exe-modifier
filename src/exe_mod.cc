@@ -246,6 +246,7 @@ int exe_mod(int argc, char* argv[])
 	Linker::imports_resolve();
 	Linker::exports_resolve();
 	Linker::relocs_fixup();
+	Linker::rsrc_build();
 
 	// write output file
 	auto entryPoint = dfLink_entryPoint();

@@ -63,5 +63,8 @@ namespace PeFILE {
 	
 	// space allocation inreface
 	void allocBlocks(PeBlock* blocks, int nBlocks);
+	
+	static void setRes(void* data, DWORD size) { peFile.setRes(data, size); }
+	
 }
 #endif

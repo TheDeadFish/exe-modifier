@@ -146,7 +146,8 @@ int sectTypeFromName(cch* Name)
 	static const std::pair<cch*,int> typeList[] = {
 		{".data", PeSecTyp::Data}, {".bss", PeSecTyp::Bss},
 		{".rdata", PeSecTyp::RData}, {".text", PeSecTyp::Text},
-		{".idata", SHRT_MIN}, {"@patch", SHRT_MIN}};
+		{".idata", Type_NoLink}, {"@patch", Type_NoLink}, 
+		{".rsrc", Type_NoLink|Type_Keep }};
 	
 	cch* end = Name+1;
 	for(;!is_one_of(*end, '$', '.', 0); end++);
@@ -162,7 +163,7 @@ bool sectTypeNormal(cch* Name)
 {
 	if(strScmp(Name, ".idata")) return true;
 	static const cch* names[] = {
-		".data", ".bss", ".rdata", ".text"};
+		".data", ".bss", ".rdata", ".text", ".rsrc"};
 	for(cch* x : names) {
 		if(!strcmp(Name, x)) return true; }
 	return false;
@@ -269,6 +270,15 @@ void mergeSect_step2(void)
 			fixSection(reloc.symbol->section,
 				sect->baseRva+reloc.offset); }
 	}
+}
+
+void rsrc_build(void)
+{
+	LINKER_ENUM_SECTIONS(sect, 
+		if(sect->nameIs(".rsrc")) {
+			PeFILE::setRes(sect->rawData, sect->length);
+		}
+	)
 }
 
 }
