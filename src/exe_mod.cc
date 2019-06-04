@@ -222,10 +222,7 @@ int exe_mod(int argc, char* argv[])
 	dfLink_main();
 	for(auto& lib : args.libs.left(libIndex))
 		library_load(lib);
-	Linker::exports_symbfix();
-	Linker::gc_sections();
-	Linker::imports_parse();
-	Linker::mergeSect_step1();
+	Linker::link_step1();
 
 	// allocate sections
 	xarray<PeBlock> blocks = {};
@@ -242,11 +239,7 @@ int exe_mod(int argc, char* argv[])
 	for(auto& block : blocks) {
 		auto* sect = (Linker::Section*)block.lnSect;
 		Linker::fixSection(sect, block.baseRva); }
-	Linker::mergeSect_step2();
-	Linker::imports_resolve();
-	Linker::exports_resolve();
-	Linker::relocs_fixup();
-	Linker::rsrc_build();
+	Linker::link_step2();
 
 	// write output file
 	auto entryPoint = dfLink_entryPoint();

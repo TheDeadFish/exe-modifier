@@ -31,8 +31,8 @@ void relocs_fixup(void);
 // section interface	
 enum : short { 
 	Type_NoLink = SHRT_MIN,
-	Type_Keep = 0x4000 };
-	
+	Type_Keep = 0x4000,
+	Type_RRef = 0x2000 };
 
 struct Section {
 	Section* next;
@@ -40,8 +40,8 @@ struct Section {
 	const char* fileName;
 	char* name; Void rawData;
 	Reloc* relocs; DWORD nReloc;
-	union { WORD type; struct { BYTE 
-		peType, :6, keep:1, noLink:1; }; };
+	union { WORD type; struct { BYTE peType, 
+		:5, rref:1, keep:1, noLink:1; }; };
 	
 	WORD align;
 	DWORD baseRva, length;
@@ -161,6 +161,10 @@ void mergeSect_step1(void);
 void mergeSect_step2(void);
 
 void rsrc_build(void);
+
+
+void link_step1(void);
+void link_step2(void);
 
 }
 #endif

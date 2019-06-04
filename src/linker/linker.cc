@@ -147,7 +147,9 @@ int sectTypeFromName(cch* Name)
 		{".data", PeSecTyp::Data}, {".bss", PeSecTyp::Bss},
 		{".rdata", PeSecTyp::RData}, {".text", PeSecTyp::Text},
 		{".idata", Type_NoLink}, {"@patch", Type_NoLink}, 
-		{".rsrc", Type_NoLink|Type_Keep }};
+		{".rsrc", Type_NoLink|Type_Keep },
+		{".pdata", Type_NoLink|Type_RRef },
+		{".xdata", Type_NoLink }};
 	
 	cch* end = Name+1;
 	for(;!is_one_of(*end, '$', '.', 0); end++);
@@ -279,6 +281,28 @@ void rsrc_build(void)
 			PeFILE::setRes(sect->rawData, sect->length);
 		}
 	)
+}
+
+void except_step1(void);
+void except_step2(void);
+
+void link_step1(void)
+{
+	exports_symbfix();
+	gc_sections();
+	imports_parse();
+	mergeSect_step1();
+	except_step1();
+}
+
+void link_step2(void)
+{
+	mergeSect_step2();
+	except_step2();
+	imports_resolve();
+	exports_resolve();
+	relocs_fixup();
+	rsrc_build();	
 }
 
 }
