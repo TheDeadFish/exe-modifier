@@ -326,19 +326,9 @@ SHITCALL cch* def_import(char* name, char* symb)
 	return 0;
 }
 
-SHITCALL cch* def_export(char* str, SymStrArg* frwd)
+SHITCALL cch* def_export(
+	char* name, int iOrd, SymStrArg* frwd)
 {
-	// get export and ordinal name
-	char* name = strtok(str, ";: "); 
-	char* ord = strtok(NULL, ";: ");
-	if(is_one_of(*name, '#', '@')) 
-		ord = release(name)+1;
-
-	// get ordinal number
-	u64 iOrd = 0; if(ord) { 
-		if(is_one_of(*ord, '#', '@')) ord++;
-		IFRET(defFileGetNumber(iOrd, ord)); }
-
 	// lookup export
 	auto exp = PeFILE::peExp.find(name, iOrd); if(exp.err) {
 		if(exp.err > 0) return "EXPORTDEF: name ordinal missmatch";
@@ -360,6 +350,21 @@ SHITCALL cch* def_export(char* str, SymStrArg* frwd)
 	Linker::addExport(name, iOrd,
 		symbol, symbOffset, exp->rva);
 	return 0;
+}
+
+SHITCALL cch* def_export(char* str, SymStrArg* frwd)
+{
+	// get export and ordinal name
+	char* name = strtok(str, ";: "); 
+	char* ord = strtok(NULL, ";: ");
+	if(is_one_of(*name, '#', '@')) 
+		ord = release(name)+1;
+
+	// get ordinal number
+	u64 iOrd = 0; if(ord) { 
+		if(is_one_of(*ord, '#', '@')) ord++;
+		IFRET(defFileGetNumber(iOrd, ord)); }
+	return def_export(name, iOrd, frwd);
 }
 
 cch* def_fixSect(u32 start, u32 end, char* name)

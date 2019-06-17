@@ -1,5 +1,6 @@
 #include <string>
 #include "def_ops.h"
+#include "dlldef.h"
 
 SHITSTATIC retpair<char*, bool> defFileGetArg(
 	char*& curPos, bool ss = false)
@@ -609,10 +610,42 @@ struct ParseDefLine
 	cch* processLine();
 };
 
+bool parse_dll_def(
+	char* def_file, void* data)
+{
+	// parse dll def file
+	DefFile defFile;
+	auto ret = defFile.load((char*)data);
+	if(!ret) return false; cch* err = "";
+	if(ret > 0) { ERR: fatal_error(
+		"%s: %d:%d: %s", def_file, ret, err); }
+		
+	// read exports
+	for(auto& exp : defFile.expLst) {
+	
+		// get forwarder symbol
+		SymStrArg symArg = {}; 
+		if(exp.frwd) { 
+			if(strchr(exp.frwd, '.')) {
+				symArg.str = exp.frwd; }
+			else { err = symArg.parse(exp.frwd);
+				if(err) goto ERR; }
+		}
+		
+		// add the export
+		err = def_export(exp.NoName ? 
+			0 : exp.name, exp.ord, &symArg);
+		if(err) goto ERR;
+	}
+	
+	return true;
+}
+
 void parse_def_file(
 	char* def_file, void* data)
 {
 	// load def file
+	if(parse_dll_def(def_file, data))	return;
 	ParseDefLine defLine{};
 	defLine.def_file = def_file;
 	char* err = defLine.cp.load2_(
