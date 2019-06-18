@@ -5,7 +5,7 @@
 struct ExmFile
 {
 	// Exm file structures
-	struct ExmHead { char magic[8];
+	struct ExmHead { fStr<8> magic;
 		DWORD nFiles; DWORD nSets; };
 	struct ExmData { DWORD size; BYTE data[]; };
 	struct ExmArg { WORD wVal; WORD sLen; char str[]; };

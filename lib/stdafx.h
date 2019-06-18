@@ -56,4 +56,12 @@ T* ringList_add(T*& root, T* node) {
 #define RingList_enum(root, pos, ...) { if(auto* pos = root) { \
 	do { pos = pos->next; __VA_ARGS__; } while(pos != root); }}
 	
+// c++ is the biggest pile of shit
+template <int N>
+struct fStr { char data[N];
+	constexpr fStr(cch* in) : data{} {
+		for(int i=0; in[i]; i++) data[i] = in[i]; }
+	operator cch*() const { return data; }
+};
+	
 #endif
