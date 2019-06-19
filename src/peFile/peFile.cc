@@ -345,8 +345,13 @@ cch* PeFile::load(cch* fileName)
 	this->getSections_(); 
 	if(relocSect) {
 		if((relocSect->baseRva != dataDir[IDE_BASERELOC].rva
-		||(relocSect->size != dataDir[IDE_BASERELOC].size)))
+		||(relocSect->size < dataDir[IDE_BASERELOC].size)))
 			ERR(Corrupt_Relocs);
+		if(relocSect->size > dataDir[IDE_BASERELOC].size) {
+			if(calcExtent(relocSect->data, relocSect->size) > 
+				dataDir[IDE_BASERELOC].size){ ERR(Corrupt_Relocs); }
+			fprintf(stderr, "warning: reloc section oversized\n"); }
+			
 		if(!relocs.Load(relocSect->data, relocSect->
 			size, PE64)) ERR(Corrupt_Relocs);
 		sectResize(relocSect, 0);
