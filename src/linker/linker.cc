@@ -286,6 +286,20 @@ void rsrc_build(void)
 void except_step1(void);
 void except_step2(void);
 
+void page_step1(void)
+{
+	// detect driver mode
+	for(auto& sect : PeFILE::peFile.sects)
+		if(sect.type() & PeSecTyp::NoPage)
+			goto DRIVER_MODE;
+	return;
+
+DRIVER_MODE:
+	LINKER_ENUM_SECTIONS(sect,
+		sect->peType |= PeSecTyp::NoPage;
+	)
+}
+
 void link_step1(void)
 {
 	exports_symbfix();
@@ -293,6 +307,7 @@ void link_step1(void)
 	imports_parse();
 	mergeSect_step1();
 	except_step1();
+	page_step1();
 }
 
 void link_step2(void)
