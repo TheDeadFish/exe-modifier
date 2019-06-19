@@ -40,7 +40,7 @@ void gc_sections(void)
 	// mark keep sections
 	for(char* keep : keep_list) {
 		auto* symb = findSymbol(keep);
-		mark_section(symb->getSect());
+		if(symb) mark_section(symb->getSect());
 		
 		// mark matching sections
 		LINKER_ENUM_SECTIONS(sect, 
