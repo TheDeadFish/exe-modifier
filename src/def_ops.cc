@@ -81,12 +81,17 @@ cch* SymbArg::parseNum(char* str)
 
 cch* SymbArg::parse(char* str)
 {
-	if(defFileIsAddress(str)) { 
-	name = 0; return parseNum(str); }
+	// parse address
 	name = str; offset = 0;
-	if(char* numPos = defFileGetNumPos(str)) {
-		cch* ret = parseNum(numPos); 
-		*numPos = '\0'; return ret; }
+	if(defFileIsAddress(str)) { 
+		name = 0; IFRET(parseNum(str)); }
+		
+	// parse offset
+	char* numPos = defFileGetNumPos(str);
+	if(numPos && (numPos != str)) { u64 addr = offset;
+		IFRET(parseNum(numPos)); offset += addr; 
+		*numPos = '\0'; }
+	
 	return NULL;
 }
 

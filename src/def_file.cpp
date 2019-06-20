@@ -41,7 +41,12 @@ SHITCALL cch* defFileGetNumber(u64& out, char* str)
 
 SHITCALL cch* defFileGetAddr(u64& out, char* str)
 {
-	IFRET(defFileGetNumber(out, str));
+	SymbArg syn;
+	IFRET(syn.parse(str)); out = syn.offset;
+	if(syn.name) { syn.symInit();
+		if(syn.symb->section != Linker::Type_Relocate) {
+			return "symbol must be defined at use"; }
+		out += PeFILE::rvaToAddr64(syn.symb->value); }
 	return (!PeFILE::chkAddrToRva64(out))
 		? "invalid address" : 0;
 }
