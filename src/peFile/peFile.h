@@ -145,7 +145,7 @@ struct PeFile
 	
 	// section interface
 	xArray<Section> sects; Section 
-	*extendSect, *rsrcSect, *relocSect;
+	*extendSect, *rsrcSect, *relocSect, *pdataSect;
 	Section* rvaToSect(u32 rva, u32 len);
 	Section* ptrToSect(void* ptr, u32 len);
 	

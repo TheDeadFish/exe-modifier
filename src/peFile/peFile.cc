@@ -349,6 +349,12 @@ cch* PeFile::load(cch* fileName)
 		sectResize(relocSect, 0);
 	}
 	
+	// load exceptions
+	if(pdataSect) {
+		auto data = dataDirSectChk(pdataSect, dataDir+IDE_EXCEPTION, "pdata");
+		if(!data) ERR(Corrupt_Pdata);
+	}
+	
 	if(rsrcSect) {
 		if(!rebaseRsrc(rsrcSect->data, rsrcSect->size, 
 			-rsrcSect->baseRva, 0)) ERR(Corrupt_Rsrc);
@@ -372,6 +378,7 @@ void PeFile::getSections_(void)
 {
 	rsrcSect = NULL; relocSect = NULL;
 	for(auto& sect : sects) {
+		if(!strcmp(sect.name, ".pdata")) pdataSect = &sect;
 		if(!strcmp(sect.name, ".rsrc")) rsrcSect = &sect;
 		ei(!strcmp(sect.name, ".reloc")) relocSect = &sect;
 		ei((strcmp(sect.name, ".debug") && !rsrcSect

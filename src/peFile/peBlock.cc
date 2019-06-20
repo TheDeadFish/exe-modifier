@@ -96,6 +96,7 @@ FreeSect::FreeSect(PeFile& pef) : peFile(pef)
 	int extIdx = pef.iSect2(pef.extendSect);
 	sects.xcalloc(extIdx+3);
 	for(int i = 0; i <= extIdx; i++) {
+		if((pef.sects+i) == pef.pdataSect) continue;
 		sects[i].type = pef.sects[i].type();
 		sects[i].endRva = pef.sects[i].len;
 		sects[i].extent = pef.sects[i].extent(pef);
