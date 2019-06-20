@@ -161,8 +161,9 @@ struct PeFile
 	
 	void setRes(void* data, DWORD size);
 	
-	
-	
+	static __fastcall xarray<byte> dataDirSectChk(
+		Section* sect, DataDir* dir, cch* name);
+		
 	
 	
 	

@@ -344,16 +344,8 @@ cch* PeFile::load(cch* fileName)
 	// load relocations
 	this->getSections_(); 
 	if(relocSect) {
-		if((relocSect->baseRva != dataDir[IDE_BASERELOC].rva
-		||(relocSect->size < dataDir[IDE_BASERELOC].size)))
-			ERR(Corrupt_Relocs);
-		if(relocSect->size > dataDir[IDE_BASERELOC].size) {
-			if(calcExtent(relocSect->data, relocSect->size) > 
-				dataDir[IDE_BASERELOC].size){ ERR(Corrupt_Relocs); }
-			fprintf(stderr, "warning: reloc section oversized\n"); }
-			
-		if(!relocs.Load(relocSect->data, relocSect->
-			size, PE64)) ERR(Corrupt_Relocs);
+		auto data = dataDirSectChk(relocSect, dataDir+IDE_BASERELOC, "reloc");
+		if(!data || !relocs.Load(data, data.size, PE64)) ERR(Corrupt_Relocs);
 		sectResize(relocSect, 0);
 	}
 	
@@ -364,6 +356,16 @@ cch* PeFile::load(cch* fileName)
 	
 
 	return NULL;
+}
+
+xarray<byte> PeFile::dataDirSectChk(
+	Section* sect, DataDir* dir, cch* name)
+{
+	if((sect->baseRva != dir->rva)||(sect->size < dir->size)) return {0,0};
+	if(sect->size != dir->size) {
+		if(calcExtent(sect->data, sect->size) > dir->size) return {0,0};
+		fprintf(stderr, "warning: %s section oversized\n", name); } 
+	return {sect->data, dir->size};
 }
 
 void PeFile::getSections_(void)
