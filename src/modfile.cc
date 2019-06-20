@@ -308,8 +308,13 @@ void ExmFileCall(char mode, int argc, char* argv[])
 		cstr name = getName2(argv[i]);
 		int groupId = -1;
 		if(!stricmp(name.end(), ".exm")) {
-		if(!(name = cstr_split(name, ';'))) fatal_error(
-		"exm file name lacks group: \"%s\"", argv[i]);
+		
+		// get the group
+		char* colon = name.chr(';');
+		if(!colon && !(colon = name.chr(','))) fatal_error
+			("exm file name lacks group: \"%s\"", argv[i]);
+		name.setend(colon);
+			
 		while(++groupId < grp.len) { if(!name
 			.cmp(grp[groupId])) goto GRP_FOUND; }
 		grp.push_back(name.xdup()); GRP_FOUND:; }
