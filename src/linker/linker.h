@@ -128,6 +128,7 @@ void imports_parse(void);
 void imports_resolve(void);
 const char* nullchk(const char* str, const char* limit);
 void gc_sections(void);
+void gc_sections2(void);
 
 // exports interface
 void addExport(char* name, uint ord, 

@@ -27,43 +27,6 @@ void imports_resolve(void)
 			Import_Find(is.dllName, is.importName); }
 }
 
-void import_fixReloc(byte* base, 
-	Symbol* iatSymb, Symbol* expsymb,
-	Reloc* relocs, int nRelocs)
-{
-	for(auto& reloc : Range(relocs, nRelocs)) 
-	if(reloc.getSymb() == iatSymb) 
-	{
-		byte* base2 = base ? base :
-		PeFILE::peFile.rvaToSect(reloc.offset, 0)->data;
-		byte* rpos = base2+reloc.offset;
-		reloc.symbol = expsymb;
-
-		// 0x25FF: jmp indirect
-		if(RW(rpos,-2) == 0x25FF) { RW(rpos,-2)
-			= 0xE990; reloc.type = Type_REL32; }
-		
-		// 0x15FF: call indirect
-		ei(RW(rpos,-2) == 0x15FF) { RW(rpos,-2)
-			= 0xE890; reloc.type = Type_REL32; }
-		
-		// 0xA1: move eax, [address]
-		ei(rpos[-1] == 0xA1) { rpos[-1] = 0xB8; }
-			
-		// 0x??8B: move ea?, [address]
-		ei((RW(rpos,-2) & 0xC7FF) == 0x58B)
-		{
-			int r = (RW(rpos,-2) >> 11);
-			RW(rpos,-2) = 0xB890 + (r << 8);
-		}
-		
-		else {
-			fatal_error("import_fixReloc: failed");
-		}
-		
-	}
-};
-
 void import_bad(Section* idata5, cch* name)
 {
 	fatal_error("import_bad, %s\n", name);
@@ -72,8 +35,13 @@ void import_bad(Section* idata5, cch* name)
 
 void imports_parse(void)
 {
+	Section* thunk = NULL;
 	LINKER_ENUM_SECTIONS(sect, 
 	
+		// candidate thunk
+		if(sect->nameIs(".text")) {
+			thunk = sect; continue; }
+			
 		// check for import
 		if(!sect->nameIs(".idata$7")) continue;
 		auto idata5 = sect->next;
@@ -109,23 +77,18 @@ void imports_parse(void)
 		// resolve import from self
 		idata5->relocs->symbol = expsymb;
 		idata5->relocs->type = x64Mode() ? Type_DIR64 : Type_DIR32;
-		idata5->type = PeSecTyp::RData|Type_Keep;
-	)
+		idata5->type = PeSecTyp::RData;
 		
-#if 0
-		// redirect relocations
-		import_fixReloc(0, iatsym, expsymb, relocs, nRelocs);
-		LINKER_ENUM_SECTIONS(sect,
-			if(sect->isExec()) { import_fixReloc(sect->rawData,
-				iatsym, expsymb, sect->relocs, sect->nReloc); })
-			
 		// redirect thunk symbols
-		if(thunkSect >= 0) {
+		if(thunk && (thunk->nReloc == 1)
+		&&(thunk->relocs->symbol->section == idata5)) {
 			LINKER_ENUM_SYMBOLS(symb,
-			if(symb->section == thunkSect) {
+			if(symb->section == thunk) {
 				symb->section = Type_Relocate;
 				exports_addSymb(symb, importName); }
-			destroy_section(*sections[thunkSect]); )
+			)	destroy_section(*thunk);
 		}
-#endif
+	)
+	
+	gc_sections2();
 }

@@ -58,3 +58,15 @@ void gc_sections(void)
 	LINKER_ENUM_SECTIONS(sect, 
 		if(!sect->keep) destroy_section(*sect))
 }
+
+void gc_sections2(void)
+{
+	// remark sections
+	mark_reloc({relocs, nRelocs});
+	LINKER_ENUM_SECTIONS(sect, 
+		mark_reloc(sect->rlcs()));
+	
+	// kill unreferenced sections
+	LINKER_ENUM_SECTIONS(sect, 
+		if(!sect->keep) destroy_section(*sect))	
+}
