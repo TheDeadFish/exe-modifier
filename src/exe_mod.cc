@@ -255,6 +255,8 @@ int exe_mod(int argc, char* argv[])
 	} ei(!BindImage(argv[2], NULL, NULL)) {
 		fatal_error("bin_linker: binding failed\n"); return 1; }
 		
+	//dump_sections(stdout);
+		
 	return 0;
 		
 	/* peform checks

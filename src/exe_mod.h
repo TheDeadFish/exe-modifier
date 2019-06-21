@@ -61,4 +61,9 @@ cch* sectionStart; cch* sectionStop;
 static bool x64Mode() { return PeFILE::peFile.PE64; }
 static int ptrSize() { return x64Mode() ? 64 : 32; }
 
+// debugging
+void dump_sections(FILE* fp);
+
+
+
 #endif

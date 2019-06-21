@@ -8,7 +8,7 @@ ADD_EXECUTABLE ( exe_mod
 	src/peFile/peFile.cc src/peFile/peFile_.cc 
 	src/peFile/peImport.cc src/linker/linker.cc
 	src/linker/except.cc src/main.cpp lib/stdafx.cc 
-	lib/dlldef.cc )
+	lib/dlldef.cc src/debug.cpp)
 	
 target_include_directories(exe_mod PRIVATE lib)
 target_link_libraries( exe_mod -limagehlp -lexshit -lstdshit)
