@@ -638,8 +638,8 @@ bool parse_dll_def(
 		}
 		
 		// add the export
-		err = def_export(exp.NoName ? 
-			0 : exp.name, exp.ord, &symArg);
+		err = def_export(exp.NoName ? 0 : exp.name, 
+			exp.ord, exp.frwd ? &symArg : 0);
 		if(err) goto ERR;
 	}
 	

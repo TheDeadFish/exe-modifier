@@ -60,7 +60,7 @@ bool DefParse::nextToken(bool newLine)
 
 bool DefParse::chkToken(cch* str)
 {
-	if(hasToken() && token.cmp(str))
+	if(!hasToken() || token.cmp(str))
 		return false;
 	return nextToken(false); 
 }
