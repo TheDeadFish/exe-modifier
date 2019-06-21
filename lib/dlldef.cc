@@ -5,7 +5,7 @@ struct DefParse
 {
 	char* linePos; char* curPos;
 	int curLine; char state, state2;
-	cstr token;
+	cstr token; char* nTerm;
 
 	DefParse(char* str) { ZINIT;
 		linePos = curPos = str; }
@@ -68,7 +68,8 @@ bool DefParse::chkToken(cch* str)
 bool DefParse::getToken(char*& out)
 {
 	if(!hasToken()) return false;
-	token.nterm_(); out = token; 
+	if(nTerm) *nTerm = 0;
+	nTerm = token.end(); out = token; 
 	return nextToken(false);
 }
 
@@ -91,7 +92,9 @@ bool DefParse::getInt32(int& val)
 bool DefParse::nextLine(void)
 {
 	if(hasToken()) setError();
-	nextToken(true); return hasToken();
+	nextToken(true); 
+	if(nTerm) *nTerm = 0;
+	return hasToken();
 }
 
 FRAMEP_KEEP
