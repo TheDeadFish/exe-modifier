@@ -108,8 +108,8 @@ void imports_parse(void)
 			
 		// resolve import from self
 		idata5->relocs->symbol = expsymb;
-		idata5->relocs->type = x64Mode() ? Type_DIR64 : Type_REL32;
-		idata5->noLink = false;
+		idata5->relocs->type = x64Mode() ? Type_DIR64 : Type_DIR32;
+		idata5->type = PeSecTyp::RData|Type_Keep;
 	)
 		
 #if 0

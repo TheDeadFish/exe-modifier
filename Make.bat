@@ -3,7 +3,8 @@
 @pushd build
 @set CFLAGS=%CFLAGS2%
 @set CXXFLAGS=%CCFLAGS2%
-@%CMAKE% -DCMAKE_EXE_LINKER_FLAGS="%LFLAGS%" ..\.
+::@%CMAKE% -DCMAKE_EXE_LINKER_FLAGS="%LFLAGS%" ..\.
+@%CMAKE%  ..\.
 @mingw32-make
 @popd
 
