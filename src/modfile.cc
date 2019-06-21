@@ -287,7 +287,7 @@ void ExmFileCall2(int argc, char* argv[])
 				cmd.argcat(arg.str);
 		}
 		
-		printf("%s\n", cmd);
+		printf("\n--- %s\n", cmd);
 		
 		doCall(cmd);
 	}
