@@ -123,9 +123,6 @@ struct callPatchCore_t {
 	int patchOffset;  // type 2: indirect
 };
 
-static bool x64Mode() { return PeFILE::peFile.PE64; }
-static int ptrSize() { return x64Mode() ? 64 : 32; }
-
 callPatchCore_t callPatchCore(
 	Void ptr, bool create)
 {

@@ -105,7 +105,11 @@ void imports_parse(void)
 		auto expsymb = exports_getExpSym(dllName, importName);
 		if(!expsymb) { PeFILE::Import_Add(dllName, importName);
 			impSects.push_back(dllName, importName, idata5); continue; }
-		assert(0);			
+			
+		// resolve import from self
+		idata5->relocs->symbol = expsymb;
+		idata5->relocs->type = x64Mode() ? Type_DIR64 : Type_REL32;
+		idata5->noLink = false;
 	)
 		
 #if 0
