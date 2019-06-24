@@ -154,71 +154,6 @@ retpair<Void, int> memNop(void)
 	return retpair<Void, int>(ptr, length);
 }
 
-bool mempatch2_hexData(char* strPos, xvector_* data)
-{
-	while(*strPos++ != '"') {
-		if(strPos[-1] != '\\')
-			return false;
-		char* end;
-		DWORD value = strtoul(strPos, &end, 16);
-		DWORD valueLen = end-strPos;
-		strPos = end;
-		if((valueLen-1) > 7)
-			return false;
-		if(data == NULL)
-			continue;
-		if(valueLen <= 2)
-			data->xnxalloc_(1).byte() = value;
-		ei(valueLen <= 4)
-			data->xnxalloc_(2).word() = value;
-		else
-			data->xnxalloc_(4).dword() = value;
-	}
-	return true; 
-}
-
-void memPatch2(char* strPos)
-{
-	// parse string as hex
-	xvector_ data = {0};
-	bool wideChar = (*strPos == 'L');
-	strPos += wideChar ? 2 : 1;
-	if((wideChar == false)
-	&&( mempatch2_hexData(strPos, NULL))) {
-		mempatch2_hexData(strPos, &data);
-		goto WAS_MEMPATCH_HEX; }
-		
-	// parse string as ascii
-	while(1) { byte ch = RDI(strPos);
-		DWORD chw; if(ch == '"') break;
-		
-		// escape character
-		if(ch == '\\') { switch(RDI(strPos)) {
-		case 'x': { char* end; chw = strtoul(strPos, &end, 16);
-			if(strPos == end) defBad("bad hex value", end);
-			strPos = end;  goto SKIP_WIDEN; }
-		case '0': ch = 0x00; break;	case '\"': ch = 0x22; break;
-		case '\\': ch = 0x5C; break; case 'n': ch = 0x0A; break;
-		case 'r': ch = 0x0D; break;	case 't': ch = 0x09; break;
-		default: defBad("bad escape code", strPos); }}
-	
-		// append character
-		chw = ch; SKIP_WIDEN:
-		if(wideChar == true)
-			data.xnxalloc_(2).word() = chw;
-		else 
-			data.xnxalloc_(1).byte() = chw;
-	}
-	
-WAS_MEMPATCH_HEX:
-	DWORD start = getNumber(arg1);
-	Void ptr = PeFILE::patchChk(start, data.dataSize);
-	if(ptr == NULL) defBad("bad patch address", arg1);
-	PeFILE::Relocs_Remove(PeFILE::addrToRva(start), data.dataSize);
-	memcpy(ptr, data.dataPtr, data.dataSize);
-	data.free();
-}
-
 void memPatch(bool hookMode) 
 {
 	// check bytes mode
@@ -713,7 +648,6 @@ bool ParseDefLine::check(cch* name, ArgDef argDef)
 	return true; 
 }
 
-
 cch* ParseDefLine::processLine()
 {
 	#define FUNC(fn,ad,func) if(check(fn,ad)) { return func; }
@@ -776,6 +710,9 @@ cch* ParseDefLine::processLine()
 	FUNC("MAKERET", ArgDef(Addr,Num), def_makeRet(RU(&a1), 0, &a2.num))
 	FUNC("MAKERETn", ArgDef(Addr,Num), def_makeRet(RU(&a1), a2, 0))
 	FUNC("MAKERETn", ArgDef(Addr,Num,Num), def_makeRet(RU(&a1), 0, &a3.num))
+	
+	
+	FUNC("MEMPATCH", ArgDef(Addr,Raw), def_memPatch(a1,a2))
 
 	return "invalid command";
 	

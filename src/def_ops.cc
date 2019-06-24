@@ -653,4 +653,65 @@ cch* def_funcKill(u32 start, u32 end, u64* val)
 		ptr += 5;} ptr[0] = 0xC3; return NULL;
 }
 
+bool mempatch_hexData(cch* strPos, xvector_* data)
+{
+	while(*strPos++ != '"') {
+		if(strPos[-1] != '\\')
+			return false;
+		char* end;
+		DWORD value = strtoul(strPos, &end, 16);
+		DWORD valueLen = end-strPos;
+		strPos = end;
+		if((valueLen-1) > 7)
+			return false;
+		if(data == NULL)
+			continue;
+		if(valueLen <= 2)
+			data->xnxalloc_(1).byte() = value;
+		ei(valueLen <= 4)
+			data->xnxalloc_(2).word() = value;
+		else
+			data->xnxalloc_(4).dword() = value;
+	}
+	return true; 
+}
 
+cch* def_memPatch(u32 rva, cch* strPos)
+{
+	// parse string as hex
+	xvector_ data = {0};
+	bool wideChar = (*strPos == 'L');
+	strPos += wideChar ? 2 : 1;
+	if((wideChar == false)
+	&&( mempatch_hexData(strPos, NULL))) {
+		mempatch_hexData(strPos, &data);
+		goto WAS_MEMPATCH_HEX; }
+		
+	// parse string as ascii
+	while(1) { byte ch = RDI(strPos);
+		DWORD chw; if(ch == '"') break;
+		
+		// escape character
+		if(ch == '\\') { switch(RDI(strPos)) {
+		case 'x': { char* end; chw = strtoul(strPos, &end, 16);
+			if(strPos == end) return "bad hex value";
+			strPos = end;  goto SKIP_WIDEN; }
+		case '0': ch = 0x00; break;	case '\"': ch = 0x22; break;
+		case '\\': ch = 0x5C; break; case 'n': ch = 0x0A; break;
+		case 'r': ch = 0x0D; break;	case 't': ch = 0x09; break;
+		default: return "bad escape code"; }}
+	
+		// append character
+		chw = ch; SKIP_WIDEN:
+		if(wideChar == true)
+			data.xnxalloc_(2).word() = chw;
+		else 
+			data.xnxalloc_(1).byte() = chw;
+	}
+	
+WAS_MEMPATCH_HEX:
+	PATCH_CHECK(ptr, rva, data.dataSize);
+	memcpy(ptr, data.dataPtr, data.dataSize);
+	data.free();
+	return NULL;
+}

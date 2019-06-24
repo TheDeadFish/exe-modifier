@@ -57,4 +57,6 @@ SHITCALL cch* def_funcKill(u32 start, u32 end, u64* val);
 
 SHITCALL cch* def_makeRet(DWORD& rva, u32 sz, u64* val);
 
+SHITCALL cch* def_memPatch(u32 rva, cch* strPos);
+
 #endif
