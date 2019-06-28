@@ -69,7 +69,7 @@ int getDir32Rva(Void ptr) {
 
 u64 SymbArg::symInit()
 {
-	symb = Linker::addSymbol(name, 
+	symb = Linker::addSymbol2(name, 
 	Linker::Type_Undefined, 0, 0);
 	return offset;
 }
@@ -197,13 +197,13 @@ cch* def_freeBlock(u32 start,
 
 cch* def_symbol(u32 rva, char* name)
 {
-	Linker::addSymbol(name, Linker::Type_Relocate, 
+	Linker::addSymbol2(name, Linker::Type_Relocate, 
 		0, rva); return 0;
 }
 
 cch* def_const(u32 value, char* name)
 {
-	Linker::addSymbol(name, Linker::Type_Absolute,
+	Linker::addSymbol2(name, Linker::Type_Absolute,
 		0, value); return 0;
 }
 
@@ -225,7 +225,7 @@ cch* def_callPatch(u32 rva, SymbArg& s, bool hookMode)
 			? getDir32Rva(ptr+cp.patchOffset)
 			: getRel32Rva(ptr+cp.patchOffset);
 
-		Linker::addSymbol(s.name, Linker::Type_Relocate, 0, oldCall);
+		Linker::addSymbol2(s.name, Linker::Type_Relocate, 0, oldCall);
 		
 		s.name = hook_name = Linker::symbcat(s.name, "_hook");
 	} SCOPE_EXIT(free(hook_name));
@@ -345,7 +345,7 @@ SHITCALL cch* def_export(
 		PeFILE::addrToRva64(frwd->offset)); return 0; }}
 		
 	// handle symbol
-	auto* symbol = Linker::addSymbol(frwd ? frwd->name
+	auto* symbol = Linker::addSymbol2(frwd ? frwd->name
 		: name, Linker::Type_Undefined, 0, 0);
 	DWORD symbOffset = frwd ? frwd->offset : 0;
 	if(exp->frwd) PeFILE::peExp.setFrwd(*exp, 0);

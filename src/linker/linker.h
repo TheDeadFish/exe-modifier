@@ -115,6 +115,7 @@ struct Symbol {
 
 Symbol* findSymbol(const char* name); int symbolRva(Symbol* symbol);
 Symbol* addSymbol(const char* name, Section* section, Symbol* weakSym, DWORD value);
+Symbol* addSymbol2(const char* name, Section* section, Symbol* weakSym, DWORD value);
 Symbol* addImport(const char* Name, const char* dllName, const char* importName);
 char* symbcat(cch* symb, cch* str);
 extern Symbol* symbRoot;

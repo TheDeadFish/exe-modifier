@@ -131,6 +131,19 @@ char* symbcat(cch* symb, cch* str)
 		symb1.data ? symb1.data-1 : "");
 }
 
+char* symbfix(cch* symb)
+{
+	if(!symb || ((*symb != '_') && !isalpha(*symb))) return xstrdup(symb);
+	if(!x64Mode()) return xstrfmt("_%s", symb);
+	char* ret = xstrdup(symb); char* at = strrchr(ret, '@'); 
+	if(at) *at = '\0'; return ret;
+}
+
+Symbol* addSymbol2(const char* Name, Section* section, Symbol* weakSym, DWORD value)
+{
+	return addSymbol(xstr(symbfix(Name)), section, weakSym, value);
+}
+
 void fixSection(Section* sect, DWORD rva)
 {
 	sect->baseRva = rva;
