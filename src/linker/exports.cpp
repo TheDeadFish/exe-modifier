@@ -93,8 +93,8 @@ Symbol* exports_getExpSym(
 	// handle export forwarding
 	if(slot->frwd) { char* dotPos = strchr(slot->frwd, '.');
 	if(!dotPos) fatal_error("bad export forwarder: %s", importName);
-	dotPos = importName; dllName = xstrdup(slot->frwd, dotPos-slot->frwd);
-	return 0; }
+	importName = dotPos+1; dllName = xstrfmt("%v.dll", 
+		slot->frwd.data, dotPos-slot->frwd); return 0; }
 	
 	// create export symbol
 	auto symb = addSymbol(NULL, Type_Relocate, 0, 0);
