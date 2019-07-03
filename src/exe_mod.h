@@ -63,7 +63,7 @@ static int ptrSize() { return x64Mode() ? 64 : 32; }
 
 // debugging
 void dump_sections(FILE* fp);
-
+void dump_symbols(FILE* fp);
 
 
 #endif
