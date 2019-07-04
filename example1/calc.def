@@ -1,4 +1,4 @@
-SYMBOL(0x01002604, _SetDisplayText@8)
-CALLPATCH(0x0100405C, _SetDisplayText_hook@8)
-CALLPATCH(0x01004908, _SetDisplayText_hook@8)
-CALLPATCH(0x01004A5F, _SetDisplayText_hook@8)
+SYMBOL(0x01002604, SetDisplayText@8)
+CALLPATCH(0x0100405C, SetDisplayText_hook@8)
+CALLPATCH(0x01004908, SetDisplayText_hook@8)
+CALLPATCH(0x01004A5F, SetDisplayText_hook@8)
