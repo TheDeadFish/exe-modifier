@@ -345,8 +345,7 @@ SHITCALL cch* def_export(
 		PeFILE::addrToRva64(frwd->offset)); return 0; }}
 		
 	// handle symbol
-	auto* symbol = Linker::addSymbol2(frwd ? frwd->name
-		: name, Linker::Type_Undefined, 0, 0);
+	cch* symbol = frwd ? frwd->name : name;
 	DWORD symbOffset = frwd ? frwd->offset : 0;
 	if(exp->frwd) PeFILE::peExp.setFrwd(*exp, 0);
 	Linker::addExport(name, iOrd,

@@ -99,8 +99,7 @@ RECHECK_EXPORTS:
 		// check for undefined symbol
 		const char* newPos = nullchk(curPos, exportLimit);
 		if(!newPos) eofErr(curPos);
-		auto* symb = findSymbol(curPos);
-		if(symb && (symb->section == Type_Undefined)) {
+		if(needSymbol(curPos)) {
 		
 		// get object file
 		int objIndex = bswap32(exportData.dword(i));

@@ -133,12 +133,13 @@ void gc_sections2(void);
 
 // exports interface
 void addExport(char* name, uint ord, 
-	Symbol* symbol, DWORD offset, DWORD oldRva);
+	cch* frwd, DWORD offset, DWORD oldRva);
 void exports_symbfix();
 void exports_resolve();
 void exports_addSymb(Symbol* symb, char* importName);
 Symbol* exports_getExpSym(
 	char*& dllNane, char*& importName);
+bool needSymbol(cch* Name);
 
 extern xarray<char*> keep_list;
 static inline

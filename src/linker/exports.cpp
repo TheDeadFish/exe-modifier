@@ -2,7 +2,8 @@
 struct ExportSlot
 {
 	cch* name;
-	Symbol* symbol;
+	union { cch* frwd;
+		Symbol* symbol; };
 	DWORD offset;
 	DWORD oldRva;
 };
@@ -18,23 +19,33 @@ struct ExportSymb
 xarray<ExportSymb> expSymb;
 
 void addExport(char* name, uint ord, 
-	Symbol* symbol, DWORD offset, DWORD oldRva)
+	cch* frwd, DWORD offset, DWORD oldRva)
 {
 	if(ord) { name = xstrfmt("#%d", ord); }
 	else { name = xstrdup(name); }
-	exports.push_back(name, symbol, offset, oldRva);
+	frwd = xstrdup(frwd);
+	exports.push_back(name, frwd, offset, oldRva);
+}
+
+static
+bool expSymCmp(cch* frwd, cch* symb)
+{
+	for(int i = 0;; i++) { AGAIN:
+		if(!symb[i]) return !frwd[i];
+		if(symb[i] != frwd[i]) {
+			if(symb[i] == '_'){ symb++; goto AGAIN; }
+			if(symb[i] == '@') return !frwd[i];
+			return false;
+		}
+	}
 }
 
 Symbol* findSymbolExp(const char* Name)
 {
 	if(Name != NULL)
-		LINKER_ENUM_SYMBOLS(symb,
-		char* nm = symb->Name;
-		if(nm && *nm == '_') { 
-		  nm = strScmp(nm+1, Name);
-		  if(nm && is_one_of(*nm, 0, '@'))
-			  return symb;
-		}
+		LINKER_ENUM_SYMBOLS(symb, 
+			if(symb->Name && expSymCmp(Name, 
+				symb->Name)) { return symb; }
 	);
 	return NULL;
 }
@@ -44,10 +55,8 @@ void exports_symbfix()
 	for(auto& slot : exports)
 	{
 		// match symbol
-		auto& symb = *slot.symbol;
-		if(symb.section == Type_Undefined) {
-			auto* iSymb = findSymbolExp(symb.Name);
-			if(!iSymb) continue; slot.symbol = iSymb; }
+		slot.symbol = findSymbolExp(slot.frwd);
+		if(!slot.symbol) continue;
 		
 		// create symbol to original export
 		if(slot.oldRva) { xstr name(symbcat
@@ -61,6 +70,10 @@ void exports_resolve()
 {
 	// resolve new exports
 	for(auto& slot : exports) {
+		if(!slot.symbol) { undef_symbol_flag = true;
+			error_msg("undefined export: %s\n", slot.name);
+			continue; }
+	
 		auto& symb = *slot.symbol;
 		if(symb.section == Type_Undefined)
 			undef_symbol(&symb, 0, 0);
@@ -100,4 +113,17 @@ Symbol* exports_getExpSym(
 	auto symb = addSymbol(NULL, Type_Relocate, 0, 0);
 	exports_addSymb(symb, importName);
 	return symb;
+}
+
+bool needSymbol(const char* name)
+{
+	// check existing symbol
+	auto* symb = findSymbol(name);
+	if(symb) return symb->section == Type_Undefined;
+	
+	// check matching export
+	for(auto& slot : exports) {
+		if(expSymCmp(slot.frwd, name))
+			return true; 
+	} return false;
 }
