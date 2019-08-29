@@ -526,13 +526,13 @@ cch* def_asmSect(cch* name, u32 i, char* str, u32 start)
 	return def_asmSect(sectName, str, start);
 }
 
-cch* def_asmSect2(u32 rva, char* str)
+cch* def_asmSect2(u32 rva, char* str, bool call)
 {
 	// create section
 	char sectName[32]; sprintf(
 		sectName, ".text$asmSect%X", rva);
 	IFRET(def_asmSect(sectName, str, 0));
-	return def_makeJump(rva, sectName, false);
+	return def_makeJump(rva, sectName, call);
 }
 
 cch* def_prologMove(u32 rva, int prologSz, char* name)

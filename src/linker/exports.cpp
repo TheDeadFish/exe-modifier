@@ -68,6 +68,12 @@ void exports_symbfix()
 
 void exports_resolve()
 {
+	// update export symbols
+	for(auto& slot : expSymb) {
+		slot.symbol->value = 
+			PeFILE::peExp.find(slot.name)->rva;
+	}
+
 	// resolve new exports
 	for(auto& slot : exports) {
 		if(!slot.symbol) { undef_symbol_flag = true;
