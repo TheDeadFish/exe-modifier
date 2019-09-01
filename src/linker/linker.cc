@@ -141,7 +141,9 @@ char* symbfix(cch* symb)
 
 Symbol* addSymbol2(const char* Name, Section* section, Symbol* weakSym, DWORD value)
 {
-	return addSymbol(xstr(symbfix(Name)), section, weakSym, value);
+	if(g_noSymFix == false)
+		return addSymbol(xstr(symbfix(Name)), section, weakSym, value);
+	return addSymbol(Name, section, weakSym, value);
 }
 
 void fixSection(Section* sect, DWORD rva)

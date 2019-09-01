@@ -14,6 +14,8 @@ const ArchStr archStr64 = { "-lmisc64", "lib_path64",
 	"__start_", "__stop_"	};
 const ArchStr* archStr;
 
+bool g_noSymFix;
+
 int FileOrMem::open(int extra)
 {
 	if(data) return size_;
@@ -162,6 +164,7 @@ void Arguments::next(FileOrMem fileRef)
 		if(arg[1] == 'b') { bindImage = true; }
 		ei(arg[1] == 'l') { find_library(arg); }
 		ei(!strncmp(arg, "-mwindows")) guiMode = true;
+		ei(!strncmp(arg, "-nosymfix")) g_noSymFix = true;
 		else fatal_error("bad option '%s'\n", arg);
 	} else {
 		char* name = getName(arg);

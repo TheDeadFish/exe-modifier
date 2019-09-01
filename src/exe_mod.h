@@ -65,5 +65,9 @@ static int ptrSize() { return x64Mode() ? 64 : 32; }
 void dump_sections(FILE* fp);
 void dump_symbols(FILE* fp);
 
+// options
+extern bool g_noSymFix;
+
+
 
 #endif

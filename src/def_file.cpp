@@ -45,7 +45,7 @@ SHITCALL cch* defFileGetAddr(u64& out, char* str)
 	IFRET(syn.parse(str)); out = syn.offset;
 	if(syn.name) { syn.symInit();
 		if(syn.symb->section != Linker::Type_Relocate) {
-			return "symbol must be defined at use"; }
+			return "symbol must be defined at use\n"; }
 		out += PeFILE::rvaToAddr64(syn.symb->value); }
 	return (!PeFILE::chkAddrToRva64(out))
 		? "invalid address" : 0;
@@ -54,7 +54,7 @@ SHITCALL cch* defFileGetAddr(u64& out, char* str)
 SHITCALL bool defFileIsAddress(char* str)
 {
 	if((*str == '+')||(*str == '-')
-	||(!strncmp(str, "0x"))) return true;
+	||(!strnicmp(str, "0x"))) return true;
     for(int i = 0; str[i]; i++)
 	  if(!isxdigit(str[i]))
 		  return false;
