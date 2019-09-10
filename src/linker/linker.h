@@ -75,6 +75,7 @@ Section* addSection(const char* fileName, const char* Name,
 	DWORD baseRva, DWORD length);
 void destroy_section(Section& sect);
 Section* findSection(const char* name);
+Section* findSection2(const char* name);
 void fixSection(Section* sect, DWORD rva);
 int sectTypeFromName(cch* name);
 bool sectTypeNormal(cch* Name);

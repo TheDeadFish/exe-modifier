@@ -370,7 +370,7 @@ SHITCALL cch* def_export(char* str, SymStrArg* frwd)
 
 cch* def_fixSect(u32 start, u32 end, char* name)
 {
-	auto sect = Linker::findSection(name);
+	auto sect = Linker::findSection2(name);
 	if(!sect) return "section not found";
 	if(isNeg(end)) { end = start + sect->length; }
 	ei(sect->length > (end-start)) 

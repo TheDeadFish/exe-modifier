@@ -60,6 +60,15 @@ Section* findSection(const char* name)
 			return sect; ); return NULL;
 }
 
+Section* findSection2(const char* name)
+{
+	IFRET(findSection(name));
+	Symbol* symb = findSymbol(name);
+	if(!symb || !symb->section->isReal()
+	|| symb->value) return NULL;
+	return symb->section;
+}
+
 Symbol* findSymbol(const char* Name)
 {
 	if(Name != NULL)

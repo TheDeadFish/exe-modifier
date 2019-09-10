@@ -672,6 +672,8 @@ cch* ParseDefLine::processLine()
 	
 	FUNC("ASMPATCH", ArgDef(Addr,Str), def_asmPatch(a1,-1,a2)) ;
 	FUNC("ASMPATCH", ArgDef(Addr,Addr,Str), def_asmPatch(a1,a2,a3));
+	FUNC("SECTPATCH", ArgDef(Addr,Raw), def_fixSect(a1,-1,a2)) ;
+	FUNC("SECTPATCH", ArgDef(Addr,Addr,Raw), def_fixSect(a1,a2,a3));
 
 	// import/export functions
 	FUNC("IMPORTDEF", ArgDef(Raw), def_import(a1,0))
