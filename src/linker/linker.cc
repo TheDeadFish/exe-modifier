@@ -9,6 +9,7 @@ namespace Linker {
 #include "imports.cpp"
 #include "exports.cpp"
 #include "gc-sections.cpp"
+#include "symtab.cpp"
 
 Reloc* relocs;
 DWORD nRelocs;

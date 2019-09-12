@@ -248,6 +248,7 @@ int exe_mod(int argc, char* argv[])
 	auto entryPoint = dfLink_entryPoint();
 	if(entryPoint != NULL)
 		PeFILE::entryPoint() = Linker::symbolRva(entryPoint);
+	Linker::symTab_build();	
 	result = PeFILE::save(argv[2]);
 	if(result != NULL) {
 		printf("bin_linker: failed to save pe file: %s\n", result);

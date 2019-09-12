@@ -169,6 +169,7 @@ void rsrc_build(void);
 
 void link_step1(void);
 void link_step2(void);
+void symTab_build(void);
 
 }
 #endif

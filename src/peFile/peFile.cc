@@ -116,6 +116,49 @@ void PeReloc::Move(u32 rva, u32 length, int delta)
 	}
 }
 
+void PeSymTab::add(char* name, u32 rva)
+{
+	symbol.push_back(name, rva);
+}
+
+
+u32 PeSymTab::StrTable::add(char* str)
+{
+	if(data.dataSize == 0) {
+		data.write32(4); }
+	u32 size = data.dataSize;
+	data.strcat2(str);
+	RI(data.dataPtr) = data.dataSize;
+	return size;
+}
+
+inline
+void PeSymTab::Build_t::xwrite(FILE* fp)
+{
+	xfwrite(symData.data, symData.len, fp);
+	xfwrite(strTab.data.data(), strTab.data.dataSize, fp);
+}
+
+void PeFile::symTab_build(PeSymTab::Build_t& bd)
+{
+	for(auto& ss : symtab.symbol) {
+	
+		// create symbol
+		auto& sd = bd.symData.push_back();
+		sd.StorageClass = 2;
+		
+		// initialize the string
+		int len = strlen(ss.name);
+		if(len <= 8) { strncpy(sd.Name, ss.name, 8);
+		} else { sd.Name2 = bd.strTab.add(ss.name); }
+
+		// lookup the section
+		Section* sect = rvaToSect(ss.rva,0);
+		sd.Section = iSect(sect)+1;
+		sd.Value = ss.rva-sect->baseRva;
+	}
+}
+
 #define ARGKILL(arg) asm("" : "=m"(arg));
 
 // bit-array manipulation
@@ -227,21 +270,34 @@ int PeFile::save(cch* fileName)
 	if(boundImp.data) { idd[IDE_BOUNDIMP].
 		VirtualAddress = PTRDIFF(ish, headrBuff);
 		memcpyX((byte*)ish, boundImp.data, boundImp.size); }
+		
+	// build symbol table
+	PeSymTab::Build_t symData;
+	symTab_build(symData);
+	if(symData.hasData()) {
+		inh->FileHeader.PointerToSymbolTable = filePos;
+		inh->FileHeader.NumberOfSymbols = symData.symData.len;
+	}
 	
 	// calculate checksum
-	u16 checkSum = 0; pe_checkSum(checkSum, 
-		headrBuff, headrSize); ish = Void(ish0);
-	for(auto& sect : sects) { if(sect.data) { pe_checkSum(
-		checkSum, sect.data, ish->SizeOfRawData); } ish++; }
-	pe_checkSum(checkSum, fileExtra.data, fileExtra.size);
-	inh->OptionalHeader.CheckSum = checkSum + filePos + fileExtra.size;
+	//u16 checkSum = 0; pe_checkSum(checkSum, 
+	//	headrBuff, headrSize); ish = Void(ish0);
+	//for(auto& sect : sects) { if(sect.data) { pe_checkSum(
+	//	checkSum, sect.data, ish->SizeOfRawData); } ish++; }
+	//pe_checkSum(checkSum, fileExtra.data, fileExtra.size);
+	//inh->OptionalHeader.CheckSum = checkSum + filePos + fileExtra.size;
 	
 	// write sections
 	FILE* fp = xfopen(fileName, "wb");
 	if(!fp) return 1; xfwrite(headrBuff, headrSize, fp);
 	ish = Void(ish0);	for(auto& sect : sects) { if(sect.data) {
 		xfwrite(sect.data, ish->SizeOfRawData, fp); } ish++; }
+	symData.xwrite(fp);
 	xfwrite(fileExtra.data, fileExtra.size, fp);
+	
+	
+	
+	
 	fclose(fp); return 0;
 }
 
