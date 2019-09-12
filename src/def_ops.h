@@ -36,6 +36,7 @@ SHITCALL cch* def_codeSkip(u32 start);
 SHITCALL cch* def_fixSect(u32 start, u32 end, char* name);
 SHITCALL cch* def_asmSect(char* name, char* str, u32 start);
 SHITCALL cch* def_asmSect2(u32 rva, char* str, bool call);
+SHITCALL cch* def_asmSect3(u32 rva, u32 end, char* str);
 SHITCALL cch* def_asmPatch(u32 start, u32 end, char* ins);
 	
 SHITCALL cch* def_funcRepl(u32 start, u32 end, char* name);
@@ -52,6 +53,7 @@ SHITCALL cch* def_funcHook(u32 rva, int prologSz, char* name);
 SHITCALL cch* def_prologMove(u32 rva, int prologSz, char* name);
 SHITCALL cch* def_codeHook(u32 rva, int prologSz, char* str);
 SHITCALL cch* def_makeJump(u32 rva, char* name, bool call);
+SHITCALL cch* def_makeJump2(u32 rva, u32 end, char* name);
 
 SHITCALL cch* def_funcKill(u32 start, u32 end, u64* val);
 

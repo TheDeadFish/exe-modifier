@@ -535,6 +535,16 @@ cch* def_asmSect2(u32 rva, char* str, bool call)
 	return def_makeJump(rva, sectName, call);
 }
 
+cch* def_asmSect3(u32 rva, u32 end, char* str)
+{
+	// create section
+	char sectName[32]; sprintf(
+		sectName, ".text$asmSect%X", rva);
+	IFRET(def_asmSect(sectName, str, 0));
+	return def_makeJump2(rva, end, sectName);
+}
+
+
 cch* def_prologMove(u32 rva, int prologSz, char* name)
 {
 	Bstr buff; buff.fmtcat(".globl %s; %s:", name, name);
@@ -614,6 +624,12 @@ cch* def_makeJump(u32 rva, char* name, bool call)
 	}
 	
 	return NULL;
+}
+
+cch* def_makeJump2(u32 rva, u32 end, char* name)
+{
+	IFRET(def_makeJump(rva, name, true));
+	return def_codeSkip(rva+5, end);
 }
 
 cch* def_codeHook(u32 rva, int prologSz, char* str)

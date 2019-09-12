@@ -669,6 +669,7 @@ cch* ParseDefLine::processLine()
 	FUNC("ASMSECT", ArgDef(Raw,Str), def_asmSect(a1,a2,0));
 	FUNC("ASMSECT2", ArgDef(Addr,Str), def_asmSect2(a1,a2,0));
 	FUNC("ASMSECT_CALL", ArgDef(Addr,Str), def_asmSect2(a1,a2,1));
+	FUNC("ASMSECT_CALL", ArgDef(Addr,Addr,Str), def_asmSect3(a1,a2,a3));
 	
 	FUNC("ASMPATCH", ArgDef(Addr,Str), def_asmPatch(a1,-1,a2)) ;
 	FUNC("ASMPATCH", ArgDef(Addr,Addr,Str), def_asmPatch(a1,a2,a3));
@@ -705,6 +706,7 @@ cch* ParseDefLine::processLine()
 	
 	FUNC("MAKEJUMP", ArgDef(Addr,Raw), def_makeJump(a1,a2, false))
 	FUNC("MAKECALL", ArgDef(Addr,Raw), def_makeJump(a1,a2, true))
+	FUNC("MAKECALL", ArgDef(Addr,Addr,Raw), def_makeJump2(a1,a2,a3))
 	
 	FUNC("FUNCKILL", ArgDef(Addr,Addr), def_funcKill(a1,a2,0))
 	FUNC("FUNCKILL", ArgDef(Addr,Addr,Num), def_funcKill(a1,a2,&a3.num))
