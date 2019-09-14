@@ -26,10 +26,9 @@ const char* nullchk(const char* str, const char* limit)
 }
 
 Section* addSection(const char* fileName, const char* Name,
-	void* rawData, WORD type, WORD align,
-		DWORD baseRva, DWORD length)
+	void* rawData, WORD type, WORD align, DWORD length)
 {
-	auto& sect = *(Section*)xMalloc(1);
+	auto& sect = *(Section*)xCalloc(1);
 	ringList_add(sectRoot, &sect);
 
 	sect.fileName = fileName;
@@ -37,9 +36,8 @@ Section* addSection(const char* fileName, const char* Name,
 	sect.rawData = xcalloc(length);
 	if(rawData != NULL)
 		memcpy(sect.rawData, rawData, length);
-	sect.relocs = 0; sect.nReloc = 0;
-	sect.type = type; sect.align = align;
-	sect.baseRva = baseRva; sect.length = length; 
+	sect.type = type; sect.align = max(align,1);
+	sect.length = length;
 	
 	return &sect;
 };
@@ -267,7 +265,7 @@ void mergeSect_init(Section* sect)
 			ms = stop->section; goto FOUND_SECT; }}
 		
 	// create the section
-	ms = addSection(NULL, NULL, 0, 0, 0, 0, 0);
+	ms = addSection(NULL, NULL, 0, 0, 0, 0);
 	mergeSect_symb(ms, archStr->sectionStart, sect->name);
 	stop = mergeSect_symb(ms, archStr->sectionStop, sect->name);
 	mergeList.push_back(sect->name, stop);

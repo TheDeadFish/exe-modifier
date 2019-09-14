@@ -471,7 +471,7 @@ cch* def_sectCreate(char* Name, int align)
 	if(Linker::findSection(Name)) return "section exists";
 	int type = Linker::sectTypeFromName(Name);
 	if(!type) type = PeSecTyp::RData;
-	Linker::addSection(0, Name, 0, type, align, 0, 0);
+	Linker::addSection(0, Name, 0, type, align, 0);
 	return 0;
 }
 

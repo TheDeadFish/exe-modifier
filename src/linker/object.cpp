@@ -24,6 +24,38 @@ DWORD sect_align(DWORD flags) {
 	return align;
 }
 
+
+
+
+
+void object_drective(
+	const char* fileName, cstr str)
+{
+	int value;
+
+	while(str.lstripT().slen) {
+		// parse aligncomm
+		if(!str.scmpT("-aligncomm:\"")) goto ERR;
+		cstr name = str.chr2T('"'); if(!name) goto ERR;
+		if(!str.scmpT("\",")) goto ERR;
+		if(!str.parseIntT(&value)) goto ERR;
+
+		// find symbol
+		*name.end() = 0;
+		Symbol* symb = findSymbol(name);
+		if(!symb) goto ERR; 
+		*name.end() = '\"';
+
+		// apply aligncomm
+		Section* sect = symb->section;
+		if((!sect->isReal())||(symb->value))
+			continue;
+		max_ref(sect->align, 1<<value);
+	}
+	
+	if(0) { ERR: file_bad("object:.drectve", fileName); }
+}
+
 void object_load(const char* fileName,
 	Void objFile, DWORD objSize)
 {
@@ -45,6 +77,7 @@ void object_load(const char* fileName,
 		
 	// read sections
 	Section** sectMapp = xCalloc(nSects);
+	cstr drective = {};
 	for(int i = 0; i < nSects; i++)
 	{
 		// reference section members
@@ -78,9 +111,11 @@ void object_load(const char* fileName,
 
 		// create new section
 		Void pData = data ? objFile + data : Void(0);
+		if(Name && !strcmp(Name, ".drectve")) {
+			drective = {pData, size}; continue; }
 		DWORD align = sect_align(flags);
 		sectMapp[i] = addSection(fileName, Name, 
-			pData, type, align, 0, size);
+			pData, type, align, size);
 	}
 	
 	// read symbols
@@ -164,9 +199,20 @@ SYMB_RETRY:
 		if(sectSymb) { sectIndex->symbol = symMapp[i];
 			if(!sectTypeFromName(sectIndex->name))
 				mergeSect_init(sectIndex); 	}
-		
+				
+		// comdata section 
+		if((sclass == 2)&&(objSym[i].Value)
+		&&(symMapp[i]->section == Type_Undefined)) {
+			int type = sectTypeFromName(".bss");
+			symMapp[i]->section = addSection(fileName, 
+				symName, 0, type, 0, objSym[i].Value);
+			symMapp[i]->value = 0;
+		}
+
 		i += objSym[i].NumberOfAuxSymbols;
 	}
+	
+	if(drective) object_drective(fileName, drective);
 
 	// read relocs
 	for(int i = 0; i < nSects; i++)

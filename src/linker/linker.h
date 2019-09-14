@@ -71,8 +71,7 @@ struct Section {
 };
 
 Section* addSection(const char* fileName, const char* Name,
-	void* rawData, WORD type, WORD align, 
-	DWORD baseRva, DWORD length);
+	void* rawData, WORD type, WORD align, DWORD length);
 void destroy_section(Section& sect);
 Section* findSection(const char* name);
 Section* findSection2(const char* name);
