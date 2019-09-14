@@ -317,6 +317,12 @@ SHITCALL cch* def_funcRepl(u32 start, u32 end, char* name)
 	return def_makeJump(start, name, false);
 }
 
+SHITCALL cch* def_funcTrap(u32 start, u32 end, char* name)
+{
+	IFRET(def_memTrap(start, end));
+	return def_makeJump(start, name, false);
+}
+
 SHITCALL cch* def_import(char* name, char* symb)
 {
 	char* dllName = strtok(name, ";");

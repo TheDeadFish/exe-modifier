@@ -665,6 +665,7 @@ cch* ParseDefLine::processLine()
 	FUNC("FUNCREPL", ArgDef(Addr,Addr,Raw), def_funcRepl(a1,a2,a3));
 	FUNC("CODESKIP", ArgDef(Addr,Addr), def_codeSkip(a1,a2));	
 	FUNC("CODESKIP", ArgDef(Addr), def_codeSkip(a1));	
+	FUNC("FUNCTRAP", ArgDef(Addr,Addr,Raw), def_funcTrap(a1,a2,a3));
 	
 	FUNC("ASMSECT", ArgDef(Raw,Str), def_asmSect(a1,a2,0));
 	FUNC("ASMSECT2", ArgDef(Addr,Str), def_asmSect2(a1,a2,0));

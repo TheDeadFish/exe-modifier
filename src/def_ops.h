@@ -40,6 +40,7 @@ SHITCALL cch* def_asmSect3(u32 rva, u32 end, char* str);
 SHITCALL cch* def_asmPatch(u32 start, u32 end, char* ins);
 	
 SHITCALL cch* def_funcRepl(u32 start, u32 end, char* name);
+SHITCALL cch* def_funcTrap(u32 start, u32 end, char* name);
 SHITCALL cch* def_import(char* name, char* symb);
 SHITCALL cch* def_export(char* name, SymStrArg* forward);
 SHITCALL cch* def_export(char* name, int iOrd, SymStrArg*);
