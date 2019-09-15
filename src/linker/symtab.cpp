@@ -2,10 +2,10 @@
 void symTab_build(void)
 {
 	LINKER_ENUM_SYMBOLS(symb,
-		if((symb->section != Linker::Type_Relocate)
-		&&((!symb->section->isReal() 
-		|| !symb->section->baseRva)))
-			continue;
+		Section* sect = symb->section;
+		if((sect != Linker::Type_Relocate)
+		&&(!sect->isReal() || !sect->baseRva
+		|| sect->symbol == symb)) continue;
 		
 		u32 rva = symb->getRva(); 
 		if(!rva || !symb->Name) continue;
