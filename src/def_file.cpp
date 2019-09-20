@@ -716,7 +716,13 @@ cch* ParseDefLine::processLine()
 	FUNC("MAKERET", ArgDef(Addr), def_makeRet(RU(&a1), 0, 0))
 	FUNC("MAKERET", ArgDef(Addr,Num), def_makeRet(RU(&a1), 0, &a2.num))
 	FUNC("MAKERETn", ArgDef(Addr,Num), def_makeRet(RU(&a1), a2, 0))
-	FUNC("MAKERETn", ArgDef(Addr,Num,Num), def_makeRet(RU(&a1), 0, &a3.num))
+	FUNC("MAKERETn", ArgDef(Addr,Num,Num), def_makeRet(RU(&a1), a2, &a3.num))
+	
+	FUNC("TRAPRET", ArgDef(Addr,Addr), def_trapRet(a1, a2, 0, 0))
+	FUNC("TRAPRET", ArgDef(Addr,Addr,Num), def_trapRet(a1, a2, a3, 0))
+	
+	
+	
 	
 	
 	FUNC("MEMPATCH", ArgDef(Addr,Raw), def_memPatch(a1,a2))

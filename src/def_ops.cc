@@ -664,6 +664,12 @@ cch* def_makeRet(DWORD& rva, u32 sz, u64* val)
 	} else { ptr[0] = 0xC3; } return NULL;
 }
 
+SHITCALL cch* def_trapRet(u32 rva, u32 end, u32 sz, u64* val)
+{
+	IFRET(def_memTrap(rva, end));
+	return def_makeRet(*(DWORD*)&rva, sz, val);
+}
+
 cch* def_funcKill(u32 start, u32 end, u64* val)
 {
 	int len = val ? 6 : 1;
