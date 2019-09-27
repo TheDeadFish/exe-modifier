@@ -120,7 +120,8 @@ void object_load(const char* fileName,
 	
 	// read symbols
 	Symbol** symMapp = xCalloc(nSymbols);
-	for(int i = 0; i < nSymbols; i++)
+	for(int i = 0; i < nSymbols; 
+		i += objSym[i].NumberOfAuxSymbols+1)
 	{
 		// get symbol name
 		char symName_[9];
