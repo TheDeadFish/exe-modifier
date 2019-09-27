@@ -457,7 +457,7 @@ cch* def_asmSect(char* name, char* str, u32 start)
 	// load the object
 	auto file = loadFile(tmpName);
 	if(!file) load_error("object", tmpName);
-	Linker::object_load(tmpName, file.data, file.size);
+	Linker::object_load(tmpName, file.data, file.len);
 	file.free(); remove(tmpName); return 0;
 }
 	

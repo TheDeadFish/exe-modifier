@@ -25,7 +25,7 @@ void FreeLst2_t::mark(void* xa, u32 sz,
 	auto& lst = *(xarray<FreeLst2_t>*)xa;
 	
 	// locate insertion point
-	FreeLst2_t* endPos = Void(lst.data,lst.size*sz);
+	FreeLst2_t* endPos = Void(lst.data,lst.len*sz);
 	FreeLst2_t* insPos = lst.data; while((insPos < endPos)
 	  &&(((sz>8)&&(insPos->iSect < tmp.iSect))
 	  ||(insPos->rva < tmp.rva))) PTRADD(insPos, sz);
@@ -43,7 +43,7 @@ void FreeLst2_t::mark(void* xa, u32 sz,
 	// merge loop
 	if(0) { MERGE_LOOP: FreeLst2_t* mrgPos = Void(insPos, sz);
 		for(;mrgPos < endPos; PTRADD(mrgPos, sz)) { 
-		if(!insPos->merge(*mrgPos, sz)) break; lst.size--;}
+		if(!insPos->merge(*mrgPos, sz)) break; lst.len--;}
 		PTRADD(insPos, sz); if(insPos != mrgPos) memcpy(
 			insPos, mrgPos, PTRDIFF(endPos,mrgPos));
 	}
@@ -257,7 +257,7 @@ void allocBlocks(xarray<PeBlock> blocks, PeFile&
 	
 	// sort the blocks
 	for(auto& block: blocks) block.data = &block;
-	qsort(blocks.data, blocks.size, PeBlock::cmpFn);
+	qsort(blocks.data, blocks.len, PeBlock::cmpFn);
 	for(auto& block: blocks) block.data = 0;
 	PeBlock* rdatPos = blocks;
 	for(auto& block : blocks) { rdatPos = &block;

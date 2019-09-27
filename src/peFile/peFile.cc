@@ -199,10 +199,10 @@ int PeFile::save(cch* fileName)
 	
 	// rebase resources
 	SCOPE_EXIT(if(rsrcSect) rebaseRsrc(rsrcSect->data, 
-		rsrcSect->size, -rsrcSect->baseRva, 0));
+		rsrcSect->len, -rsrcSect->baseRva, 0));
 	ddTmp = {0,0};	
 	if(rsrcSect != NULL) { rebaseRsrc(rsrcSect->data, 
-		rsrcSect->size, rsrcSect->baseRva, 0); 
+		rsrcSect->len, rsrcSect->baseRva, 0); 
 		ddTmp = rsrcSect->dataDir();
 	} dataDir[IDE_RESOURCE] = ddTmp;
 	
@@ -213,12 +213,12 @@ int PeFile::save(cch* fileName)
 	// allocate header buffer
 	u32 inhSize = PE64 ? sizeof(IMAGE_NT_HEADERS64)
 		: sizeof(IMAGE_NT_HEADERS32);
-	u32 headrSize = fileAlign(dosHeadr.size+ inhSize + 
-		sizeof(IMAGE_SECTION_HEADER)*sects.len + boundImp.size);
+	u32 headrSize = fileAlign(dosHeadr.len+ inhSize + 
+		sizeof(IMAGE_SECTION_HEADER)*sects.len + boundImp.len);
 	byte* headrBuff = xcalloc(headrSize);
 	SCOPE_EXIT(free(headrBuff));
 	IMAGE_NT_HEADERS32* inh = memcpyX(headrBuff,
-		dosHeadr.data, dosHeadr.size);
+		dosHeadr.data, dosHeadr.len);
 	inh->OptionalHeader.SizeOfHeaders = headrSize;
 	inh->OptionalHeader.SizeOfImage = SectionAlignment;
 
@@ -242,7 +242,7 @@ int PeFile::save(cch* fileName)
 	{
 		// build section header
 		strncpy((char*)ish->Name, sect.name, 8);
-		ish->Misc.VirtualSize = sect.size;
+		ish->Misc.VirtualSize = sect.len;
 		ish->VirtualAddress = sect.baseRva;
 		ish->Characteristics = sect.Characteristics;
 		if(sect.data) { ish->PointerToRawData = filePos;
@@ -265,11 +265,11 @@ int PeFile::save(cch* fileName)
 	
 	// write bound import
 	IMAGE_DATA_DIRECTORY* idd = Void(ish0, -128);
-	idd[IDE_BOUNDIMP].Size = boundImp.size;
+	idd[IDE_BOUNDIMP].Size = boundImp.len;
 	idd[IDE_BOUNDIMP].VirtualAddress = 0;
 	if(boundImp.data) { idd[IDE_BOUNDIMP].
 		VirtualAddress = PTRDIFF(ish, headrBuff);
-		memcpyX((byte*)ish, boundImp.data, boundImp.size); }
+		memcpyX((byte*)ish, boundImp.data, boundImp.len); }
 		
 	// build symbol table
 	PeSymTab::Build_t symData;
@@ -293,7 +293,7 @@ int PeFile::save(cch* fileName)
 	ish = Void(ish0);	for(auto& sect : sects) { if(sect.data) {
 		xfwrite(sect.data, ish->SizeOfRawData, fp); } ish++; }
 	symData.xwrite(fp);
-	xfwrite(fileExtra.data, fileExtra.size, fp);
+	xfwrite(fileExtra.data, fileExtra.len, fp);
 	
 	
 	
@@ -310,7 +310,7 @@ int PeFile::Section::resize(PeFile* This, u32 sz)
 {
 	u32 allocSize2 = This->sectAlign(sz);
 	void* ptr = xrealloc(data, allocSize2);
-	u32 base = min(size, sz); size = sz;
+	u32 base = min(len, sz); len = sz;
 	memset(ptr+base, 0, allocSize2-base);
 	return allocSize2-::release(allocSize, allocSize2);
 }
@@ -399,25 +399,25 @@ cch* PeFile::load(cch* fileName)
 	
 	// read file extra
 	fileExtra.xalloc(fsize(fp));
-	xfread(fileExtra.data, 1, fileExtra.size, fp);
+	xfread(fileExtra.data, 1, fileExtra.len, fp);
 	
 	// load relocations
 	this->getSections_(); 
 	if(relocSect) {
 		auto data = dataDirSectChk(relocSect, dataDir+IDE_BASERELOC, "reloc");
-		if(!data || !relocs.Load(data, data.size, PE64)) ERR(Corrupt_Relocs);
+		if(!data || !relocs.Load(data, data.len, PE64)) ERR(Corrupt_Relocs);
 		sectResize(relocSect, 0);
 	}
 	
 	// load exceptions
 	if(pdataSect) {
 		auto data = dataDirSectChk(pdataSect, dataDir+IDE_EXCEPTION, "pdata");
-		if(!data || !pdata.Load(data, data.size, pdataSect->baseRva)) 
+		if(!data || !pdata.Load(data, data.len, pdataSect->baseRva)) 
 			ERR(Corrupt_Pdata);
 	}
 	
 	if(rsrcSect) {
-		if(!rebaseRsrc(rsrcSect->data, rsrcSect->size, 
+		if(!rebaseRsrc(rsrcSect->data, rsrcSect->len, 
 			-rsrcSect->baseRva, 0)) ERR(Corrupt_Rsrc);
 	}
 	
@@ -428,9 +428,9 @@ cch* PeFile::load(cch* fileName)
 xarray<byte> PeFile::dataDirSectChk(
 	Section* sect, DataDir* dir, cch* name)
 {
-	if((sect->baseRva != dir->rva)||(sect->size < dir->size)) return {0,0};
-	if(sect->size != dir->size) {
-		if(calcExtent(sect->data, sect->size) > dir->size) return {0,0};
+	if((sect->baseRva != dir->rva)||(sect->len < dir->size)) return {0,0};
+	if(sect->len != dir->size) {
+		if(calcExtent(sect->data, sect->len) > dir->size) return {0,0};
 		fprintf(stderr, "warning: %s section oversized\n", name); } 
 	return {sect->data, dir->size};
 }
@@ -585,7 +585,7 @@ int PeFile::Section::type(DWORD ch)
 u32 PeFile::Section::extent(PeFile& peFile)
 {
 	return peFile.fileAlign(peFile.
-		calcExtent(data, size));
+		calcExtent(data, len));
 }
 
 int PeFile::sectCreate(cch* name, DWORD ch)
@@ -633,7 +633,7 @@ bool PeExcept::Load(byte* data, u32 size, u32 rva)
 	funcs.init((RtFunc*)data, size / sizeof(RtFunc));
 	for(auto& fn : funcs) { if(fn.addr & 1) {
 			u32 idx = (fn.addr-rva) / sizeof(RtFunc);
-			if(idx >= funcs.size) return false;
+			if(idx >= funcs.len) return false;
 			fn.addr = idx | INT_MIN; } 
 	} return true;
 }

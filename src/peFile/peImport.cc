@@ -24,7 +24,7 @@ int PeImport::load(PeFile& peFile)
 		// read directory entry
 		auto dllName = peFile.chkStr2(impDesc->Name);
 		if(!dllName) return 2;
-		freeLst.mark(impDesc->Name, dllName.size, 2);
+		freeLst.mark(impDesc->Name, dllName.len, 2);
 		ImportDir& impDir = imports.push_back(dllName.data, 
 			impDesc->TimeDateStamp, impDesc->FirstThunk);
 
@@ -42,7 +42,7 @@ int PeImport::load(PeFile& peFile)
 			if(RC(Name,ptrSize-1) < 0) { impDir.push_back((cch*)0, *Name);
 			} else { if(*Name == 0) break;
 				IMAGE_IMPORT_BY_NAME* name = peFile.rvaToPtr(*Name, 3);
-				u32 strSz = peFile.chkStr2(*Name+2).size; if(!strSz) {
+				u32 strSz = peFile.chkStr2(*Name+2).len; if(!strSz) {
 				return 4; } freeLst.mark(*Name, strSz+2, 2);
 				impDir.push_back((char*)name->Name, name->Hint);
 			}
@@ -60,8 +60,8 @@ bool PeImport::mustRebuild(void)
 xarray<PeBlock> PeImport::getBlocks(void)
 {
 	// allocate block list
-	int nBlocks = imports.size*3+1;
-	for(auto& dir : imports) nBlocks += dir.size;
+	int nBlocks = imports.len*3+1;
+	for(auto& dir : imports) nBlocks += dir.len;
 	PeBlock* blocks = xCalloc(nBlocks);
 	for(int i = 0; i < nBlocks; i++) { blocks[i].type 
 		= PeSecTyp::IData; blocks[i].align = 1; }
@@ -70,17 +70,17 @@ xarray<PeBlock> PeImport::getBlocks(void)
 	// import address table
 	u32 ptrSize = this->ptrSize();
 	for(auto& dir : imports) if(!dir.FirstThunk) {
-		curBlock->length = (dir.size+1) * ptrSize; 
+		curBlock->length = (dir.len+1) * ptrSize; 
 		curBlock->type = PeSecTyp::Data; curBlock++; }
 		
 	// import directory table
-	curBlock->length = (imports.size+1) *
+	curBlock->length = (imports.len+1) *
 		sizeof(IMAGE_IMPORT_DESCRIPTOR);
 	curBlock->align = 4; curBlock++;
 	
 	// original first thunks
 	for(auto& dir : imports) { 
-		curBlock->length = (dir.size+1) * ptrSize;
+		curBlock->length = (dir.len+1) * ptrSize;
 		curBlock->align = ptrSize; curBlock++; }
 	
 	// import names
@@ -105,15 +105,15 @@ void PeImport::build(PeBlock* blocks)
 	peFile().dataDir[peFile().IDE_IMPORT].size = blocks->length;
 	IMAGE_IMPORT_DESCRIPTOR* impDesc = Void(blocks->data);
 	memset(impDesc, 0, blocks->length); blocks++;
-	for(int i = 0; i < imports.size; i++, blocks++) {
+	for(int i = 0; i < imports.len; i++, blocks++) {
 		impDesc[i].FirstThunk = imports[i].FirstThunk;
 		impDesc[i].OriginalFirstThunk = blocks->baseRva; }
-	for(int i = 0; i < imports.size; i++, blocks++) {
+	for(int i = 0; i < imports.len; i++, blocks++) {
 		strcpy((char*)blocks->data, imports[i].DllName);
 		impDesc[i].Name = blocks->baseRva; }
 		
 	// import names
-	for(int i = 0; i < imports.size; i++) {
+	for(int i = 0; i < imports.len; i++) {
 		u32* thnkPos1 = peFile().rvaToPtr(impDesc[i].OriginalFirstThunk);
 		u32* thnkPos2 = peFile().rvaToPtr(impDesc[i].FirstThunk);
 	
@@ -140,7 +140,7 @@ int PeImport::find(cch* dllName, cch* importName)
 {
 	for(auto& impDir : imports)
 	if(!stricmp(impDir.DllName, dllName)) {
-		for(int i = 0; i < impDir.size; i++)
+		for(int i = 0; i < impDir.len; i++)
 		if(!strcmp(impDir[i].name, importName)) {
 			int ret = impDir.FirstThunk; if(!NULL_CHECK(ret))
 			ret += i*ptrSize();	return ret; }

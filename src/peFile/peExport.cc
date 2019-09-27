@@ -33,7 +33,7 @@ int PeExport::load(PeFile& peFile)
 	for(uint i = 0; i < expBase->NumberOfNames; i++) { 
 		DWORD ord, *pName; cch* name; WORD* pOrd = 
 		freeLst.mark(expBase->AddressOfNameOrdinals+i*2, 2, 2);
-		if(!pOrd || ((ord = *pOrd) >= exports.size)) return 3;
+		if(!pOrd || ((ord = *pOrd) >= exports.len)) return 3;
 		pName = freeLst.mark(expBase->AddressOfNames+i*4, 4, 4);
 		if(!pName || !(name = freeLst.markStrDup(*pName))) return 4;
 		exports[ord].name.init(xstrdup(name)); 

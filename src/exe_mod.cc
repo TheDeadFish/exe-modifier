@@ -21,8 +21,8 @@ int FileOrMem::open(int extra)
 	if(data) return size_;
 	auto file = loadFile(name, extra);
 	data = file.data;
-	size_ = file.size | INT_MIN;
-	return file.size;
+	size_ = file.len | INT_MIN;
+	return file.len;
 }
 
 void FileOrMem::free(void)

@@ -13,7 +13,7 @@ struct ExmFile
 	// Exm memory structures
 	struct FileInfo : xarray<byte> { 
 		Sha1 hash; int fileId; void doHash() 
-		{ hash.calc(data, size); }};
+		{ hash.calc(data, len); }};
 	struct ArgInfo { int fileId; char* arg; };
 	struct SetInfo : xArray<ArgInfo> { cch* name; };
 	xArray<FileInfo> fileList;
@@ -47,7 +47,7 @@ void ExmFileWrite(int argc, char* argv[])
 	ExmFile exmFile;
 	if(argv[1][0] == '+') { argv[1]++;
 		auto file = loadFile(argv[1]);
-		if((file)&&(!exmFile.load(file.data, file.size)))
+		if((file)&&(!exmFile.load(file.data, file.len)))
 			fatal_error("bad emx file: %s", argv[1]);
 	}
 	
@@ -58,7 +58,7 @@ void ExmFileWrite(int argc, char* argv[])
 		if(argv[i][0] != '-') {
 			auto data = loadFile(argv[i]);
 			if(!data) load_error("file", argv[i]);
-			dataId = exmFile.addFile(data, data.size); }
+			dataId = exmFile.addFile(data, data.len); }
 		set.push_back(dataId, argv[i]);
 	}
 	
@@ -94,7 +94,7 @@ void ExmFileRead(FileOrMem& fileRef,
 		xarray<byte> data = {};
 		if(arg.fileId >= 0) data = 
 			exm.fileList[arg.fileId];
-		cb({arg.arg, data.data, data.size});
+		cb({arg.arg, data.data, data.len});
 	}
 }
 ExmFile::SetInfo* ExmFile::findSet(cch* setName)
@@ -162,8 +162,8 @@ bool ExmFile::save(cch* fileName)
 	
 	// write files
 	for(auto& file : fileList) {
-		if(file.fileId) { xfwrite(file.size, fp);
-		xfwrite(file.data, file.size, fp); }
+		if(file.fileId) { xfwrite(file.len, fp);
+		xfwrite(file.data, file.len, fp); }
 	}
 	
 	// write sets
@@ -259,7 +259,7 @@ void ExmFileCall2(int argc, char* argv[])
 			// load the exm file
 			auto file = loadFile(argv[i]);
 			if(!file) load_error("exm file", argv[i]);
-			if(!arg.exm.load(file.data, file.size))
+			if(!arg.exm.load(file.data, file.len))
 			fatal_error("bad exm file: %s\n", argv[i]);	
 			
 			// add sets to set list
@@ -271,7 +271,7 @@ void ExmFileCall2(int argc, char* argv[])
 	}
 	
 	// clobber unamed set
-	if(ver.size > 1) for(cch*& sver : ver) {
+	if(ver.len > 1) for(cch*& sver : ver) {
 	if(*sver == '\0') { sver = ver.back(); 
 		ver.pop_back(); break; }}
 
