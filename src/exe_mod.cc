@@ -62,7 +62,7 @@ void defFile_load(FileOrMem& fileRef)
 
 struct Arguments
 {
-	bool bindImage, guiMode;
+	bool bindImage, guiMode, dbgInfo;
 	xArray<cch*> libPaths;
 	xArray<FileOrMem> libs;
 	xArray<FileOrMem> objs;
@@ -163,6 +163,7 @@ void Arguments::next(FileOrMem fileRef)
 	if(arg[0] == '-') {
 		if(arg[1] == 'b') { bindImage = true; }
 		ei(arg[1] == 'l') { find_library(arg); }
+		ei(arg[1] == 'g') { dbgInfo = true; }
 		ei(!strncmp(arg, "-mwindows")) guiMode = true;
 		ei(!strncmp(arg, "-nosymfix")) g_noSymFix = true;
 		else fatal_error("bad option '%s'\n", arg);
@@ -248,7 +249,7 @@ int exe_mod(int argc, char* argv[])
 	auto entryPoint = dfLink_entryPoint();
 	if(entryPoint != NULL)
 		PeFILE::entryPoint() = Linker::symbolRva(entryPoint);
-	Linker::symTab_build();	
+	if(args.dbgInfo == true) Linker::symTab_build();	
 	result = PeFILE::save(argv[2]);
 	if(result != NULL) {
 		printf("bin_linker: failed to save pe file: %s\n", result);
