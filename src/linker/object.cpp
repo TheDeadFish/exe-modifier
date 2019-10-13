@@ -24,36 +24,74 @@ DWORD sect_align(DWORD flags) {
 	return align;
 }
 
+struct DRective { 
+	char* str_;
+	cstr name; cstr arg[2];
+	DRective(char* str) : str_(str) {}
+	bool parse(void);
 
+//private:
+	static bool isWsOrNull(int ch) { return (u8(ch) <= ' '); }
+	static char* strend(char* str, char ch) {
+		while(!isWsOrNull(*str) && (*str != ',')) str++;
+		return str; }
+};
 
+bool DRective::parse(void)
+{
+	memfill2(name, arg, 0);
+	char* str = str_;
 
+	// get the name
+	while(*str == ' ') str++;
+	if(!*str){ str_ = str; return 0; }
+	if(*str++ != '-') return 0;
+	str = strchr((name.data = str), ':');
+	if(!str) return 0; name.setend(str);
+		
+	// parse the argument
+	for(int i = 0; i < 2; i++) {
+		if(*++str == '"') {
+			str = strchr(arg[i].data = ++str, '\"');
+			if(!str) return 0; arg[i].setend(str++);
+		} else {
+			str = strend(arg[i].data = str, ',');
+			if(!str) return 0; arg[i].setend(str); }
+		if(*str != ',') {
+			if(isWsOrNull(*str)) {
+				str_ = str; return 1; }
+			break; }
+	}
+	return 0;
+}
 
 void object_drective(
-	const char* fileName, cstr str)
+	const char* fileName, char* str)
 {
+	DRective dr(str);
 	int value;
-
-	while(str.lstripT().slen) {
-		// parse aligncomm
-		if(!str.scmpT("-aligncomm:\"")) goto ERR;
-		cstr name = str.chr2T('"'); if(!name) goto ERR;
-		if(!str.scmpT("\",")) goto ERR;
-		if(!str.parseIntT(&value)) goto ERR;
-
-		// find symbol
-		*name.end() = 0;
-		Symbol* symb = findSymbol(name);
-		if(!symb) goto ERR; 
-		*name.end() = '\"';
-
-		// apply aligncomm
-		Section* sect = symb->section;
-		if((!sect->isReal())||(symb->value))
-			continue;
-		max_ref(sect->align, 1<<value);
-	}
 	
-	if(0) { ERR: file_bad("object:.drectve", fileName); }
+	while(dr.parse()) {
+	
+		// parse aligncomm
+		if(!dr.name.cmp("aligncomm")) {
+			if(!dr.arg[1].parseInt(&value)) goto ERR;
+			Symbol* symb = findSymbol(dr.arg[0]);
+			if(!symb) goto ERR; 
+			Section* sect = symb->section;
+			if((!sect->isReal())||(symb->value))
+				continue;
+			max_ref(sect->align, 1<<value);		
+		}
+	}
+
+	// print error message
+	if(*dr.str_) {
+		error_msg(".drectve bad parse: %s\n", dr.str_);
+		if(0) { ERR: error_msg(".drectve bad args: %.*s, %.*s, %.*s\n",
+				dr.name.prn(), dr.arg[0].prn(), dr.arg[1].prn()); }
+		file_bad("object:.drectve", fileName);
+	}
 }
 
 void object_load(const char* fileName,
@@ -77,7 +115,7 @@ void object_load(const char* fileName,
 		
 	// read sections
 	Section** sectMapp = xCalloc(nSects);
-	cstr drective = {};
+	char* drective = 0;
 	for(int i = 0; i < nSects; i++)
 	{
 		// reference section members
@@ -112,7 +150,7 @@ void object_load(const char* fileName,
 		// create new section
 		Void pData = data ? objFile + data : Void(0);
 		if(Name && !strcmp(Name, ".drectve")) {
-			drective = {pData, size}; continue; }
+			drective = pData; continue; }
 		DWORD align = sect_align(flags);
 		sectMapp[i] = addSection(fileName, Name, 
 			pData, type, align, size);

@@ -78,6 +78,16 @@ Symbol* findSymbol(const char* Name)
 	return NULL;
 }
 
+Symbol* findSymbol(cstr Name)
+{
+	if(Name != NULL)
+	LINKER_ENUM_SYMBOLS(symb,
+		if((symb->Name != NULL)
+		&&(!Name.cmp(symb->Name)))
+		  return symb; );
+	return NULL;
+}
+
 Symbol* addSymbol(const char* Name, Section* section, Symbol* weakSym, DWORD value)
 {
 	auto* symb = findSymbol(Name);
