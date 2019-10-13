@@ -115,7 +115,7 @@ void object_load(const char* fileName,
 		
 	// read sections
 	Section** sectMapp = xCalloc(nSects);
-	char* drective = 0;
+	cstr drective = {};
 	for(int i = 0; i < nSects; i++)
 	{
 		// reference section members
@@ -150,7 +150,7 @@ void object_load(const char* fileName,
 		// create new section
 		Void pData = data ? objFile + data : Void(0);
 		if(Name && !strcmp(Name, ".drectve")) {
-			drective = pData; continue; }
+			drective = {pData, size}; continue; }
 		DWORD align = sect_align(flags);
 		sectMapp[i] = addSection(fileName, Name, 
 			pData, type, align, size);
@@ -251,7 +251,7 @@ SYMB_RETRY:
 		i += objSym[i].NumberOfAuxSymbols;
 	}
 	
-	if(drective) object_drective(fileName, drective);
+	if(drective) object_drective(fileName, xstr(drective.xdup()));
 
 	// read relocs
 	for(int i = 0; i < nSects; i++)
