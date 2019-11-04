@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "peImport.h"
 #include "peExport.h"
+int g_peBlkMode = 0;
 
 static inline
 void* xarray_insert(void* xa, void* ins, void* end, size_t sz) {
@@ -112,10 +113,19 @@ void FreeSect::add(FreeLst& freeLst)
 
 void FreeSect::finalize() 
 {
+	int iExtendSect = sects.len-3;
+	
 	for(int i = 0; i < sects.len; i++) {
 		u32 end = 0x7FFFFFFF;
-		if(i < (sects.len-3)) end = peFile.
+
+		// don't use existing sections
+		if((i <= iExtendSect)&&(g_peBlkMode & 1))
+			continue;
+			
+		// fixed sized sections
+		if(i < iExtendSect) end = peFile.
 			sectAlign(sects[i].endRva);
+
 		sects[i].mark(sects[i].endRva, end); 
 	}
 }

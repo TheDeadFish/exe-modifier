@@ -15,6 +15,7 @@ const ArchStr archStr64 = { "-lmisc64", "lib_path64",
 const ArchStr* archStr;
 
 bool g_noSymFix;
+extern int g_peBlkMode;
 
 int FileOrMem::open(int extra)
 {
@@ -166,6 +167,8 @@ void Arguments::next(FileOrMem fileRef)
 		ei(arg[1] == 'g') { dbgInfo = true; }
 		ei(!strncmp(arg, "-mwindows")) guiMode = true;
 		ei(!strncmp(arg, "-nosymfix")) g_noSymFix = true;
+		ei(!strncmp(arg, "-noblk")) g_peBlkMode |= 1;
+		
 		else fatal_error("bad option '%s'\n", arg);
 	} else {
 		char* name = getName(arg);
