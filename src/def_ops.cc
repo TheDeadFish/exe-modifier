@@ -417,10 +417,15 @@ cch* def_asmSect(char* name, char* str, u32 start)
 	fprintf(fp, ".equ @B, %#I64X;", PeFILE::baseAddr64());
 	if(start) { fprintf(fp, ".equ @, .-%#I64X;",
 		PeFILE::rvaToAddr64(start));
+#if 0	
 	LINKER_ENUM_SYMBOLS(symb, if(symb->Name
 		&&(symb->section == Linker::Type_Relocate))
 		fprintf(fp,".equ %s, @+%#I64X;", symb->Name, symb->getAddr()); 
-	); }
+	); 
+#endif
+	
+	}
+
 	
 	// pipe out assembly body
 	cParse cp; if(cp.load2_(str, 0)) 
@@ -472,6 +477,7 @@ cch* def_asmPatch(u32 start, u32 end, char* str)
 	return 0;
 }
 
+#if 0
 cch* def_sectCreate(char* Name, int align)
 {
 	if(Linker::findSection(Name)) return "section exists";
@@ -510,6 +516,8 @@ cch* def_sectRevIns(char* Name,
 	IFRET(def_sectInsert(Name, start, mid, 0));
 	return def_sectAppend(Name, mid, end, 0);
 }
+
+#endif
 
 
 cch* prologMove_core(Bstr& buff, u32 rva, int prologSz)

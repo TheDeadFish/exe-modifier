@@ -42,11 +42,14 @@ bool expSymCmp(cch* frwd, cch* symb)
 
 Symbol* findSymbolExp(const char* Name)
 {
+	fatal_error("exports broken for now\n");
+#if 0
 	if(Name != NULL)
 		LINKER_ENUM_SYMBOLS(symb, 
 			if(symb->Name && expSymCmp(Name, 
 				symb->Name)) { return symb; }
 	);
+#endif
 	return NULL;
 }
 

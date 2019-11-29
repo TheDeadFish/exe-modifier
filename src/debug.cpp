@@ -13,6 +13,7 @@ void dump_sections(FILE* fp)
 
 void dump_symbols(FILE* fp)
 {
+#if 0
 	LINKER_ENUM_SYMBOLS(symb,
 		if(!symb->section->isReal()
 		&&(symb->section != Linker::Type_Relocate))
@@ -22,4 +23,5 @@ void dump_symbols(FILE* fp)
 		cch* name = symb->getName();
 		printf("%X: %s\n", rva, name);
 	)
+#endif
 }

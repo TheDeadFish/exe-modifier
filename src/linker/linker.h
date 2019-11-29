@@ -151,8 +151,8 @@ void keepSymbol(char* name) {
 	
 #define LINKER_ENUM_SECTIONS(sect, ...) \
 	RingList_enum(Linker::sectRoot, sect, __VA_ARGS__)
-#define LINKER_ENUM_SYMBOLS(symb, ...) \
-	RingList_enum(Linker::symbRoot, symb, __VA_ARGS__)
+//#define LINKER_ENUM_SYMBOLS(symb, ...) \
+//	RingList_enum(Linker::symbRoot, symb, __VA_ARGS__)
 	
 Section* Reloc::getSect() {
 	return symbol->getSect(); }

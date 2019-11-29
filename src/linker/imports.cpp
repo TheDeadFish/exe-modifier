@@ -74,6 +74,9 @@ void imports_parse(void)
 		if(!expsymb) { PeFILE::Import_Add(dllName, importName);
 			impSects.push_back(dllName, importName, idata5); continue; }
 			
+		fatal_error("exports broken for now\n");
+			
+#if 0
 		// resolve import from self
 		idata5->relocs->symbol = expsymb;
 		idata5->relocs->type = x64Mode() ? Type_DIR64 : Type_DIR32;
@@ -88,6 +91,8 @@ void imports_parse(void)
 				exports_addSymb(symb, importName); }
 			)	destroy_section(*thunk);
 		}
+#endif
+
 	)
 	
 	gc_sections2();

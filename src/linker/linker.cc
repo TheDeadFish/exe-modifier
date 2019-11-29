@@ -246,6 +246,7 @@ bool sectTypeNormal(cch* Name)
 	return false;
 }
 
+#if 0
 cch* sectGrow(Section* sect, 
 	DWORD offset, DWORD length)
 {
@@ -275,6 +276,8 @@ cch* sectGrow(Section* sect,
 	
 	return NULL;
 }
+#endif
+
 
 cch* sectName(Section* sectId)
 {
