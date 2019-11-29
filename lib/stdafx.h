@@ -63,5 +63,14 @@ struct fStr { char data[N];
 		for(int i=0; in[i]; i++) data[i] = in[i]; }
 	operator cch*() const { return data; }
 };
+
+struct NullTermTmp {
+	cstr& str; char ch;
+	NullTermTmp(cstr& s) : str(s) { 
+		ch = release(*str.end()); }
+	~NullTermTmp() { *str.end() = ch; }
+	operator char*() { return str; }
+};
+
 	
 #endif
