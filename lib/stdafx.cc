@@ -25,3 +25,12 @@ SHITCALL cstr tempName(cch* prefix)
 	GetTempFileNameW(buff, pfx, 0, buff);
 	return utf816_dup(buff);
 }
+
+
+// debug timer
+static u64 qpc() { LARGE_INTEGER li; QueryPerformanceCounter(&li); return li.QuadPart; }
+static u64 qpf() { LARGE_INTEGER li; QueryPerformanceFrequency(&li); return li.QuadPart; }
+void DebugTimer::qpc_add(u64* p) { u64 tmp = qpc(); ARGFIX(p); *p += tmp; }
+void DebugTimer::qpc_sub(u64* p) { u64 tmp = qpc(); ARGFIX(p); *p -= tmp; }
+int DebugTimer::getms() { return total*1000 / qpf(); }
+void DebugTimer::print() { printf("%d\n", getms()); }

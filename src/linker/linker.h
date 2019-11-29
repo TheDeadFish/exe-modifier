@@ -91,6 +91,8 @@ static const auto Type_Absolute = (Section*)2;
 
 struct Symbol {
 	Symbol* next;
+	
+	Symbol* next2;
 
 	char* Name;
 	Section* section;

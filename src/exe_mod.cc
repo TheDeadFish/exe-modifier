@@ -187,8 +187,14 @@ void Arguments::next(FileOrMem fileRef)
 	}
 }
 
+extern DebugTimer dbgTimer;
+
 int exe_mod(int argc, char* argv[])
 {
+{
+	auto timer = dbgTimer.time();
+
+
 	// check for exm file
 	if(getName(argv[1]).istr(".exm"))
 		ExmFileWrite(argc, argv);
@@ -262,8 +268,9 @@ int exe_mod(int argc, char* argv[])
 	if(args.bindImage == false) { checkSum_file(argv[2]);
 	} ei(!BindImage(argv[2], NULL, NULL)) {
 		fatal_error("bin_linker: binding failed\n"); return 1; }
-		
+}		
 	//dump_sections(stdout);
+	dbgTimer.print();
 		
 	return 0;
 		

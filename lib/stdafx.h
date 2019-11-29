@@ -72,5 +72,17 @@ struct NullTermTmp {
 	operator char*() { return str; }
 };
 
+
+// debug timer
+struct DebugTimer
+{
+	static _stdcall void qpc_add(u64* p); 
+	static _stdcall void qpc_sub(u64* p);
+	struct Timer { u64& time; Timer(u64& t) : time(t)
+		{ qpc_sub(&time); } ~Timer(){ qpc_add(&time); }};
+	Timer time() { return Timer(total); }
+	int getms(); void print();
+	u64 total;
+};
 	
 #endif

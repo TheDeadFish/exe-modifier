@@ -2,6 +2,8 @@
 #include "../exe_mod.h"
 #include "linker.h"
 #include <conio.h>
+DebugTimer dbgTimer;
+
 namespace Linker {
 #include "library.cpp"
 #include "object.cpp"
@@ -10,6 +12,50 @@ namespace Linker {
 #include "exports.cpp"
 #include "gc-sections.cpp"
 #include "symtab.cpp"
+
+
+
+
+namespace SymbHash
+{
+
+DWORD symb_hash(cch* str) 
+{
+	while(*str == '_') str++;
+	DWORD hash = 5381;
+	while(1) { u8 ch = *str; str++;
+		if(!ch || (ch == '@')) break;
+		hash = (hash << 5) + hash + ch; }
+	return hash;
+}	
+
+
+enum { HASH_SIZE = 2048 };
+Symbol* data[HASH_SIZE];
+
+
+
+void insert(Symbol* symb)
+{
+	if(!symb->Name) return;
+	DWORD hash = symb_hash(symb->Name);
+	Symbol*& slot = data[hash % HASH_SIZE];
+	if(slot) { symb->next2 = slot; }
+	slot = symb; 
+}
+
+
+Symbol* find(cch* name)
+{
+	if(name) {
+	DWORD hash = symb_hash(name);
+	Symbol* symb = data[hash % HASH_SIZE];
+	for(; symb; symb = symb->next2) {
+		if(!strcmp(symb->Name, name))
+			return symb; }
+	}  return NULL;
+}
+}
 
 Reloc* relocs;
 DWORD nRelocs;
@@ -68,14 +114,12 @@ Section* findSection2(const char* name)
 	return symb->section;
 }
 
+
+
+
 Symbol* findSymbol(const char* Name)
 {
-	if(Name != NULL)
-	LINKER_ENUM_SYMBOLS(symb,
-		if((symb->Name != NULL)
-		&&(!strcmp(symb->Name, Name)))
-		  return symb; );
-	return NULL;
+	return SymbHash::find(Name);
 }
 
 Symbol* findSymbol(cstr Name)
@@ -94,6 +138,7 @@ Symbol* addSymbol(const char* Name, Section* section, Symbol* weakSym, DWORD val
 		symb = xCalloc(1);
 		ringList_add(symbRoot, symb);
 		symb->Name = xstrdup(Name);
+		SymbHash::insert(symb);
 		
 	} else {
 	
