@@ -91,8 +91,6 @@ static const auto Type_Absolute = (Section*)2;
 
 struct Symbol {
 	Symbol* next;
-	
-	Symbol* next2;
 
 	char* Name;
 	Section* section;
@@ -121,7 +119,8 @@ Symbol* addSymbol(const char* name, Section* section, Symbol* weakSym, DWORD val
 Symbol* addSymbol2(const char* name, Section* section, Symbol* weakSym, DWORD value);
 Symbol* addImport(const char* Name, const char* dllName, const char* importName);
 char* symbcat(cch* symb, cch* str);
-extern Symbol* symbRoot;
+enum { SYMB_HASH_SIZE = 2048 };
+extern Symbol* symbRoot[SYMB_HASH_SIZE];
 
 // object functions
 void library_load(const char* fileName,
@@ -151,8 +150,9 @@ void keepSymbol(char* name) {
 	
 #define LINKER_ENUM_SECTIONS(sect, ...) \
 	RingList_enum(Linker::sectRoot, sect, __VA_ARGS__)
-//#define LINKER_ENUM_SYMBOLS(symb, ...) \
-//	RingList_enum(Linker::symbRoot, symb, __VA_ARGS__)
+#define LINKER_ENUM_SYMBOLS(symb, ...) \
+	for(Symbol* symb : symbRoot) \
+		for(;symb;symb=symb->next) { __VA_ARGS__ }
 	
 Section* Reloc::getSect() {
 	return symbol->getSect(); }

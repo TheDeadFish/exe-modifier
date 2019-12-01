@@ -1,7 +1,6 @@
 
 void symTab_build(void)
 {
-#if 0
 	LINKER_ENUM_SYMBOLS(symb,
 		Section* sect = symb->section;
 		if((sect != Linker::Type_Relocate)
@@ -12,5 +11,4 @@ void symTab_build(void)
 		if(!rva || !symb->Name) continue;
 		PeFILE::peFile.symtab.add(symb->Name, rva);
 	)
-#endif
 }

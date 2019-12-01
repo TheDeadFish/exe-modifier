@@ -13,12 +13,6 @@ namespace Linker {
 #include "gc-sections.cpp"
 #include "symtab.cpp"
 
-
-
-
-namespace SymbHash
-{
-
 DWORD symb_hash(cch* str) 
 {
 	while(*str == '_') str++;
@@ -29,39 +23,32 @@ DWORD symb_hash(cch* str)
 	return hash;
 }	
 
-
-enum { HASH_SIZE = 2048 };
-Symbol* data[HASH_SIZE];
-
-
-
-void insert(Symbol* symb)
+void symb_insert(Symbol* symb)
 {
 	if(!symb->Name) return;
 	DWORD hash = symb_hash(symb->Name);
-	Symbol*& slot = data[hash % HASH_SIZE];
-	if(slot) { symb->next2 = slot; }
+	Symbol*& slot = symbRoot[hash % SYMB_HASH_SIZE];
+	if(slot) { symb->next = slot; }
 	slot = symb; 
 }
 
-
-Symbol* find(cch* name)
+static
+Symbol* symb_find(cch* name)
 {
 	if(name) {
 	DWORD hash = symb_hash(name);
-	Symbol* symb = data[hash % HASH_SIZE];
-	for(; symb; symb = symb->next2) {
+	Symbol* symb = symbRoot[hash % SYMB_HASH_SIZE];
+	for(; symb; symb = symb->next) {
 		if(!strcmp(symb->Name, name))
 			return symb; }
 	}  return NULL;
-}
 }
 
 Reloc* relocs;
 DWORD nRelocs;
 xarray<char*> keep_list;
 Section* sectRoot;
-Symbol* symbRoot;
+Symbol* symbRoot[SYMB_HASH_SIZE];
 
 const char* nullchk(const char* str, const char* limit)
 {
@@ -119,7 +106,7 @@ Section* findSection2(const char* name)
 
 Symbol* findSymbol(const char* Name)
 {
-	return SymbHash::find(Name);
+	return symb_find(Name);
 }
 
 Symbol* findSymbol(cstr Name)
@@ -136,9 +123,8 @@ Symbol* addSymbol(const char* Name, Section* section, Symbol* weakSym, DWORD val
 	
 		// create new symbol
 		symb = xCalloc(1);
-		ringList_add(symbRoot, symb);
 		symb->Name = xstrdup(Name);
-		SymbHash::insert(symb);
+		symb_insert(symb);
 		
 	} else {
 	
