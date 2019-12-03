@@ -199,6 +199,7 @@ void object_load(const char* fileName,
 				file_corrupt("object1", fileName);
 			sectIndex = sectMapp[section-1];
 			if(sectIndex == NULL) continue;
+			if(isNeg(objSym[i].Value)) continue;
 		}
 		
 		// weak symbol
@@ -213,19 +214,20 @@ void object_load(const char* fileName,
 		}
 		
 		// check section symbol
-		bool sectSymb = false;
-		if(sclass == 3) {
+		DWORD symbFlags = 0;
+		if(sclass == 3) {	symbFlags = SYMBFLAG_STATIC;
 			if(!objSym[i].Value	&& sectIndex->isReal()
-			&& sectIndex->nameIs(symName)) { sectSymb = true; 
-				if(sectTypeNormal(symName)) goto L1;
-			} else { L1: symName = NULL; }
+			&& sectIndex->nameIs(symName)) {
+				symbFlags = SYMBFLAG_SECTION;
+				if(sectTypeNormal(symName))
+					symbFlags |= SYMBFLAG_STATIC;
+			}
 		}
 
-SYMB_RETRY:
+		// create the symbol
 		symMapp[i] = addSymbol(
-			symName, sectIndex, weakSymb, objSym[i].Value);
-		if(symMapp[i] == NULL) { 
-			if(sectSymb) { symName = 0; goto SYMB_RETRY; }
+			symName, sectIndex, weakSymb, objSym[i].Value, symbFlags);
+		if(symMapp[i] == NULL) {
 			Section* prevSect = findSymbol(symName)->section;
 			fatal_error("object:duplicate symbol, %s\n"
 				"defined in: %s;%s\nprevious in: %s;%s\n", 
@@ -235,7 +237,8 @@ SYMB_RETRY:
 		}
 		
 		// initialize merged section
-		if(sectSymb) { sectIndex->symbol = symMapp[i];
+		if(symbFlags & SYMBFLAG_SECTION) {
+			sectIndex->symbol = symMapp[i];
 			if(!sectTypeFromName(sectIndex->name))
 				mergeSect_init(sectIndex); 	}
 				

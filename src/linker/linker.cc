@@ -116,23 +116,45 @@ Symbol* findSymbol(cstr Name)
 	return findSymbol(tmp);
 }
 
-Symbol* addSymbol(const char* Name, Section* section, Symbol* weakSym, DWORD value)
+static
+void sectLst_insert(Symbol*& ref,Symbol* symb) {
+	symb->sectLst = ref; ref = symb; }
+
+Symbol* addSymbol(const char* Name, 
+	Section* section, Symbol* weakSym,
+	DWORD value, DWORD flags)
 {
-	auto* symb = findSymbol(Name);
+	// lookup existing symbol
+	if(!Name) { RETRY_SYMBOL:
+		flags |= SYMBFLAG_STATIC; }
+	Symbol* symb = (flags & SYMBFLAG_STATIC)
+		? NULL : findSymbol(Name);
+
 	if(!symb) {
 	
 		// create new symbol
 		symb = xCalloc(1);
 		symb->Name = xstrdup(Name);
-		symb_insert(symb);
+		if(!(flags & SYMBFLAG_STATIC))
+			symb_insert(symb);
 		
 	} else {
 	
 		// update existing symbol
 		if( section == Type_Undefined ) 
 			return symb;
-		if( symb->section != Type_Undefined ) 
+		if( symb->section != Type_Undefined ) {
+			if(flags & SYMBFLAG_SECTION)
+				goto RETRY_SYMBOL;
 			return NULL;
+		}
+	}
+	
+	// insert into section
+	if(section->isReal()) {
+		if(section->symbol && (!(flags & SYMBFLAG_SECTION)))
+			sectLst_insert(section->symbol->sectLst, symb);
+		else sectLst_insert(section->symbol, symb);
 	}
 
 	symb->section = section;

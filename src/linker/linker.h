@@ -91,6 +91,7 @@ static const auto Type_Absolute = (Section*)2;
 
 struct Symbol {
 	Symbol* next;
+	Symbol* sectLst;
 
 	char* Name;
 	Section* section;
@@ -113,9 +114,15 @@ struct Symbol {
 		
 };
 
+
+enum {
+	SYMBFLAG_STATIC = 1,
+	SYMBFLAG_SECTION = 2
+};
+
 Symbol* findSymbol(cstr Name);
 Symbol* findSymbol(const char* name); int symbolRva(Symbol* symbol);
-Symbol* addSymbol(const char* name, Section* section, Symbol* weakSym, DWORD value);
+Symbol* addSymbol(const char* name, Section* section, Symbol* weakSym, DWORD value, DWORD flags = 0);
 Symbol* addSymbol2(const char* name, Section* section, Symbol* weakSym, DWORD value);
 Symbol* addImport(const char* Name, const char* dllName, const char* importName);
 char* symbcat(cch* symb, cch* str);

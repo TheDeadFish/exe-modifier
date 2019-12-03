@@ -154,6 +154,7 @@ void PeFile::symTab_build(PeSymTab::Build_t& bd)
 
 		// lookup the section
 		Section* sect = rvaToSect(ss.rva,0);
+		assert(sect != NULL);
 		sd.Section = iSect(sect)+1;
 		sd.Value = ss.rva-sect->baseRva;
 	}
