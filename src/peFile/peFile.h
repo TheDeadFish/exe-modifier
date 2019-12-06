@@ -1,5 +1,6 @@
 #ifndef _PEFILE_H_
 #define _PEFILE_H_
+#include "peHead.h"
 
 namespace PeSecTyp { enum {	Exec = 1, Write = 2, 
 	Intd = 4, NoDisc = 8, NoPage = 16, Weird = -1,
@@ -75,7 +76,7 @@ struct PeSymTab
 };
 
 
-struct PeFile
+struct PeFile : PeOptHead
 {
 	// IMAGE_FILE_HEADER
 	struct { WORD Machine, junk1;
@@ -83,30 +84,6 @@ struct PeFile
 	DWORD PointerToSymbolTable;
 	DWORD NumberOfSymbols;
 	WORD junk2, Characteristics; };
-	
-	// IMAGE_OPTIONAL_HEADER
-	struct { bool PE64, junk3;
-	BYTE MajorLinkerVersion;
-	BYTE MinorLinkerVersion;
-	DWORD AddressOfEntryPoint;
-	ULONGLONG ImageBase;
-	DWORD SectionAlignment;
-	DWORD FileAlignment;
-	WORD MajorOperatingSystemVersion;
-	WORD MinorOperatingSystemVersion;
-	WORD MajorImageVersion;
-	WORD MinorImageVersion;
-	WORD MajorSubsystemVersion;
-	WORD MinorSubsystemVersion;
-	DWORD Win32VersionValue;
-	DWORD CheckSum;
-	WORD Subsystem;
-	WORD DllCharacteristics;
-	ULONGLONG SizeOfStackReserve;
-	ULONGLONG SizeOfStackCommit;
-	ULONGLONG SizeOfHeapReserve;
-	ULONGLONG SizeOfHeapCommit;
-	DWORD LoaderFlags; };
 	
 	struct DataDir {DWORD rva, size; };
 	DataDir dataDir[IMAGE_NUMBEROF_DIRECTORY_ENTRIES];
