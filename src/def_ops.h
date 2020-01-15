@@ -58,7 +58,7 @@ SHITCALL cch* def_makeJump2(u32 rva, u32 end, char* name);
 
 SHITCALL cch* def_funcKill(u32 start, u32 end, u64* val);
 
-SHITCALL cch* def_makeRet(DWORD& rva, u32 sz, u64* val);
+SHITCALL cch* def_makeRet(u32& rva, u32 sz, u64* val);
 SHITCALL cch* def_trapRet(u32 rva, u32 end, u32 sz, u64* val);
 
 

@@ -657,7 +657,7 @@ cch* def_codeHook(u32 rva, int prologSz, char* str)
 	return def_makeJump(rva, sectName, false);
 }
 
-cch* def_makeRet(DWORD& rva, u32 sz, u64* val)
+cch* def_makeRet(u32& rva, u32 sz, u64* val)
 {
 	// clear patch address
 	int len = val ? 6 : 1; if(sz) len += 2;
@@ -675,7 +675,7 @@ cch* def_makeRet(DWORD& rva, u32 sz, u64* val)
 SHITCALL cch* def_trapRet(u32 rva, u32 end, u32 sz, u64* val)
 {
 	IFRET(def_memTrap(rva, end));
-	return def_makeRet(*(DWORD*)&rva, sz, val);
+	return def_makeRet(rva, sz, val);
 }
 
 cch* def_funcKill(u32 start, u32 end, u64* val)
