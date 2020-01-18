@@ -2,7 +2,11 @@
 
 struct PeOptHead
 {
-	bool PE64, optHeadPad1;
+	IMAGE_FILE_HEADER ifh;
+	
+	int padding1;
+	
+	WORD Magic;
 	BYTE MajorLinkerVersion;
 	BYTE MinorLinkerVersion;
 	DWORD AddressOfEntryPoint;
@@ -24,4 +28,17 @@ struct PeOptHead
 	ULONGLONG SizeOfHeapReserve;
 	ULONGLONG SizeOfHeapCommit;
 	DWORD LoaderFlags;
+	
+	struct DataDir {DWORD rva, size; };
+	DataDir dataDir[IMAGE_NUMBEROF_DIRECTORY_ENTRIES];
+	
+	
+	//u32 ioh_calcSize(void);
+	
+	
+	
+	//void ioh_save(
+	
+	bool PE64() { return u8(Magic>>8) == 2; }
+	u32 ptrSize() { return PE64() ? 8 : 4; }
 };

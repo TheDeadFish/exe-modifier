@@ -175,8 +175,8 @@ const char ioh_cpySkipTab[] = {2, -12, 4, -8, 65, 24, -8, 8, 68, 4, 0};
 	{ cch* cptPos = ioh_cpySkipTab; REGFIX(a,cptPos); \
 	while(int ch = RDI(cptPos)) { if(ch < 0) { sa -= ch; } \
 	ei(!rBRST(ch, 6)) { MOVSNX_(dstPos, srcPos, ch, 1); } else { \
-	if(ch == 1) { if(PE64) sa -= 4; } \
-	do { MOVSN_(dstPos, srcPos, 4); if(PE64) { MOVSN_(dstPos, \
+	if(ch == 1) { if(PE64()) sa -= 4; } \
+	do { MOVSN_(dstPos, srcPos, 4); if(PE64()) { MOVSN_(dstPos, \
 	srcPos, 4);}else{da += 4; nothing();}}while(--ch > 0);}}} \
 	
 static void pe_checkSum(u16& checkSum,
@@ -194,7 +194,7 @@ int PeFile::save(cch* fileName)
 	DataDir ddTmp = {0,0};
 	if(relocSect != NULL) { sectResize(
 		relocSect, relocs.build_size());
-		relocs.build(relocSect->data, PE64);
+		relocs.build(relocSect->data, PE64());
 		ddTmp = relocSect->dataDir();
 	} dataDir[IDE_BASERELOC] = ddTmp;
 	
@@ -212,7 +212,7 @@ int PeFile::save(cch* fileName)
 		pdata.Rebase(pdataSect->baseRva); }
 
 	// allocate header buffer
-	u32 inhSize = PE64 ? sizeof(IMAGE_NT_HEADERS64)
+	u32 inhSize = PE64() ? sizeof(IMAGE_NT_HEADERS64)
 		: sizeof(IMAGE_NT_HEADERS32);
 	u32 headrSize = fileAlign(dosHeadr.len+ inhSize + 
 		sizeof(IMAGE_SECTION_HEADER)*sects.len + boundImp.len);
@@ -225,11 +225,11 @@ int PeFile::save(cch* fileName)
 
 	// unpack headers
 	inh->Signature = 'EP'; memcpy(&inh->FileHeader,
-		&Machine, sizeof(IMAGE_FILE_HEADER));
+		&ifh, sizeof(IMAGE_FILE_HEADER));
 	inh->FileHeader.NumberOfSections = sects.len;
-	inh->FileHeader.SizeOfOptionalHeader = PE64 ? sizeof(
+	inh->FileHeader.SizeOfOptionalHeader = PE64() ? sizeof(
 	IMAGE_OPTIONAL_HEADER64) : sizeof(IMAGE_OPTIONAL_HEADER32);
-	inh->OptionalHeader.Magic = PE64 ? 0x20b : 0x10b;
+	inh->OptionalHeader.Magic = PE64() ? 0x20b : 0x10b;
 	IOH_PACKUNPACK(&MajorLinkerVersion, &inh->OptionalHeader.
 		MajorLinkerVersion, dstPos, srcPos);
 	WRI(PI(dstPos), 0x10); dstPos = memcpyX(
@@ -259,7 +259,7 @@ int PeFile::save(cch* fileName)
 			inh->OptionalHeader.SizeOfInitializedData += vSzFA;
 		ei(ish->Characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA)
 			inh->OptionalHeader.SizeOfUninitializedData += vSzFA;
-		else { goto L1; } if(!PE64 && !inh->OptionalHeader.BaseOfData)
+		else { goto L1; } if(!PE64() && !inh->OptionalHeader.BaseOfData)
 			inh->OptionalHeader.BaseOfData = ish->VirtualAddress; L1:; } 
 		inh->OptionalHeader.SizeOfImage += sect.allocSize; INCP(ish);
 	}
@@ -342,13 +342,13 @@ cch* PeFile::load(cch* fileName)
 	if((peHeadr->Signature != 'EP')||(peHeadr->FileHeader.
 	SizeOfOptionalHeader > sizeof(IMAGE_OPTIONAL_HEADER64)))
 		ERR(Corrupt_BadHeader);
-	if(peHeadr->FileHeader.PointerToSymbolTable)
-		ERR(Unsupported_SymbolTable);
-	memcpy(&Machine, &peHeadr->FileHeader, sizeof(IMAGE_FILE_HEADER));
+	//if(peHeadr->FileHeader.PointerToSymbolTable)
+	//	ERR(Unsupported_SymbolTable);
+	memcpy(&ifh, &peHeadr->FileHeader, sizeof(IMAGE_FILE_HEADER));
 	
 	// read IMAGE_OPTIONAL_HEADER
-	if(peHeadr->OptionalHeader.Magic == 0x20b) PE64 = TRUE;
-	ei(peHeadr->OptionalHeader.Magic != 0x10b) ERR(Corrupt_BadHeader);
+	Magic = peHeadr->OptionalHeader.Magic;
+	if(!is_one_of(Magic, 0x10b, 0x20b)) ERR(Corrupt_BadHeader);
 	IOH_PACKUNPACK(&peHeadr->OptionalHeader.MajorLinkerVersion, 
 		&MajorLinkerVersion, srcPos, dstPos);
 	
@@ -406,7 +406,7 @@ cch* PeFile::load(cch* fileName)
 	this->getSections_(); 
 	if(relocSect) {
 		auto data = dataDirSectChk(relocSect, dataDir+IDE_BASERELOC, "reloc");
-		if(!data || !relocs.Load(data, data.len, PE64)) ERR(Corrupt_Relocs);
+		if(!data || !relocs.Load(data, data.len, PE64())) ERR(Corrupt_Relocs);
 		sectResize(relocSect, 0);
 	}
 	

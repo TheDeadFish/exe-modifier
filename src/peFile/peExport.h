@@ -14,7 +14,7 @@ struct PeExport
 		const ExportSlot& a, const ExportSlot& b); };
 	xArray<ExportSlot> exports; FreeLst freeLst;
 	PeFile& peFile() { return *freeLst.peFile; }
-	u32 ptrSize() { return peFile().PE64 ? 8 : 4; }
+	u32 ptrSize() { return peFile().ptrSize(); }
 	
 	PeExport() { ZINIT; }
 	

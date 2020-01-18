@@ -217,7 +217,7 @@ int exe_mod(int argc, char* argv[])
 	if(result != NULL) {
 		printf("bin_linker: failed to load pe file: %s\n", result);
 		return 1; }
-	archStr = PeFILE::peFile.PE64 ? &archStr64 : &archStr32;
+	archStr = x64Mode() ? &archStr64 : &archStr32;
 		
 	// parse command line
 	Arguments args; readConfig(args);

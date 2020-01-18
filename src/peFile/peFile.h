@@ -78,15 +78,10 @@ struct PeSymTab
 
 struct PeFile : PeOptHead
 {
-	// IMAGE_FILE_HEADER
-	struct { WORD Machine, junk1;
-	DWORD TimeDateStamp;
-	DWORD PointerToSymbolTable;
-	DWORD NumberOfSymbols;
-	WORD junk2, Characteristics; };
 	
-	struct DataDir {DWORD rva, size; };
-	DataDir dataDir[IMAGE_NUMBEROF_DIRECTORY_ENTRIES];
+	
+	
+
 	
 	
 	struct Section : xArray<byte> {

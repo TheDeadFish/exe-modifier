@@ -32,7 +32,7 @@ int PeImport::load(PeFile& peFile)
 		bool hasOft = impDesc->OriginalFirstThunk;
 		DWORD nameRva = !hasOft ? impDesc->FirstThunk :
 			impDesc->OriginalFirstThunk;
-		int ptrSize = peFile.PE64 ? 8 : 4;
+		int ptrSize = this->ptrSize();
 		
 		// read name table
 		while(1) {
@@ -129,9 +129,9 @@ void PeImport::build(PeBlock* blocks)
 		else { highVal = 0x80000000; lowVal = slot->hint; }
 		
 		// update thunks
-		if(!peFile().PE64) { lowVal |= highVal; } 
+		if(!peFile().PE64()) { lowVal |= highVal; } 
 		WRI(thnkPos1, lowVal); WRI(thnkPos2, lowVal);
-		if(peFile().PE64) { WRI(thnkPos1, highVal);
+		if(peFile().PE64()) { WRI(thnkPos1, highVal);
 			WRI(thnkPos2, highVal); }
 	}}
 }

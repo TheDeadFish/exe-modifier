@@ -42,7 +42,7 @@ void Reloc::fixup(Section* sect)
 		
 		// create the Pe relocation
 		if(symb.section != Type_Absolute) {
-			if(PeFILE::peFile.PE64^(this->type == Type_DIR64))
+			if(x64Mode()^(this->type == Type_DIR64))
 			fatal_error("reloc: pointer size missmatch: %s",
 			symb.getName()); PeFILE::Relocs_Add( relocRva );
 		}

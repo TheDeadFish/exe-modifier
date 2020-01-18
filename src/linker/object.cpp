@@ -271,7 +271,7 @@ void object_load(const char* fileName,
 			WORD type;
 			
 			// i386 relocation types
-			if(!PeFILE::peFile.PE64) {
+			if(!x64Mode()) {
 			switch(reloc.type) {
 			case 0x06: type = Type_DIR32; break;
 			case 0x07: type = Type_DIR32NB; break;

@@ -58,7 +58,7 @@ cch* dllMainStartup; cch* dllHookStartup;
 cch* sectionStart; cch* sectionStop;
 }; extern const ArchStr* archStr;
 
-static bool x64Mode() { return PeFILE::peFile.PE64; }
+static bool x64Mode() { return PeFILE::peFile.PE64(); }
 static int ptrSize() { return x64Mode() ? 64 : 32; }
 
 // debugging

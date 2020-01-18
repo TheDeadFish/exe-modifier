@@ -17,7 +17,7 @@ struct PeImport
 	
 	xArray<ImportDir> imports; FreeLst freeLst;
 	PeFile& peFile() { return *freeLst.peFile; }
-	u32 ptrSize() { return peFile().PE64 ? 8 : 4; }
+	u32 ptrSize() { return peFile().ptrSize(); }
 	
 	int load(PeFile& peFile);
 	bool mustRebuild(void);
