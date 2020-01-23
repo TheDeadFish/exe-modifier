@@ -5,8 +5,8 @@
 int PeExport::load(PeFile& peFile)
 {
 	freeLst.peFile = &peFile;
-	uint expRva = peFile.dataDir[peFile.IDE_EXPORT].rva;
-	uint expSize = peFile.dataDir[peFile.IDE_EXPORT].size;
+	uint expRva = peFile.dataDir(peFile.IDE_EXPORT).rva;
+	uint expSize = peFile.dataDir(peFile.IDE_EXPORT).size;
 	if(!expRva) return 0; 
 
 	// read export directory
@@ -111,7 +111,7 @@ void PeExport::build(PeBlock* blocks)
 {
 	// write export directory
 	if(blocks == NULL) return;
-	peFile().dataDir[PeFile::IDE_EXPORT] = 
+	peFile().dataDir(PeFile::IDE_EXPORT) = 
 		{blocks[0].baseRva, blocks[0].length};
 	PIMAGE_EXPORT_DIRECTORY expBase = Void(blocks[0].data);
 	expBase->Base = OrdinalBase;

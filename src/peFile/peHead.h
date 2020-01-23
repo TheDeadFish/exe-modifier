@@ -30,7 +30,7 @@ struct PeOptHead
 	DWORD LoaderFlags;
 	
 	struct DataDir {DWORD rva, size; };
-	DataDir dataDir[IMAGE_NUMBEROF_DIRECTORY_ENTRIES];
+	DataDir dataDir_[IMAGE_NUMBEROF_DIRECTORY_ENTRIES];
 	
 	
 	//u32 ioh_calcSize(void);

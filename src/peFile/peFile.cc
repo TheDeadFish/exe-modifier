@@ -196,7 +196,7 @@ int PeFile::save(cch* fileName)
 		relocSect, relocs.build_size());
 		relocs.build(relocSect->data, PE64());
 		ddTmp = relocSect->dataDir();
-	} dataDir[IDE_BASERELOC] = ddTmp;
+	} dataDir(IDE_BASERELOC) = ddTmp;
 	
 	// rebase resources
 	SCOPE_EXIT(if(rsrcSect) rebaseRsrc(rsrcSect->data, 
@@ -205,7 +205,7 @@ int PeFile::save(cch* fileName)
 	if(rsrcSect != NULL) { rebaseRsrc(rsrcSect->data, 
 		rsrcSect->len, rsrcSect->baseRva, 0); 
 		ddTmp = rsrcSect->dataDir();
-	} dataDir[IDE_RESOURCE] = ddTmp;
+	} dataDir(IDE_RESOURCE) = ddTmp;
 	
 	// rebase exceptions
 	if(pdataSect != NULL) { 
@@ -233,7 +233,7 @@ int PeFile::save(cch* fileName)
 	IOH_PACKUNPACK(&MajorLinkerVersion, &inh->OptionalHeader.
 		MajorLinkerVersion, dstPos, srcPos);
 	WRI(PI(dstPos), 0x10); dstPos = memcpyX(
-		dstPos, dataDir, sizeof(dataDir));
+		dstPos, dataDir(), sizeof(dataDir()));
 
 	// build section headers
 	IMAGE_SECTION_HEADER *ish0, *ish = Void(dstPos);
@@ -357,7 +357,7 @@ cch* PeFile::load(cch* fileName)
 	IMAGE_DATA_DIRECTORY* idd = Void(srcPos);
 	if((NumberOfRvaAndSizes > IMAGE_NUMBEROF_DIRECTORY_ENTRIES)
 	||(&idd[NumberOfRvaAndSizes] > headEnd)) ERR(Corrupt_BadHeader); 
-	memcpyX(&dataDir[0], idd, NumberOfRvaAndSizes);
+	memcpyX(&dataDir()[0], idd, NumberOfRvaAndSizes);
 	
 	// check IMAGE_SECTION_HEADER
 	IMAGE_SECTION_HEADER* ish = Void(&peHeadr->OptionalHeader, 
@@ -366,9 +366,9 @@ cch* PeFile::load(cch* fileName)
 	if(ish+NumberOfSections > headEnd) ERR(Corrupt_BadHeader);
 	
 	// read bound import
-	if(dataDir[IDE_BOUNDIMP].rva) {
-		byte* data = header+dataDir[IDE_BOUNDIMP].rva;
-		boundImp.xcopy(data, dataDir[IDE_BOUNDIMP].size); }
+	if(dataDir(IDE_BOUNDIMP).rva) {
+		byte* data = header+dataDir(IDE_BOUNDIMP).rva;
+		boundImp.xcopy(data, dataDir(IDE_BOUNDIMP).size); }
 	
 	// load sections
 	sects.xcalloc(NumberOfSections);
@@ -405,14 +405,14 @@ cch* PeFile::load(cch* fileName)
 	// load relocations
 	this->getSections_(); 
 	if(relocSect) {
-		auto data = dataDirSectChk(relocSect, dataDir+IDE_BASERELOC, "reloc");
+		auto data = dataDirSectChk(relocSect, &dataDir(IDE_BASERELOC), "reloc");
 		if(!data || !relocs.Load(data, data.len, PE64())) ERR(Corrupt_Relocs);
 		sectResize(relocSect, 0);
 	}
 	
 	// load exceptions
 	if(pdataSect) {
-		auto data = dataDirSectChk(pdataSect, dataDir+IDE_EXCEPTION, "pdata");
+		auto data = dataDirSectChk(pdataSect, &dataDir(IDE_EXCEPTION), "pdata");
 		if(!data || !pdata.Load(data, data.len, pdataSect->baseRva)) 
 			ERR(Corrupt_Pdata);
 	}
@@ -453,7 +453,7 @@ void PeFile::sectResize(Section* sect, u32 size)
 	if(sect == NULL) return;
 	int delta = sect->resize(this, size);
 	if(++sect >= sects.end()) return;
-	for(auto& dir : dataDir) if(dir.rva >=
+	for(auto& dir : dataDir()) if(dir.rva >=
 		sect->baseRva) dir.rva += delta; 
 	for(; sect < sects.end(); sect++)
 		sect->baseRva += delta;

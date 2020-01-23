@@ -79,10 +79,8 @@ struct PeSymTab
 struct PeFile : PeOptHead
 {
 	
-	
-	
-
-	
+	auto& dataDir(size_t i) { return dataDir_[i]; }
+	auto& dataDir() { return dataDir_; }
 	
 	struct Section : xArray<byte> {
 		DWORD allocSize, baseRva;

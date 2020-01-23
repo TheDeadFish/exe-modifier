@@ -11,7 +11,7 @@ PeImport::ImportSlot::ImportSlot(cch* name, USHORT hint)
 int PeImport::load(PeFile& peFile)
 {
 	freeLst.peFile = &peFile;
-	u32 impRva = peFile.dataDir[peFile.IDE_IMPORT].rva;
+	u32 impRva = peFile.dataDir(peFile.IDE_IMPORT).rva;
 	if(!impRva) return 0; 
 	while(1) {
 		// mark directory entry
@@ -101,8 +101,8 @@ void PeImport::build(PeBlock* blocks)
 		dir.FirstThunk = blocks->baseRva; blocks++; }
 
 	// import descriptor
-	peFile().dataDir[peFile().IDE_IMPORT].rva = blocks->baseRva;
-	peFile().dataDir[peFile().IDE_IMPORT].size = blocks->length;
+	peFile().dataDir(peFile().IDE_IMPORT).rva = blocks->baseRva;
+	peFile().dataDir(peFile().IDE_IMPORT).size = blocks->length;
 	IMAGE_IMPORT_DESCRIPTOR* impDesc = Void(blocks->data);
 	memset(impDesc, 0, blocks->length); blocks++;
 	for(int i = 0; i < imports.len; i++, blocks++) {
