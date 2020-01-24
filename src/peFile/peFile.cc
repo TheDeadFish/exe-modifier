@@ -250,18 +250,8 @@ int PeFile::save(cch* fileName)
 		filePos += (ish->SizeOfRawData = sect.extent(*this)); }
 		
 		// update IMAGE_OPTIONAL_HEADER
-		u32 vSzFA = fileAlign(ish->Misc.VirtualSize);
-		if(ish->Characteristics & IMAGE_SCN_CNT_CODE) {
-			inh->OptionalHeader.SizeOfCode += vSzFA;
-			if(!inh->OptionalHeader.BaseOfCode) inh->OptionalHeader
-			.BaseOfCode = ish->VirtualAddress; } else {
-		if(ish->Characteristics & IMAGE_SCN_CNT_INITIALIZED_DATA)
-			inh->OptionalHeader.SizeOfInitializedData += vSzFA;
-		ei(ish->Characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA)
-			inh->OptionalHeader.SizeOfUninitializedData += vSzFA;
-		else { goto L1; } if(!PE64() && !inh->OptionalHeader.BaseOfData)
-			inh->OptionalHeader.BaseOfData = ish->VirtualAddress; L1:; } 
-		inh->OptionalHeader.SizeOfImage += sect.allocSize; INCP(ish);
+		((PeOptHead_*)&inh->OptionalHeader)->update(ish);
+		INCP(ish);
 	}
 	
 	// write bound import

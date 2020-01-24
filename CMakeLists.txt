@@ -8,7 +8,7 @@ set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY ../bin)
 
 add_library(peFile src/peFile/peBlock.cc 
 	src/peFile/peExport.cc src/peFile/peFile.cc
-	src/peFile/peImport.cc)
+	src/peFile/peImport.cc src/peFile/peHead.cc)
 
 ADD_EXECUTABLE ( exe_mod
 	src/def_ops.cc src/exe_mod.cc src/modfile.cc
