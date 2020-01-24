@@ -1,5 +1,6 @@
-cmake_minimum_required(VERSION 3.12)
-include(lib/cotire.cmake)
+project(exe_modifier)
+cmake_minimum_required(VERSION 3.16)
+
 
 set( EXECUTABLE_OUTPUT_PATH ../bin)
 set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY ../bin)
@@ -21,6 +22,5 @@ include_directories(exe_mod PRIVATE lib)
 target_link_libraries( exe_mod peFile -limagehlp -lexshit -lstdshit)
 
 # precompiled header support
-set_target_properties(exe_mod PROPERTIES 
-	COTIRE_CXX_PREFIX_HEADER_INIT "lib/stdafx.h")
-cotire(exe_mod)
+target_precompile_headers(peFile PUBLIC "lib/stdafx.h")
+target_precompile_headers(exe_mod REUSE_FROM peFile)
