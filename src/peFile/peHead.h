@@ -117,9 +117,29 @@ struct PeOptHead
 };
 
 
-int peMzChk(void* data, u32 size);
-int peHeadChk(IMAGE_NT_HEADERS64* inh, u32 e_lfanew, u32 size);
+SHITCALL int peMzChk(void* data, u32 size);
+SHITCALL int peHeadChk(IMAGE_NT_HEADERS64* inh, u32 e_lfanew, u32 size);
+SHITCALL int peHeadChk2(IMAGE_NT_HEADERS64* inh, u32 e_lfanew);
+SHITCALL int peHeadChkRva(IMAGE_NT_HEADERS64* inh, u32 rva, u32 len);
+
+
+
+/*
+
+
+xarray<IMAGE_SECTION_HEADER> peHeadSect(IMAGE_NT_HEADERS64* inh) {
+	inh->
+	
+
+
+	return 
 
 
 
 
+}
+
+
+
+xarray<IMAGE_NT_HEADERS64* inh>
+*/

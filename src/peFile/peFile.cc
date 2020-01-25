@@ -1,6 +1,38 @@
 #include "stdafx.h"
 #include "peFile.h"
 
+xarray<byte> file_getx(FILE* fp, int max)
+{
+	if(fp->_cnt < max) {
+		fp->_base = memcpyX(fp->_base, fp->_ptr, fp->_cnt);
+		int cnt = fp->_cnt; fp->_bufsiz -= cnt;
+		_filbuf(fp); fp->_base -= cnt; fp->_bufsiz += cnt;
+		fp->_ptr -= cnt+1; fp->_cnt += cnt+1;
+		if(ferror(fp)) errorDiskFail();
+	} 
+	
+	return {(byte*)fp->_ptr, fp->_cnt};
+}
+
+xarray<byte> file_mread(FILE* fp, u32 size)
+{
+	byte* data = malloc(size);
+	if(!data) { if(fsize(fp) < size)
+		return {0,0}; errorAlloc(); }
+	xfread(data, size, fp);
+	return {data, size};
+}
+
+bool file_xread(FILE* fp, void* data, u32 size)
+{
+	printf("%X\n", size);
+
+	if(fread(data, size, 1, fp))
+		return true;
+	if(ferror(fp)) errorDiskFail();
+	return false;
+}
+
 SHITSTATIC
 bool rebaseRsrc(byte* data, u32 size,
 	int delta, u32 irdIdx)
@@ -298,37 +330,37 @@ cch* PeFile::load(cch* fileName)
 	// load pe header
 	FILE* fp = xfopen(fileName, "rb");
 	if(fp == NULL) ERR(Error_FailedToOpen);
-	int fileSize = min(fsize(fp), 0x1000);
-	if(fileSize < sizeof(IMAGE_DOS_HEADER))
-		ERR(Corrupt_BadHeader);
-	Void header = xmalloc(fileSize);
-	SCOPE_EXIT(free(header));
-	xfread(header, 1, fileSize, fp);
-	Void headEnd = header+fileSize;
 	
 	// read the ms-dos header
-	int dosSize = peMzChk(header, fileSize);
+	auto data = file_getx(fp, sizeof(IMAGE_DOS_HEADER));
+	int dosSize = peMzChk(data.data, data.len);
 	if(dosSize <= 0) ERR(Corrupt_BadHeader);
-	dosHeadr.xcopy(header, dosSize);
-	
-	// read IMAGE_FILE_HEADER
-	IMAGE_NT_HEADERS64* peHeadr = header+dosSize;
-	int headSize = peHeadChk(peHeadr, dosSize, fileSize-dosSize);
+	dosHeadr.init(file_mread(fp, dosSize));
+	if(!dosHeadr) ERR(Corrupt_BadHeader);
+
+	// check the pe header
+	data = file_getx(fp, sizeof(IMAGE_NT_HEADERS64));
+	IMAGE_NT_HEADERS64* peHeadr = Void(data.data);
+	int headSize = peHeadChk(peHeadr, dosSize, data.len);
 	if(headSize <= 0) ERR(Corrupt_BadHeader);
+	
+	// read complete header
+	peHeadr = Void(file_mread(fp, headSize).data);
+	if(!peHeadr) ERR(Corrupt_BadHeader);
+	SCOPE_EXIT(free(peHeadr));
+	if(peHeadChk2(peHeadr, dosSize))
+		ERR(Corrupt_BadHeader);
+
+	// unpack the header
 	memcpy(&ifh, &peHeadr->FileHeader, sizeof(IMAGE_FILE_HEADER));
-	
-	// check IMAGE_SECTION_HEADER
-	IMAGE_SECTION_HEADER* ish = Void(ioh_unpack(&peHeadr->OptionalHeader));
-	int NumberOfSections = peHeadr->FileHeader.NumberOfSections;
-	if(ish+NumberOfSections > headEnd) ERR(Corrupt_BadHeader);
-	
-	// read bound import
+	IMAGE_SECTION_HEADER* ish = Void(
+		ioh_unpack(&peHeadr->OptionalHeader));
 	if(dataDir(IDE_BOUNDIMP).rva) {
-		byte* data = header+dataDir(IDE_BOUNDIMP).rva;
-		boundImp.xcopy(data, dataDir(IDE_BOUNDIMP).size); }
-	
+		boundImp.xcopy(Void(peHeadr, dataDir(IDE_BOUNDIMP)
+			.rva-dosSize), dataDir(IDE_BOUNDIMP).size); }
+			
 	// load sections
-	sects.xcalloc(NumberOfSections);
+	sects.xcalloc(ifh.NumberOfSections);
 	int virtualPos = SectionAlignment;
 	for(auto& sect : sects) 
 	{
@@ -336,22 +368,14 @@ cch* PeFile::load(cch* fileName)
 		if(ish->PointerToRelocations || ish->PointerToLinenumbers
 		|| ish->NumberOfRelocations ||ish->NumberOfLinenumbers )
 			ERR(Unsupported_SectDbgInfo);
-		if(virtualPos != ish->VirtualAddress) ERR(Corrupt_Sect1);
-		sect.baseRva = virtualPos; virtualPos += 
-			sect.resize(this, ish->Misc.VirtualSize);
-		
+			
 		// read section data
 		strncpy(sect.name, (char*)ish->Name, 8);
-		sect.Characteristics = ish->Characteristics;
-		if(ish->PointerToRawData && ish->SizeOfRawData) {
-		if(ish->SizeOfRawData > sect.allocSize)
-			ERR(Corrupt_Sect2);
-		fseek(fp, ish->PointerToRawData, SEEK_SET);
-		if(!fread(sect.data, ish->SizeOfRawData, 1, fp)) {
-			if(ferror(fp)) errorDiskFail();
-			else ERR(Corrupt_Sect3); }
-		}
-		
+		sect.Characteristics = ish->Characteristics;			
+		sect.baseRva = ish->VirtualAddress;
+		sect.resize(this, ish->Misc.VirtualSize);
+		if(!file_xread(fp, sect.data, ish->SizeOfRawData))
+			ERR(Corrupt_Sect3);
 		ish++;
 	}
 	

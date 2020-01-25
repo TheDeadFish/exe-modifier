@@ -1,6 +1,9 @@
 #include "stdafx.h"
 #include "peHead.h"
 
+#define FOR_FI(s,r,i, ...) for(size_t i = 0; i < s.size(); i++)  \
+	{ auto& r = s[i]; __VA_ARGS__; }
+
 void PeOptHead_::update(IMAGE_SECTION_HEADER* ish)
 {
 	SizeOfImage += sectAlign(ish->Misc.VirtualSize);
@@ -106,4 +109,77 @@ int peHeadChk(IMAGE_NT_HEADERS64* inh, u32 e_lfanew, u32 size)
 	if(headSize % inh->OptionalHeader.FileAlignment) goto ERR;
 	if(ovf_sub(headSize, e_lfanew)) { goto ERR; } nothing();
 	if(headSize < sectOfs) goto ERR; return headSize;
+}
+
+static inline 
+bool peHead64(IMAGE_NT_HEADERS64* inh) {
+	return u8(inh->OptionalHeader.Magic>>8) == 2; };
+	
+static inline 
+xarray<PeOptHead_::DataDir> peHeadDataDir(IMAGE_NT_HEADERS64* inh) 
+{
+	void* dd = peHead64(inh) ?
+		&((IMAGE_NT_HEADERS64*)inh)->OptionalHeader.DataDirectory:
+		&((IMAGE_NT_HEADERS32*)inh)->OptionalHeader.DataDirectory;
+	return {(PeOptHead_::DataDir*)dd, RI(dd,-4)};
+}
+
+static inline
+xarray<IMAGE_SECTION_HEADER> peHeadSect(IMAGE_NT_HEADERS64* inh) 
+{
+	u32 sectOfs = offsetof(IMAGE_NT_HEADERS, OptionalHeader);
+	sectOfs += inh->FileHeader.SizeOfOptionalHeader;
+	return {(IMAGE_SECTION_HEADER*) Void(inh, 
+		sectOfs), inh->FileHeader.NumberOfSections};
+}
+
+int peHeadChkRva(IMAGE_NT_HEADERS64* inh, u32 rva, u32 len)
+{
+	auto sects = peHeadSect(inh);
+	FOR_FI(sects,sect,i, u32 tmp;
+		if(ovf_sub(tmp, rva, sect.VirtualAddress)) continue;
+		if(ovf_add(tmp, len)) continue; nothing();
+		if(tmp <= sect.Misc.VirtualSize) return i;		
+	);
+	
+	return -1;
+}
+
+static inline
+DWORD peHead_sectAlign(IMAGE_NT_HEADERS64* inh, DWORD v) {
+	return ALIGN(v, inh->OptionalHeader.SectionAlignment-1); }
+
+int peHeadChk2(IMAGE_NT_HEADERS64* inh, u32 e_lfanew)
+{
+	// validate sections
+	u32 filePos = inh->OptionalHeader.SizeOfHeaders;
+	u32 virtPos = peHead_sectAlign(inh, filePos);
+	for(auto& sect : peHeadSect(inh)) {
+		DWORD vSize = peHead_sectAlign(inh, sect.Misc.VirtualSize);
+		if(virtPos != sect.VirtualAddress) return 1; virtPos += vSize;
+		if(sect.PointerToRawData) {
+			if((filePos != sect.PointerToRawData)
+			||(vSize < sect.SizeOfRawData)) return 1;
+			filePos += sect.SizeOfRawData;
+		}
+	}
+	
+	// validate entry point
+	DWORD aoep = inh->OptionalHeader.AddressOfEntryPoint;
+	if((aoep)&&(peHeadChkRva(inh, aoep, 0) < 0))
+		return 2;
+
+	// validate DataDirectory
+	auto dd = peHeadDataDir(inh);
+	FOR_FI(dd,d,i, if(d.rva == 0) continue;
+		if(i != IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT) {
+			if(peHeadChkRva(inh, d.rva, d.size) < 0) return 2; }
+			
+		// validate bound import
+		else { if(d.rva < e_lfanew) return 2; u32 tmp; 
+			if(ovf_add(tmp, d.rva, d.size)||(tmp>inh
+			->OptionalHeader.SizeOfHeaders)) return 2; }
+	)
+
+	return 0;
 }
