@@ -167,17 +167,6 @@ void PeFile::symTab_build(PeSymTab::Build_t& bd)
 #define rBINV(v,i)({bool rbrt_;asm("btc %2, %k1;":"=@ccc"(rbrt_),"+g"(v):"ir"(i));rbrt_;})
 #define rBRST(v,i)({bool rbrt_;asm("btr %2, %k1;":"=@ccc"(rbrt_),"+g"(v):"ir"(i));rbrt_;})
 #define pBSET(v,i)({bool rbrt_;asm("bts %2, %k1;":"=@ccc"(rbrt_),"+g"(v):"ir"(i));rbrt_;})
-
-// IMAGE_OPTIONAL_HEADER packing
-const char ioh_cpySkipTab[] = {2, -12, 4, -8, 65, 24, -8, 8, 68, 4, 0};
-#define IOH_PACKUNPACK(src, dst, sa, da) byte* dstPos = dst;\
-	REGFIX(D,dstPos); byte* srcPos = src; REGFIX(S,srcPos);  \
-	{ cch* cptPos = ioh_cpySkipTab; REGFIX(a,cptPos); \
-	while(int ch = RDI(cptPos)) { if(ch < 0) { sa -= ch; } \
-	ei(!rBRST(ch, 6)) { MOVSNX_(dstPos, srcPos, ch, 1); } else { \
-	if(ch == 1) { if(PE64()) sa -= 4; } \
-	do { MOVSN_(dstPos, srcPos, 4); if(PE64()) { MOVSN_(dstPos, \
-	srcPos, 4);}else{da += 4; nothing();}}while(--ch > 0);}}} \
 	
 static void pe_checkSum(u16& checkSum,
 	byte* data, u32 size)
@@ -229,11 +218,10 @@ int PeFile::save(cch* fileName)
 	inh->FileHeader.NumberOfSections = sects.len;
 	inh->FileHeader.SizeOfOptionalHeader = PE64() ? sizeof(
 	IMAGE_OPTIONAL_HEADER64) : sizeof(IMAGE_OPTIONAL_HEADER32);
-	inh->OptionalHeader.Magic = PE64() ? 0x20b : 0x10b;
-	IOH_PACKUNPACK(&MajorLinkerVersion, &inh->OptionalHeader.
-		MajorLinkerVersion, dstPos, srcPos);
-	WRI(PI(dstPos), 0x10); dstPos = memcpyX(
-		dstPos, dataDir(), sizeof(dataDir()));
+	
+
+	void* dstPos = ioh_pack(&inh->OptionalHeader);
+
 
 	// build section headers
 	IMAGE_SECTION_HEADER *ish0, *ish = Void(dstPos);
@@ -269,7 +257,7 @@ int PeFile::save(cch* fileName)
 		inh->FileHeader.PointerToSymbolTable = filePos;
 		inh->FileHeader.NumberOfSymbols = symData.symData.len;
 	}
-	
+
 	// calculate checksum
 	//u16 checkSum = 0; pe_checkSum(checkSum, 
 	//	headrBuff, headrSize); ish = Void(ish0);
@@ -285,9 +273,6 @@ int PeFile::save(cch* fileName)
 		xfwrite(sect.data, ish->SizeOfRawData, fp); } ish++; }
 	symData.xwrite(fp);
 	xfwrite(fileExtra.data, fileExtra.len, fp);
-	
-	
-	
 	
 	fclose(fp); return 0;
 }
@@ -329,29 +314,12 @@ cch* PeFile::load(cch* fileName)
 	dosHeadr.xcopy(header, idh->e_lfanew);
 	
 	// read IMAGE_FILE_HEADER
-	if((peHeadr->Signature != 'EP')||(peHeadr->FileHeader.
-	SizeOfOptionalHeader > sizeof(IMAGE_OPTIONAL_HEADER64)))
-		ERR(Corrupt_BadHeader);
-	//if(peHeadr->FileHeader.PointerToSymbolTable)
-	//	ERR(Unsupported_SymbolTable);
+	int headSize = peHeadChk(peHeadr, fileSize-idh->e_lfanew);
+	if(headSize <= 0) ERR(Corrupt_BadHeader);
 	memcpy(&ifh, &peHeadr->FileHeader, sizeof(IMAGE_FILE_HEADER));
 	
-	// read IMAGE_OPTIONAL_HEADER
-	Magic = peHeadr->OptionalHeader.Magic;
-	if(!is_one_of(Magic, 0x10b, 0x20b)) ERR(Corrupt_BadHeader);
-	IOH_PACKUNPACK(&peHeadr->OptionalHeader.MajorLinkerVersion, 
-		&MajorLinkerVersion, srcPos, dstPos);
-	
-	// read IMAGE_DATA_DIRECTORY
-	DWORD NumberOfRvaAndSizes = RDI(PI(srcPos));
-	IMAGE_DATA_DIRECTORY* idd = Void(srcPos);
-	if((NumberOfRvaAndSizes > IMAGE_NUMBEROF_DIRECTORY_ENTRIES)
-	||(&idd[NumberOfRvaAndSizes] > headEnd)) ERR(Corrupt_BadHeader); 
-	memcpyX(&dataDir()[0], idd, NumberOfRvaAndSizes);
-	
 	// check IMAGE_SECTION_HEADER
-	IMAGE_SECTION_HEADER* ish = Void(&peHeadr->OptionalHeader, 
-		peHeadr->FileHeader.SizeOfOptionalHeader);
+	IMAGE_SECTION_HEADER* ish = Void(ioh_unpack(&peHeadr->OptionalHeader));
 	int NumberOfSections = peHeadr->FileHeader.NumberOfSections;
 	if(ish+NumberOfSections > headEnd) ERR(Corrupt_BadHeader);
 	

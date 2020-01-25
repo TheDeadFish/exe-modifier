@@ -101,4 +101,19 @@ struct PeOptHead
 	
 	bool PE64() { return u8(Magic>>8) == 2; }
 	u32 ptrSize() { return PE64() ? 8 : 4; }
+	
+	
+	//xarray<byte> build(xarray<byte> dosHead
+	
+	void* ioh_pack(void* ioh);
+	void* ioh_unpack(void* ioh);
+	
+	
+	
+	
+	
+	
+	
 };
+
+int peHeadChk(IMAGE_NT_HEADERS64* inh, u32 size);
