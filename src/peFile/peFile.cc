@@ -307,14 +307,13 @@ cch* PeFile::load(cch* fileName)
 	Void headEnd = header+fileSize;
 	
 	// read the ms-dos header
-	IMAGE_DOS_HEADER* idh = header;
-	IMAGE_NT_HEADERS64* peHeadr = header+idh->e_lfanew;
-	if(((char*)peHeadr->OptionalHeader.DataDirectory) > headEnd)
-		ERR(Corrupt_BadHeader);
-	dosHeadr.xcopy(header, idh->e_lfanew);
+	int dosSize = peMzChk(header, fileSize);
+	if(dosSize <= 0) ERR(Corrupt_BadHeader);
+	dosHeadr.xcopy(header, dosSize);
 	
 	// read IMAGE_FILE_HEADER
-	int headSize = peHeadChk(peHeadr, fileSize-idh->e_lfanew);
+	IMAGE_NT_HEADERS64* peHeadr = header+dosSize;
+	int headSize = peHeadChk(peHeadr, fileSize-dosSize);
 	if(headSize <= 0) ERR(Corrupt_BadHeader);
 	memcpy(&ifh, &peHeadr->FileHeader, sizeof(IMAGE_FILE_HEADER));
 	

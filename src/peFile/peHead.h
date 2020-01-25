@@ -116,4 +116,6 @@ struct PeOptHead
 	
 };
 
+
+int peMzChk(void* data, u32 size);
 int peHeadChk(IMAGE_NT_HEADERS64* inh, u32 size);

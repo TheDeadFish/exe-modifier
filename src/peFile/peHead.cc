@@ -67,6 +67,15 @@ void* PeOptHead::ioh_pack(void* ioh)
 	return memcpyX(dd->dataDir, dataDir_, 16);
 }
 
+int peMzChk(void* data, u32 size)
+{
+	IMAGE_DOS_HEADER* idh = Void(data);
+	if((size < 0x1C)||(idh->e_magic != 'ZM')
+	||(size < idh->e_lfarlc)) return -1;
+	if(idh->e_lfarlc < 0x40) return 0;
+	if(idh->e_lfanew <= 0) return -1;
+	return idh->e_lfanew;
+}
 
 int peHeadChk(IMAGE_NT_HEADERS64* inh, u32 size)
 {
