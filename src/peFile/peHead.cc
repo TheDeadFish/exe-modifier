@@ -77,7 +77,7 @@ int peMzChk(void* data, u32 size)
 	return idh->e_lfanew;
 }
 
-int peHeadChk(IMAGE_NT_HEADERS64* inh, u32 size)
+int peHeadChk(IMAGE_NT_HEADERS64* inh, u32 e_lfanew, u32 size)
 {
 	// check header
 	if((size < 4)||(inh->Signature != 'EP')) return 0;
@@ -99,5 +99,11 @@ int peHeadChk(IMAGE_NT_HEADERS64* inh, u32 size)
 	dataDirSize /= sizeof(IMAGE_DATA_DIRECTORY);
 	if((RI(inh, dataDirOffset-4) != dataDirSize)
 	||(RI(inh, dataDirOffset-4) > 0x10)) goto ERR;
-	return sectOfs;
+	
+	// check SizeOfHeaders
+	sectOfs += sizeof(IMAGE_SECTION_HEADER)*inh->FileHeader.NumberOfSections;
+	u32 headSize = inh->OptionalHeader.SizeOfHeaders;
+	if(headSize % inh->OptionalHeader.FileAlignment) goto ERR;
+	if(ovf_sub(headSize, e_lfanew)) { goto ERR; } nothing();
+	if(headSize < sectOfs) goto ERR; return headSize;
 }

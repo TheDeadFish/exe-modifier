@@ -313,7 +313,7 @@ cch* PeFile::load(cch* fileName)
 	
 	// read IMAGE_FILE_HEADER
 	IMAGE_NT_HEADERS64* peHeadr = header+dosSize;
-	int headSize = peHeadChk(peHeadr, fileSize-dosSize);
+	int headSize = peHeadChk(peHeadr, dosSize, fileSize-dosSize);
 	if(headSize <= 0) ERR(Corrupt_BadHeader);
 	memcpy(&ifh, &peHeadr->FileHeader, sizeof(IMAGE_FILE_HEADER));
 	
