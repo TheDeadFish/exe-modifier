@@ -29,6 +29,12 @@ TMPL2(T, U) void pack_common(T* __restrict__ dst, U* __restrict__ src)
 	MV(Subsystem) MV(DllCharacteristics)
 }
 
+TMPL2(T, U) void pack_fhead(T* __restrict__ dst, U* __restrict__ src)
+{
+	MV(Machine) MV(Characteristics) MV(TimeDateStamp)
+}
+
+
 TMPL2(T, U) PeOptHead_::DataDirX* pack_extra(
 	T* __restrict__ dst, U* __restrict__ src)
 {
@@ -42,8 +48,10 @@ TMPL2(T, U) PeOptHead_::DataDirX* pack_extra(
 	else return Void(&src->LoaderFlags);
 }
 
-void* PeOptHead::ioh_unpack(void* ioh)
+void* PeOptHead::ioh_unpack(IMAGE_NT_HEADERS64* inh)
 {
+	pack_fhead(this, &inh->FileHeader);
+	IMAGE_OPTIONAL_HEADER64* ioh = &inh->OptionalHeader;
 	pack_common(this, (IMAGE_OPTIONAL_HEADER64*)ioh);
 	
 	PeOptHead_::DataDirX* dd = PE64() ?
@@ -56,15 +64,23 @@ void* PeOptHead::ioh_unpack(void* ioh)
 }
 
 
-void* PeOptHead::ioh_pack(void* ioh)
+void* PeOptHead::ioh_pack(IMAGE_NT_HEADERS64* inh)
 {
+	inh->Signature = 'EP';
+	pack_fhead(&inh->FileHeader, this);
+	IMAGE_OPTIONAL_HEADER64* ioh = &inh->OptionalHeader;
 	pack_common((IMAGE_OPTIONAL_HEADER64*)ioh, this);
 	ARGFIX(*this); 
 	
-	PeOptHead_::DataDirX* dd = PE64() ?
-		pack_extra((IMAGE_OPTIONAL_HEADER64*)ioh, this):
-		pack_extra((IMAGE_OPTIONAL_HEADER32*)ioh, this);
-	
+	PeOptHead_::DataDirX* dd;
+	if(PE64()) { 
+		inh->FileHeader.SizeOfOptionalHeader = sizeof(IMAGE_OPTIONAL_HEADER64);
+		dd = pack_extra((IMAGE_OPTIONAL_HEADER64*)ioh, this);
+	} else { 
+		inh->FileHeader.SizeOfOptionalHeader = sizeof(IMAGE_OPTIONAL_HEADER32);
+		dd = pack_extra((IMAGE_OPTIONAL_HEADER32*)ioh, this); }
+		
+	pack_extra((IMAGE_OPTIONAL_HEADER32*)ioh, this);	
 	dd->LoaderFlags = LoaderFlags;
 	dd->dataDirSize = 0x10;
 	return memcpyX(dd->dataDir, dataDir_, 16);

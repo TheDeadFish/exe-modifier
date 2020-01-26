@@ -239,21 +239,14 @@ int PeFile::save(cch* fileName)
 		sizeof(IMAGE_SECTION_HEADER)*sects.len + boundImp.len);
 	byte* headrBuff = xcalloc(headrSize);
 	SCOPE_EXIT(free(headrBuff));
-	IMAGE_NT_HEADERS32* inh = memcpyX(headrBuff,
+	IMAGE_NT_HEADERS64* inh = memcpyX(headrBuff,
 		dosHeadr.data, dosHeadr.len);
 	inh->OptionalHeader.SizeOfHeaders = headrSize;
 	inh->OptionalHeader.SizeOfImage = SectionAlignment;
 
 	// unpack headers
-	inh->Signature = 'EP'; memcpy(&inh->FileHeader,
-		&ifh, sizeof(IMAGE_FILE_HEADER));
 	inh->FileHeader.NumberOfSections = sects.len;
-	inh->FileHeader.SizeOfOptionalHeader = PE64() ? sizeof(
-	IMAGE_OPTIONAL_HEADER64) : sizeof(IMAGE_OPTIONAL_HEADER32);
-	
-
-	void* dstPos = ioh_pack(&inh->OptionalHeader);
-
+	void* dstPos = ioh_pack(inh);
 
 	// build section headers
 	IMAGE_SECTION_HEADER *ish0, *ish = Void(dstPos);
@@ -352,15 +345,13 @@ cch* PeFile::load(cch* fileName)
 		ERR(Corrupt_BadHeader);
 
 	// unpack the header
-	memcpy(&ifh, &peHeadr->FileHeader, sizeof(IMAGE_FILE_HEADER));
-	IMAGE_SECTION_HEADER* ish = Void(
-		ioh_unpack(&peHeadr->OptionalHeader));
+	IMAGE_SECTION_HEADER* ish = Void(ioh_unpack(peHeadr));
 	if(dataDir(IDE_BOUNDIMP).rva) {
 		boundImp.xcopy(Void(peHeadr, dataDir(IDE_BOUNDIMP)
 			.rva-dosSize), dataDir(IDE_BOUNDIMP).size); }
 			
 	// load sections
-	sects.xcalloc(ifh.NumberOfSections);
+	sects.xcalloc(peHeadr->FileHeader.NumberOfSections);
 	int virtualPos = SectionAlignment;
 	for(auto& sect : sects) 
 	{

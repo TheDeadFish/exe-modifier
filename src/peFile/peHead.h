@@ -62,9 +62,9 @@ struct PeOptHead_
 
 struct PeOptHead
 {
-	IMAGE_FILE_HEADER ifh;
-	
-	int padding1;
+	WORD Machine;
+	WORD Characteristics;
+	DWORD TimeDateStamp;
 	
 	WORD Magic;
 	BYTE MajorLinkerVersion;
@@ -105,8 +105,8 @@ struct PeOptHead
 	
 	//xarray<byte> build(xarray<byte> dosHead
 	
-	void* ioh_pack(void* ioh);
-	void* ioh_unpack(void* ioh);
+	void* ioh_pack(IMAGE_NT_HEADERS64* inh);
+	void* ioh_unpack(IMAGE_NT_HEADERS64* inh);
 	
 	
 	
