@@ -15,3 +15,10 @@
 @  copy /Y bin\exe_mod.cfg %PROGRAMS%\progs\exe_mod
 @  copy /Y bin\setup.vbs %PROGRAMS%\progs\exe_mod
 )
+
+:: install library
+@if not exist %PROGRAMS%\local\include\peFile ( 
+	mkdir %PROGRAMS%\local\include\peFile  )
+@copy /Y src\peFile\*.h %PROGRAMS%\local\include\peFile
+@copy /Y bin\libpeFile.a %PROGRAMS%\local\lib32
+

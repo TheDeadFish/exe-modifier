@@ -41,6 +41,12 @@ const char* save(const char* fileName)
 	return NULL;
 }
 
+void close()
+{
+	pRst(&peImp);
+	pRst(&peExp);
+	peFile.Free();
+}
 
 void clearSpace(int rva, int length, int offset)
 {

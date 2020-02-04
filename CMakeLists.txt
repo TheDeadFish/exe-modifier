@@ -7,13 +7,13 @@ set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY ../bin)
 
 
 
-add_library(peFile src/peFile/peBlock.cc 
-	src/peFile/peExport.cc src/peFile/peFile.cc
-	src/peFile/peImport.cc src/peFile/peHead.cc)
+add_library(peFile src/peFile/peHead.cc 
+	src/peFile/peFile.cc src/peFile/peBlock.cc 
+	src/peFile/peExport.cc src/peFile/peImport.cc 
+	src/peFile/peFile_.cc )
 
 ADD_EXECUTABLE ( exe_mod
 	src/def_ops.cc src/exe_mod.cc src/modfile.cc
-	src/peFile/peFile_.cc 
 	src/peFile/peImport.cc src/linker/linker.cc
 	src/linker/except.cc src/main.cpp lib/stdafx.cc 
 	lib/dlldef.cc src/debug.cpp)

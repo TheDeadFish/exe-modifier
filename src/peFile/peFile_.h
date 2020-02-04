@@ -1,5 +1,3 @@
-#include "..\exe_mod.h"
-
 #ifndef _PEFILE__H_
 #define _PEFILE__H_
 #include "peFile.h"
