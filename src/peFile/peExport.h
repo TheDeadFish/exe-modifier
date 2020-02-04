@@ -10,7 +10,7 @@ struct PeExport
 	DWORD OrdinalBase; bool mustRebuild;
 		
 	struct ExportSlot { xstr name, frwd;
-		uint ord; uint rva; static int sortFn(
+		WORD ord, nord; uint rva; static int sortFn(
 		const ExportSlot& a, const ExportSlot& b); };
 	xArray<ExportSlot> exports; FreeLst freeLst;
 	PeFile& peFile() { return *freeLst.peFile; }

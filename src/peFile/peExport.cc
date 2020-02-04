@@ -37,6 +37,7 @@ int PeExport::load(PeFile& peFile)
 		pName = freeLst.mark(expBase->AddressOfNames+i*4, 4, 4);
 		if(!pName || !(name = freeLst.markStrDup(*pName))) return 4;
 		exports[ord].name.init(xstrdup(name)); 
+		exports[ord].nord = i+1;
 	}
 	
 	return 0;
