@@ -360,13 +360,19 @@ cch* PeFile::load(cch* fileName)
 		|| ish->NumberOfRelocations ||ish->NumberOfLinenumbers )
 			ERR(Unsupported_SectDbgInfo);
 			
-		// read section data
+		// read section info
 		strncpy(sect.name, (char*)ish->Name, 8);
 		sect.Characteristics = ish->Characteristics;			
 		sect.baseRva = ish->VirtualAddress;
+		
+		// read section data
 		sect.resize(this, ish->Misc.VirtualSize);
-		if(!file_xread(fp, sect.data, ish->SizeOfRawData))
-			ERR(Corrupt_Sect3);
+		if(ish->SizeOfRawData) {
+			DWORD size = fileAlign(ish->SizeOfRawData);
+			if(!file_xread(fp, sect.data, size))
+				ERR(Corrupt_Sect3);
+		}
+		
 		ish++;
 	}
 	

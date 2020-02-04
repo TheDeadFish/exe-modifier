@@ -164,6 +164,9 @@ int peHeadChkRva(IMAGE_NT_HEADERS64* inh, u32 rva, u32 len)
 static inline
 DWORD peHead_sectAlign(IMAGE_NT_HEADERS64* inh, DWORD v) {
 	return ALIGN(v, inh->OptionalHeader.SectionAlignment-1); }
+static inline
+DWORD peHead_fileAlign(IMAGE_NT_HEADERS64* inh, DWORD v) {
+	return ALIGN(v, inh->OptionalHeader.FileAlignment-1); }
 
 int peHeadChk2(IMAGE_NT_HEADERS64* inh, u32 e_lfanew)
 {
@@ -176,7 +179,8 @@ int peHeadChk2(IMAGE_NT_HEADERS64* inh, u32 e_lfanew)
 		if(sect.PointerToRawData) {
 			if((filePos != sect.PointerToRawData)
 			||(vSize < sect.SizeOfRawData)) return 1;
-			filePos += sect.SizeOfRawData;
+			filePos += peHead_fileAlign(
+				inh, sect.SizeOfRawData);
 		}
 	}
 	
@@ -188,6 +192,7 @@ int peHeadChk2(IMAGE_NT_HEADERS64* inh, u32 e_lfanew)
 	// validate DataDirectory
 	auto dd = peHeadDataDir(inh);
 	FOR_FI(dd,d,i, if(d.rva == 0) continue;
+		if(i == IMAGE_DIRECTORY_ENTRY_SECURITY)	continue;
 		if(i != IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT) {
 			if(peHeadChkRva(inh, d.rva, d.size) < 0) return 2; }
 			
