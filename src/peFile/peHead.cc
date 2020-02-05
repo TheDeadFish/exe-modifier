@@ -122,7 +122,7 @@ int peHeadChk(IMAGE_NT_HEADERS64* inh, u32 e_lfanew, u32 size)
 	// check SizeOfHeaders
 	sectOfs += sizeof(IMAGE_SECTION_HEADER)*inh->FileHeader.NumberOfSections;
 	u32 headSize = inh->OptionalHeader.SizeOfHeaders;
-	if(headSize % inh->OptionalHeader.FileAlignment) goto ERR;
+	if(headSize > inh->OptionalHeader.SizeOfImage) goto ERR;
 	if(ovf_sub(headSize, e_lfanew)) { goto ERR; } nothing();
 	if(headSize < sectOfs) goto ERR; return headSize;
 }
@@ -142,8 +142,8 @@ int peHeadChkRva(IMAGE_NT_HEADERS64* inh, u32 rva, u32 len)
 int peHeadChk2(IMAGE_NT_HEADERS64* inh, u32 e_lfanew)
 {
 	// validate sections
-	u32 filePos = inh->OptionalHeader.SizeOfHeaders;
-	u32 virtPos = peHead_sectAlign(inh, filePos);
+	u32 filePos = peHead_fileAlign(inh, inh->OptionalHeader.SizeOfHeaders);
+	u32 virtPos = peHead_sectAlign(inh, inh->OptionalHeader.SizeOfHeaders);
 	for(auto& sect : peHeadSect(inh)) {
 		DWORD vSize = peHead_sectAlign(inh, sect.Misc.VirtualSize);
 		if(virtPos != sect.VirtualAddress) return 1; virtPos += vSize;

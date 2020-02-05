@@ -33,6 +33,12 @@ bool file_xread(FILE* fp, void* data, u32 size)
 	return false;
 }
 
+static 
+void file_skip(FILE* fp, int size)
+{
+	if(size) fseek(fp, size, SEEK_CUR);
+}
+
 SHITSTATIC
 bool rebaseRsrc(byte* data, u32 size,
 	int delta, u32 irdIdx)
@@ -343,6 +349,7 @@ cch* PeFile::load(cch* fileName)
 	SCOPE_EXIT(free(peHeadr));
 	if(peHeadChk2(peHeadr, dosSize))
 		ERR(Corrupt_BadHeader);
+	file_skip(fp, peHeadSkip(peHeadr));
 
 	// unpack the header
 	IMAGE_SECTION_HEADER* ish = Void(ioh_unpack(peHeadr));

@@ -152,3 +152,11 @@ xarray<IMAGE_SECTION_HEADER> peHeadSect(IMAGE_NT_HEADERS64* inh)
 	return {(IMAGE_SECTION_HEADER*) Void(inh, 
 		sectOfs), inh->FileHeader.NumberOfSections};
 }
+
+static inline
+int peHeadSkip(IMAGE_NT_HEADERS64* inh)
+{
+	IMAGE_OPTIONAL_HEADER64* ioh = &inh->OptionalHeader;
+	return peHead_fileAlign(inh,inh->OptionalHeader.
+		SizeOfHeaders)-inh->OptionalHeader.SizeOfHeaders;
+}
