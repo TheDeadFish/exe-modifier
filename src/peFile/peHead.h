@@ -5,65 +5,9 @@ enum { IMAGE_SCN_CNT_DATA =
 	IMAGE_SCN_CNT_UNINITIALIZED_DATA
 };
 
-struct PeOptHead_
-{
-	WORD Magic;
-	BYTE MajorLinkerVersion;
-	BYTE MinorLinkerVersion;
-	DWORD SizeOfCode;
-	DWORD SizeOfInitializedData;
-	DWORD SizeOfUninitializedData;
-	DWORD AddressOfEntryPoint;
-	DWORD BaseOfCode;
-	
-	union { struct { 
-		DWORD BaseOfData32;
-		DWORD ImageBase32; };
-		ULONGLONG ImageBase; 
-	};
-		
-	DWORD SectionAlignment;
-	DWORD FileAlignment;
-	WORD MajorOperatingSystemVersion;
-	WORD MinorOperatingSystemVersion;
-	WORD MajorImageVersion;
-	WORD MinorImageVersion;
-	WORD MajorSubsystemVersion;
-	WORD MinorSubsystemVersion;
-	DWORD Win32VersionValue;
-	DWORD SizeOfImage;
-	DWORD SizeOfHeaders;
-	DWORD CheckSum;
-	WORD Subsystem;
-	WORD DllCharacteristics;	
-	
-	
-	struct DataDir {DWORD rva, size; };
-	struct DataDirX { DWORD LoaderFlags;
-		DWORD dataDirSize; DataDir dataDir[16]; };
-		
-		
-	TMPL(T) struct SizeOf {
-		T SizeOfStackReserve, SizeOfStackCommit;
-		T SizeOfHeapReserve, SizeOfHeapCommit; };
-		
-		
-	union { struct { SizeOf<ULONGLONG> sizeOf; DataDirX dd; };
-		struct { SizeOf<DWORD> sizeOf32; DataDirX dd32; }; };
-		
-	// rebuild helpers
-	bool PE64() { return u8(Magic>>8) == 2; }
-	void update(IMAGE_SECTION_HEADER* ish);
-	
-	
-	
-	
-	u32 fileAlign(u32 value) {
-		return ALIGN(value, FileAlignment-1); }
-	u32 sectAlign(u32 value) {
-	return ALIGN(value, SectionAlignment-1); }
-		
-};
+struct PeDataDir {DWORD rva, size; };
+struct PeDataDirX { DWORD LoaderFlags;
+	DWORD dataDirSize; PeDataDir dataDir[16]; };
 
 struct PeOptHead
 {
@@ -141,12 +85,12 @@ DWORD peHead_fileAlign(IMAGE_NT_HEADERS64* inh, DWORD v) {
 	return ALIGN(v, inh->OptionalHeader.FileAlignment-1); }
 	
 static inline 
-xarray<PeOptHead_::DataDir> peHeadDataDir(IMAGE_NT_HEADERS64* inh) 
+xarray<PeDataDir> peHeadDataDir(IMAGE_NT_HEADERS64* inh) 
 {
 	void* dd = peHead64(inh) ?
 		&((IMAGE_NT_HEADERS64*)inh)->OptionalHeader.DataDirectory:
 		&((IMAGE_NT_HEADERS32*)inh)->OptionalHeader.DataDirectory;
-	return {(PeOptHead_::DataDir*)dd, RI(dd,-4)};
+	return {(PeDataDir*)dd, RI(dd,-4)};
 }
 
 static inline

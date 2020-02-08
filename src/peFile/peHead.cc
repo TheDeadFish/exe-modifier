@@ -21,7 +21,7 @@ TMPL2(T, U) void pack_fhead(T* __restrict__ dst, U* __restrict__ src)
 }
 
 
-TMPL2(T, U) PeOptHead_::DataDirX* pack_extra(
+TMPL2(T, U) PeDataDirX* pack_extra(
 	T* __restrict__ dst, U* __restrict__ src)
 {
 	MV(ImageBase)
@@ -40,7 +40,7 @@ void* PeOptHead::ioh_unpack(IMAGE_NT_HEADERS64* inh)
 	IMAGE_OPTIONAL_HEADER64* ioh = &inh->OptionalHeader;
 	pack_common(this, (IMAGE_OPTIONAL_HEADER64*)ioh);
 	
-	PeOptHead_::DataDirX* dd = PE64() ?
+	PeDataDirX* dd = PE64() ?
 		pack_extra(this, (IMAGE_OPTIONAL_HEADER64*)ioh):
 		pack_extra(this, (IMAGE_OPTIONAL_HEADER32*)ioh);
 		
@@ -58,7 +58,7 @@ void* PeOptHead::ioh_pack(IMAGE_NT_HEADERS64* inh)
 	pack_common((IMAGE_OPTIONAL_HEADER64*)ioh, this);
 	ARGFIX(*this); 
 	
-	PeOptHead_::DataDirX* dd;
+	PeDataDirX* dd;
 	if(PE64()) { 
 		inh->FileHeader.SizeOfOptionalHeader = sizeof(IMAGE_OPTIONAL_HEADER64);
 		dd = pack_extra((IMAGE_OPTIONAL_HEADER64*)ioh, this);
