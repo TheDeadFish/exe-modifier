@@ -112,6 +112,7 @@ struct PeFile : PeOptHead
 	xArray<byte> dosHeadr;
 	xArray<byte> boundImp;
 	xArray<byte> fileExtra;
+	int nSymbols;
 	
 	cch* load(cch* fileName);
 	int save(cch* fileName);

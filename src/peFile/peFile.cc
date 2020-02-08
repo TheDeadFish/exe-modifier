@@ -266,6 +266,11 @@ int PeFile::save(cch* fileName)
 	}
 	
 	u32 filePos = peHeadFinalize(inh);
+
+	// existing symbol table
+	if(nSymbols >= 0) {
+		inh->FileHeader.PointerToSymbolTable = filePos;
+		inh->FileHeader.NumberOfSymbols = nSymbols; }
 		
 	// build symbol table
 	PeSymTab::Build_t symData;
@@ -372,6 +377,10 @@ cch* PeFile::load(cch* fileName)
 	// read file extra
 	fileExtra.xalloc(fsize(fp));
 	xfread(fileExtra.data, 1, fileExtra.len, fp);
+	nSymbols = -1;
+	if(peHeadr->FileHeader.PointerToSymbolTable) {
+		nSymbols = peHeadr->FileHeader.NumberOfSymbols; 
+	}
 	
 	// load relocations
 	this->getSections_(); 

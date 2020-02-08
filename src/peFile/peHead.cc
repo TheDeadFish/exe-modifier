@@ -141,6 +141,11 @@ int peHeadChk2(IMAGE_NT_HEADERS64* inh, u32 e_lfanew)
 		}
 	}
 	
+	// validate symbol table
+	if((inh->FileHeader.PointerToSymbolTable)
+	&&(inh->FileHeader.PointerToSymbolTable != filePos))
+		return 3;
+	
 	// validate entry point
 	DWORD aoep = inh->OptionalHeader.AddressOfEntryPoint;
 	if((aoep)&&(peHeadChkRva(inh, aoep, 0) < 0))
