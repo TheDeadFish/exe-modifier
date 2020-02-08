@@ -257,21 +257,18 @@ int PeFile::save(cch* fileName)
 	// build section headers
 	IMAGE_SECTION_HEADER *ish0, *ish = Void(dstPos);
 	ARGKILL(ish0); ish0 = ish; 
-	u32 filePos = headrSize;
+
 	for(auto& sect : sects) 
 	{
-		// build section header
 		strncpy((char*)ish->Name, sect.name, 8);
 		ish->Misc.VirtualSize = sect.len;
 		ish->VirtualAddress = sect.baseRva;
 		ish->Characteristics = sect.Characteristics;
-		if(sect.data) { ish->PointerToRawData = filePos;
-		filePos += (ish->SizeOfRawData = sect.extent(*this)); }
-		
-		// update IMAGE_OPTIONAL_HEADER
-		((PeOptHead_*)&inh->OptionalHeader)->update(ish);
+		ish->SizeOfRawData = sect.extent(*this);
 		INCP(ish);
 	}
+	
+	u32 filePos = peHeadFinalize(inh);
 	
 	// write bound import
 	IMAGE_DATA_DIRECTORY* idd = Void(ish0, -128);

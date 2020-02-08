@@ -4,20 +4,6 @@
 #define FOR_FI(s,r,i, ...) for(size_t i = 0; i < s.size(); i++)  \
 	{ auto& r = s[i]; __VA_ARGS__; }
 
-void PeOptHead_::update(IMAGE_SECTION_HEADER* ish)
-{
-	SizeOfImage += sectAlign(ish->Misc.VirtualSize);
-	u32 vSzFA = fileAlign(ish->Misc.VirtualSize);
-	if(ish->Characteristics & IMAGE_SCN_CNT_CODE) { SizeOfCode += vSzFA; 
-		if(!BaseOfCode) BaseOfCode = ish->VirtualAddress;		
-	} ei(ish->Characteristics & IMAGE_SCN_CNT_INITIALIZED_DATA) {
-		SizeOfInitializedData += vSzFA; goto L1;
-	} ei(ish->Characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA) {
-		SizeOfUninitializedData += vSzFA; L1:  
-		if(!PE64() && !BaseOfData32) BaseOfData32 = ish->VirtualAddress;	
-	}
-}
-
 TMPL2(T, U) void pack_common(T* __restrict__ dst, U* __restrict__ src)
 {
 	#define MV(N) dst->N = src->N;
@@ -174,4 +160,47 @@ int peHeadChk2(IMAGE_NT_HEADERS64* inh, u32 e_lfanew)
 	)
 
 	return 0;
+}
+
+SHITCALL int peHeadFinalize(IMAGE_NT_HEADERS64* inh)
+{
+	IMAGE_OPTIONAL_HEADER32* ioh = Void(&inh->OptionalHeader);
+	int filePos = ioh->SizeOfHeaders;
+
+	auto sects = peHeadSect(inh);
+	for(auto& sect : sects) {
+	
+		// update section size
+		if(sect.SizeOfRawData) goto HAS_DATA;
+		if(sect.Characteristics & 0x60) {
+			sect.SizeOfRawData = ioh->FileAlignment;
+			HAS_DATA:	sect.PointerToRawData = filePos;
+			filePos += sect.SizeOfRawData;
+		}
+		
+		// update optional header
+		ioh->SizeOfImage += peHead_sectAlign(inh, sect.Misc.VirtualSize);
+		u32 fSzFA = peHead_fileAlign(inh, sect.SizeOfRawData);
+		if(sect.Characteristics & IMAGE_SCN_MEM_DISCARDABLE) continue;
+		
+		// SizeOfCode/Data
+		if(sect.Characteristics & IMAGE_SCN_CNT_CODE) 
+			ioh->SizeOfCode += fSzFA;
+		if(sect.Characteristics & IMAGE_SCN_CNT_INITIALIZED_DATA)
+			ioh->SizeOfInitializedData += fSzFA;
+		if(sect.Characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA) {
+			u32 vSzFA = peHead_fileAlign(inh, sect.Misc.VirtualSize);
+			ioh->SizeOfUninitializedData += vSzFA;
+		}
+			
+		// BaseOfCode/Data
+		if(sect.Characteristics & IMAGE_SCN_CNT_CODE) {
+			if(!ioh->BaseOfCode) ioh->BaseOfCode = sect.VirtualAddress;	
+		} ei(sect.Characteristics & IMAGE_SCN_CNT_DATA) {
+			if(!peHead64(inh) && !ioh->BaseOfData) 
+				ioh->BaseOfData = sect.VirtualAddress;
+		}
+	}
+		
+	return filePos;
 }
