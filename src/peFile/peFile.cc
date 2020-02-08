@@ -238,26 +238,23 @@ int PeFile::save(cch* fileName)
 	if(pdataSect != NULL) { 
 		pdata.Rebase(pdataSect->baseRva); }
 
-	// allocate header buffer
-	u32 inhSize = PE64() ? sizeof(IMAGE_NT_HEADERS64)
-		: sizeof(IMAGE_NT_HEADERS32);
-	u32 headrSize = fileAlign(dosHeadr.len+ inhSize + 
-		sizeof(IMAGE_SECTION_HEADER)*sects.len + boundImp.len);
-	byte* headrBuff = xcalloc(headrSize);
-	SCOPE_EXIT(free(headrBuff));
-	IMAGE_NT_HEADERS64* inh = memcpyX(headrBuff,
-		dosHeadr.data, dosHeadr.len);
-	inh->OptionalHeader.SizeOfHeaders = headrSize;
-	inh->OptionalHeader.SizeOfImage = SectionAlignment;
-
-	// unpack headers
+	// initialize header
+	PeHeadWr inh(PE64(), sects.len, dosHeadr,
+		boundImp.len, FileAlignment);
 	inh->FileHeader.NumberOfSections = sects.len;
-	void* dstPos = ioh_pack(inh);
+	IMAGE_SECTION_HEADER* ish = ioh_pack(inh);
+	
+	// write bound import
+	if(boundImp.len) {
+		dataDir(IDE_BOUNDIMP).size = boundImp.len;
+		dataDir(IDE_BOUNDIMP).rva = inh.boundImpOfs;
+		memcpyX(inh.data+inh.boundImpOfs,
+			boundImp.data, boundImp.len);
+	}
 
 	// build section headers
-	IMAGE_SECTION_HEADER *ish0, *ish = Void(dstPos);
+	IMAGE_SECTION_HEADER *ish0; 
 	ARGKILL(ish0); ish0 = ish; 
-
 	for(auto& sect : sects) 
 	{
 		strncpy((char*)ish->Name, sect.name, 8);
@@ -269,14 +266,6 @@ int PeFile::save(cch* fileName)
 	}
 	
 	u32 filePos = peHeadFinalize(inh);
-	
-	// write bound import
-	IMAGE_DATA_DIRECTORY* idd = Void(ish0, -128);
-	idd[IDE_BOUNDIMP].Size = boundImp.len;
-	idd[IDE_BOUNDIMP].VirtualAddress = 0;
-	if(boundImp.data) { idd[IDE_BOUNDIMP].
-		VirtualAddress = PTRDIFF(ish, headrBuff);
-		memcpyX((byte*)ish, boundImp.data, boundImp.len); }
 		
 	// build symbol table
 	PeSymTab::Build_t symData;
@@ -296,7 +285,7 @@ int PeFile::save(cch* fileName)
 	
 	// write sections
 	FILE* fp = xfopen(fileName, "wb");
-	if(!fp) return 1; xfwrite(headrBuff, headrSize, fp);
+	if(!fp) return 1; xfwrite(inh.data, inh.size, fp);
 	ish = Void(ish0);	for(auto& sect : sects) { if(sect.data) {
 		xfwrite(sect.data, ish->SizeOfRawData, fp); } ish++; }
 	symData.xwrite(fp);
@@ -349,7 +338,7 @@ cch* PeFile::load(cch* fileName)
 	file_skip(fp, peHeadSkip(peHeadr));
 
 	// unpack the header
-	IMAGE_SECTION_HEADER* ish = Void(ioh_unpack(peHeadr));
+	IMAGE_SECTION_HEADER* ish = ioh_unpack(peHeadr);
 	if(dataDir(IDE_BOUNDIMP).rva) {
 		boundImp.xcopy(Void(peHeadr, dataDir(IDE_BOUNDIMP)
 			.rva-dosSize), dataDir(IDE_BOUNDIMP).size); }

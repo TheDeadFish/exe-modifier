@@ -34,7 +34,7 @@ TMPL2(T, U) PeDataDirX* pack_extra(
 	else return Void(&src->LoaderFlags);
 }
 
-void* PeOptHead::ioh_unpack(IMAGE_NT_HEADERS64* inh)
+IMAGE_SECTION_HEADER* PeOptHead::ioh_unpack(IMAGE_NT_HEADERS64* inh)
 {
 	pack_fhead(this, &inh->FileHeader);
 	IMAGE_OPTIONAL_HEADER64* ioh = &inh->OptionalHeader;
@@ -50,7 +50,7 @@ void* PeOptHead::ioh_unpack(IMAGE_NT_HEADERS64* inh)
 }
 
 
-void* PeOptHead::ioh_pack(IMAGE_NT_HEADERS64* inh)
+IMAGE_SECTION_HEADER* PeOptHead::ioh_pack(IMAGE_NT_HEADERS64* inh)
 {
 	inh->Signature = 'EP';
 	pack_fhead(&inh->FileHeader, this);
@@ -166,6 +166,7 @@ SHITCALL int peHeadFinalize(IMAGE_NT_HEADERS64* inh)
 {
 	IMAGE_OPTIONAL_HEADER32* ioh = Void(&inh->OptionalHeader);
 	int filePos = ioh->SizeOfHeaders;
+	ioh->SizeOfImage = peHead_sectAlign(inh, filePos);
 
 	auto sects = peHeadSect(inh);
 	for(auto& sect : sects) {

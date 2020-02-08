@@ -54,8 +54,8 @@ struct PeOptHead
 	
 	//xarray<byte> build(xarray<byte> dosHead
 	
-	void* ioh_pack(IMAGE_NT_HEADERS64* inh);
-	void* ioh_unpack(IMAGE_NT_HEADERS64* inh);
+	IMAGE_SECTION_HEADER* ioh_pack(IMAGE_NT_HEADERS64* inh);
+	IMAGE_SECTION_HEADER* ioh_unpack(IMAGE_NT_HEADERS64* inh);
 	
 	
 	
@@ -109,3 +109,36 @@ int peHeadSkip(IMAGE_NT_HEADERS64* inh)
 	return peHead_fileAlign(inh,inh->OptionalHeader.
 		SizeOfHeaders)-inh->OptionalHeader.SizeOfHeaders;
 }
+
+static inline
+int peHeadSize(bool PE64, int nSects)
+{
+	return PE64 ? sizeof(IMAGE_NT_HEADERS64) 
+		: sizeof(IMAGE_NT_HEADERS32) 
+		+ sizeof(IMAGE_SECTION_HEADER)*nSects;
+}
+
+struct PeHeadWr
+{
+	byte* data; 
+	IMAGE_NT_HEADERS64* inh;
+	u32 size, boundImpOfs;
+	
+	operator IMAGE_NT_HEADERS64*()  { return inh; }
+	IMAGE_NT_HEADERS64* operator->(){ return inh; }
+	
+	
+	
+	~PeHeadWr() { free(data); }
+
+	PeHeadWr(bool PE64, u32 nSects, xarray<byte> dosHeadr,
+		u32 boundImpSz, u32 fileAlign)
+	{
+		boundImpOfs = peHeadSize(PE64, nSects) + dosHeadr.len;
+		size = ALIGN(boundImpOfs+boundImpSz, fileAlign-1);	
+		data = xcalloc(size);
+		
+		inh = memcpyX(data, dosHeadr.data, dosHeadr.len);
+		inh->OptionalHeader.SizeOfHeaders = size;
+	}
+};
