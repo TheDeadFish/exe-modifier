@@ -25,15 +25,12 @@ xarray<byte> file_mread(FILE* fp, u32 size)
 
 bool file_xread(FILE* fp, void* data, u32 size)
 {
-	printf("%X\n", size);
-
 	if(fread(data, size, 1, fp))
 		return true;
 	if(ferror(fp)) errorDiskFail();
 	return false;
 }
 
-static 
 void file_skip(FILE* fp, int size)
 {
 	if(size) fseek(fp, size, SEEK_CUR);

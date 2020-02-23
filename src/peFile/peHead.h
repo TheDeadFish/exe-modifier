@@ -84,6 +84,13 @@ static inline
 DWORD peHead_fileAlign(IMAGE_NT_HEADERS64* inh, DWORD v) {
 	return ALIGN(v, inh->OptionalHeader.FileAlignment-1); }
 	
+static inline
+u64 peHead_imageBase(IMAGE_NT_HEADERS64* inh) {
+	return peHead64(inh) ?
+		((IMAGE_NT_HEADERS64*)inh)->OptionalHeader.ImageBase:
+		((IMAGE_NT_HEADERS32*)inh)->OptionalHeader.ImageBase;
+}
+	
 static inline 
 xarray<PeDataDir> peHeadDataDir(IMAGE_NT_HEADERS64* inh) 
 {
