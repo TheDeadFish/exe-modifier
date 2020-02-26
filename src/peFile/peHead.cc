@@ -141,6 +141,9 @@ int peHeadChk2(IMAGE_NT_HEADERS64* inh, u32 e_lfanew)
 		}
 	}
 	
+	if(virtPos != inh->OptionalHeader.SizeOfImage)
+		return 1;
+	
 	// validate symbol table
 	if((inh->FileHeader.PointerToSymbolTable)
 	&&(inh->FileHeader.PointerToSymbolTable != filePos))

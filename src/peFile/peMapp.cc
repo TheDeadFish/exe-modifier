@@ -30,7 +30,7 @@ int PeMapImg::load(cch* fileName)
 	data.data = (byte*)calloc(data.len,1);
 	if(!data.data) return 4; rewind(fp);
 	if(!file_xread(fp, data.data, peHead_fileAlign(
-		peHeadr, headSize))) return 3;
+		peHeadr, headSize+dosSize))) return 3;
 	
 	// check complete header
 	inh = Void(data.data, dosSize);
