@@ -602,7 +602,7 @@ cch* makeJump(u32 rva, u32 target)
 {
 	// prepare patch
 	u32 offset = target-rva;
-	u32 len = i386Jump_chk8(offset) ? 5 : 2;
+	u32 len = i386Jump_chk8(offset) ? 2 : 5;
 	PATCH_CHECK(ptr, rva, len);
 	
 	// apply patch
