@@ -65,8 +65,7 @@ IMAGE_SECTION_HEADER* PeOptHead::ioh_pack(IMAGE_NT_HEADERS64* inh)
 	} else { 
 		inh->FileHeader.SizeOfOptionalHeader = sizeof(IMAGE_OPTIONAL_HEADER32);
 		dd = pack_extra((IMAGE_OPTIONAL_HEADER32*)ioh, this); }
-		
-	pack_extra((IMAGE_OPTIONAL_HEADER32*)ioh, this);	
+	
 	dd->LoaderFlags = LoaderFlags;
 	dd->dataDirSize = 0x10;
 	return memcpyX(dd->dataDir, dataDir_, 16);
