@@ -133,8 +133,7 @@ struct PeHeadWr
 	
 	operator IMAGE_NT_HEADERS64*()  { return inh; }
 	IMAGE_NT_HEADERS64* operator->(){ return inh; }
-	
-	
+	PeDataDir& dd(int i) { return peHeadDataDir(inh)[i]; }
 	
 	~PeHeadWr() { free(data); }
 
@@ -148,4 +147,13 @@ struct PeHeadWr
 		inh = memcpyX(data, dosHeadr.data, dosHeadr.len);
 		inh->OptionalHeader.SizeOfHeaders = size;
 	}
+	
+	void boundImpSet(xarray<byte> boundImp) 
+	{
+		u32 rva = boundImp.len ? boundImpOfs : 0;
+		dd(IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT).size = boundImp.len;
+		dd(IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT).rva = rva;
+		memcpyX(data+boundImpOfs, boundImp.data, boundImp.len);
+	}
+	
 };

@@ -240,14 +240,7 @@ int PeFile::save(cch* fileName)
 		boundImp.len, FileAlignment);
 	inh->FileHeader.NumberOfSections = sects.len;
 	IMAGE_SECTION_HEADER* ish = ioh_pack(inh);
-	
-	// write bound import
-	if(boundImp.len) {
-		dataDir(IDE_BOUNDIMP).size = boundImp.len;
-		dataDir(IDE_BOUNDIMP).rva = inh.boundImpOfs;
-		memcpyX(inh.data+inh.boundImpOfs,
-			boundImp.data, boundImp.len);
-	}
+	inh.boundImpSet(boundImp);
 
 	// build section headers
 	IMAGE_SECTION_HEADER *ish0; 
