@@ -120,8 +120,8 @@ int peHeadSkip(IMAGE_NT_HEADERS64* inh)
 static inline
 int peHeadSize(bool PE64, int nSects)
 {
-	return PE64 ? sizeof(IMAGE_NT_HEADERS64) 
-		: sizeof(IMAGE_NT_HEADERS32) 
+	return (PE64 ? sizeof(IMAGE_NT_HEADERS64) 
+		: sizeof(IMAGE_NT_HEADERS32))
 		+ sizeof(IMAGE_SECTION_HEADER)*nSects;
 }
 
