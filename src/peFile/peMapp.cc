@@ -1,5 +1,6 @@
 #include <stdshit.h>
 #include "peMapp.h"
+#include "peFile.h"
 
 xarray<byte> file_getx(FILE* fp, int max);
 xarray<byte> file_mread(FILE* fp, u32 size);
@@ -57,5 +58,20 @@ int PeMapImg::load(cch* fileName)
 	
 	printf("xxx %X, %X\n", inh, data.data);
 	
+	return 0;
+}
+
+xarray<byte> PeMapImg::dd(int index)
+{
+	if((dataDir.len > index)&&(dataDir[index].rva))
+		return {data+dataDir[index].rva, dataDir[index].size};
+	return {0,0};
+}
+
+int PeMapImg::load_relocs(PeReloc& relocs)
+{
+	auto data = dd(PeFile::IDE_BASERELOC);
+	if(data && !relocs.Load(data, data.len, PE64()))
+		return 4;	
 	return 0;
 }

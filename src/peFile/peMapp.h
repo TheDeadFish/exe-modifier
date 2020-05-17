@@ -1,6 +1,8 @@
 #pragma once
 #include "peHead.h"
 
+struct PeReloc;
+
 struct PeMapImg
 {
 	IMAGE_NT_HEADERS64* inh;
@@ -23,6 +25,12 @@ struct PeMapImg
 	u64 imageBase() { return peHead_imageBase(inh); }
 	
 	int load(cch* file);
+	
+	int load_relocs(PeReloc& relocs);
+	
+	
+	xarray<byte> dd(int index);
+	
 	
 	PeMapImg() { ZINIT; }
 };
