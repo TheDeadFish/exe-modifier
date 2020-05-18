@@ -213,6 +213,8 @@ static void pe_checkSum(u16& checkSum,
 
 int PeFile::save(cch* fileName)
 {
+	assert(this->mappMode == false);
+
 	// rebuild relocs
 	SCOPE_EXIT(sectResize(relocSect, 0));
 	DataDir ddTmp = {0,0};
@@ -300,6 +302,8 @@ void PeFile::Free() { this->~PeFile(); ZINIT; }
 
 int PeFile::Section::resize(PeFile* This, u32 sz)
 {
+	assert(This->mappMode == false);
+	
 	u32 allocSize2 = This->sectAlign(sz);
 	void* ptr = xrealloc(data, allocSize2);
 	u32 base = min(len, sz); len = sz;
@@ -329,7 +333,8 @@ cch* PeFile::load(cch* fileName)
 	if(headSize <= 0) ERR(Corrupt_BadHeader);
 
 	// read complete header
-	rewind(fp); imageData.xcalloc(headSize); 
+	rewind(fp); imageData.xcalloc(mappMode ? 
+		peHeadr->OptionalHeader.SizeOfImage : headSize);
 	if(!file_xread(fp, imageData.data, headSize))
 		ERR(Corrupt_BadHeader);
 	peHeadr = Void(imageData.data, dosSize);
@@ -356,9 +361,13 @@ cch* PeFile::load(cch* fileName)
 		strncpy(sect.name, (char*)ish->Name, 8);
 		sect.Characteristics = ish->Characteristics;			
 		sect.baseRva = ish->VirtualAddress;
+			
+		// allocate section
+		if(mappMode) { sect.noFree = true;
+			sect.init(imageData+sect.baseRva, ish->Misc.VirtualSize);
+		} else { sect.resize(this, ish->Misc.VirtualSize); }
 		
 		// read section data
-		sect.resize(this, ish->Misc.VirtualSize);
 		if(ish->SizeOfRawData) {
 			DWORD size = fileAlign(ish->SizeOfRawData);
 			if(!file_xread(fp, sect.data, size))
@@ -381,7 +390,7 @@ cch* PeFile::load(cch* fileName)
 	if(relocSect) {
 		auto data = dataDirSectChk(relocSect, &dataDir(IDE_BASERELOC), "reloc");
 		if(!data || !relocs.Load(data, data.len, PE64())) ERR(Corrupt_Relocs);
-		sectResize(relocSect, 0);
+		if(!mappMode) sectResize(relocSect, 0);
 	}
 	
 	// load exceptions
@@ -565,6 +574,8 @@ u32 PeFile::Section::extent(PeFile& peFile)
 
 int PeFile::sectCreate(cch* name, DWORD ch)
 {
+	assert(this->mappMode == false);
+
 	// perform the insertion
 	int insIdx = iSect2(extendSect)+1;
 	sects.xresize(sects.len+1); 

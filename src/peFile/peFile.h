@@ -82,10 +82,10 @@ struct PeFile : PeOptHead
 	auto& dataDir(size_t i) { return dataDir_[i]; }
 	auto& dataDir() { return dataDir_; }
 	
-	struct Section : xArray<byte> {
+	struct Section : xarray<byte> {
 		DWORD allocSize, baseRva;
 		DWORD Characteristics;
-		char name[9]; 
+		char name[9]; bool noFree;
 		
 		
 		DWORD endRva() { return baseRva+len; }
@@ -105,8 +105,12 @@ struct PeFile : PeOptHead
 		
 		
 		
+		
+		
+		
 		int type(); SHITSTATIC int type(DWORD ch);
 		SHITSTATIC bool normSect(cch* name);
+		~Section() { if(!noFree) ::free(data); }
 	};
 	
 	xArray<byte> imageData;
@@ -122,8 +126,7 @@ struct PeFile : PeOptHead
 	
 	PeFile() { ZINIT; }
 	~PeFile(); void Free();
-	
-	
+	bool mappMode;
 	
 	
 	// helper functions
