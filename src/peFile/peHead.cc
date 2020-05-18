@@ -108,8 +108,8 @@ int peHeadChk(IMAGE_NT_HEADERS64* inh, u32 e_lfanew, u32 size)
 	sectOfs += sizeof(IMAGE_SECTION_HEADER)*inh->FileHeader.NumberOfSections;
 	u32 headSize = inh->OptionalHeader.SizeOfHeaders;
 	if(headSize > inh->OptionalHeader.SizeOfImage) goto ERR;
-	if(ovf_sub(headSize, e_lfanew)) { goto ERR; } nothing();
-	if(headSize < sectOfs) goto ERR; return headSize;
+	if(headSize < (sectOfs+e_lfanew)) goto ERR;
+	return peHead_fileAlign(inh, headSize);
 }
 
 int peHeadChkRva(IMAGE_NT_HEADERS64* inh, u32 rva, u32 len)

@@ -234,6 +234,10 @@ int PeFile::save(cch* fileName)
 	// rebase exceptions
 	if(pdataSect != NULL) { 
 		pdata.Rebase(pdataSect->baseRva); }
+	
+	// tmp: reconstruct dos-header
+	xarray<byte> dosHeadr = {imageData.data, 
+		((IMAGE_DOS_HEADER*)imageData.data)->e_lfanew};
 
 	// initialize header
 	PeHeadWr inh(PE64(), sects.len, dosHeadr,
@@ -310,27 +314,27 @@ cch* PeFile::load(cch* fileName)
 	// load pe header
 	FILE* fp = xfopen(fileName, "rb");
 	if(fp == NULL) ERR(Error_FailedToOpen);
+	SCOPE_EXIT(fclose(fp));
 	
 	// read the ms-dos header
 	auto data = file_getx(fp, sizeof(IMAGE_DOS_HEADER));
 	int dosSize = peMzChk(data.data, data.len);
 	if(dosSize <= 0) ERR(Corrupt_BadHeader);
-	dosHeadr.init(file_mread(fp, dosSize));
-	if(!dosHeadr) ERR(Corrupt_BadHeader);
+	file_skip(fp, dosSize);
 
 	// check the pe header
 	data = file_getx(fp, sizeof(IMAGE_NT_HEADERS64));
 	IMAGE_NT_HEADERS64* peHeadr = Void(data.data);
 	int headSize = peHeadChk(peHeadr, dosSize, data.len);
 	if(headSize <= 0) ERR(Corrupt_BadHeader);
-	
+
 	// read complete header
-	peHeadr = Void(file_mread(fp, headSize).data);
-	if(!peHeadr) ERR(Corrupt_BadHeader);
-	SCOPE_EXIT(free(peHeadr));
+	rewind(fp); imageData.xcalloc(headSize); 
+	if(!file_xread(fp, imageData.data, headSize))
+		ERR(Corrupt_BadHeader);
+	peHeadr = Void(imageData.data, dosSize);
 	if(peHeadChk2(peHeadr, dosSize))
 		ERR(Corrupt_BadHeader);
-	file_skip(fp, peHeadSkip(peHeadr));
 
 	// unpack the header
 	IMAGE_SECTION_HEADER* ish = ioh_unpack(peHeadr);

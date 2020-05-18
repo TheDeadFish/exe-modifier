@@ -109,8 +109,8 @@ struct PeFile : PeOptHead
 		SHITSTATIC bool normSect(cch* name);
 	};
 	
-	xArray<byte> dosHeadr;
-	xArray<byte> boundImp;
+	xArray<byte> imageData;
+	xarray<byte> boundImp;
 	xArray<byte> fileExtra;
 	int nSymbols;
 	
