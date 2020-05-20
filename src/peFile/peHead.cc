@@ -189,7 +189,8 @@ SHITCALL int peHeadFinalize(IMAGE_NT_HEADERS64* inh)
 		// update optional header
 		ioh->SizeOfImage += peHead_sectAlign(inh, sect.Misc.VirtualSize);
 		u32 fSzFA = peHead_fileAlign(inh, sect.SizeOfRawData);
-		if(sect.Characteristics & IMAGE_SCN_MEM_DISCARDABLE) continue;
+		if((sect.Characteristics & IMAGE_SCN_MEM_DISCARDABLE)
+		&&(strcmp((char*)sect.Name, "INIT"))) continue;
 		
 		// SizeOfCode/Data
 		if(sect.Characteristics & IMAGE_SCN_CNT_CODE) 
