@@ -234,8 +234,8 @@ int PeFile::save(cch* fileName)
 	} dataDir(IDE_RESOURCE) = ddTmp;
 	
 	// rebase exceptions
-	if(pdataSect != NULL) { 
-		pdata.Rebase(pdataSect->baseRva); }
+	//if(pdataSect != NULL) { 
+	//	pdata.Rebase(pdataSect->baseRva); }
 	
 	// tmp: reconstruct dos-header
 	xarray<byte> dosHeadr = {imageData.data, 
@@ -376,7 +376,7 @@ cch* PeFile::load(cch* fileName)
 		
 		ish++;
 	}
-	
+
 	// read file extra
 	fileExtra.xalloc(fsize(fp));
 	xfread(fileExtra.data, 1, fileExtra.len, fp);
@@ -394,11 +394,11 @@ cch* PeFile::load(cch* fileName)
 	}
 	
 	// load exceptions
-	if(pdataSect) {
-		auto data = dataDirSectChk(pdataSect, &dataDir(IDE_EXCEPTION), "pdata");
-		if(!data || !pdata.Load(data, data.len, pdataSect->baseRva)) 
-			ERR(Corrupt_Pdata);
-	}
+	//if(pdataSect) {
+	//	auto data = dataDirSectChk(pdataSect, &dataDir(IDE_EXCEPTION), "pdata");
+	//	if(!data || !pdata.Load(data, data.len, pdataSect->baseRva)) 
+	//		ERR(Corrupt_Pdata);
+	//}
 	
 	if(rsrcSect) {
 		if(!rebaseRsrc(rsrcSect->data, rsrcSect->len, 
@@ -423,8 +423,8 @@ void PeFile::getSections_(void)
 {
 	rsrcSect = NULL; relocSect = NULL;
 	for(auto& sect : sects) {
-		if(!strcmp(sect.name, ".pdata")) pdataSect = &sect;
-		ei(!strcmp(sect.name, ".rsrc")) rsrcSect = &sect;
+		//if(!strcmp(sect.name, ".pdata")) pdataSect = &sect;
+		if(!strcmp(sect.name, ".rsrc")) rsrcSect = &sect;
 		ei(!strcmp(sect.name, ".reloc")) relocSect = &sect;
 		ei((strcmp(sect.name, ".debug") && !rsrcSect
 			&& !relocSect)) extendSect = &sect;	
