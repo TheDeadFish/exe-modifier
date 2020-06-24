@@ -32,14 +32,13 @@ void symb_insert(Symbol* symb)
 	slot = symb; 
 }
 
-static
-Symbol* symb_find(cch* name)
+Symbol* symb_find(cch* name, strcmp_t cmp)
 {
 	if(name) {
 	DWORD hash = symb_hash(name);
 	Symbol* symb = symbRoot[hash % SYMB_HASH_SIZE];
 	for(; symb; symb = symb->next) {
-		if(!strcmp(symb->Name, name))
+		if(!cmp(name, symb->Name))
 			return symb; }
 	}  return NULL;
 }
@@ -106,7 +105,7 @@ Section* findSection2(const char* name)
 
 Symbol* findSymbol(const char* Name)
 {
-	return symb_find(Name);
+	return symb_find(Name, strcmp);
 }
 
 Symbol* findSymbol(cstr Name)

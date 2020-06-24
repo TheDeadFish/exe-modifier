@@ -27,30 +27,21 @@ void addExport(char* name, uint ord,
 	exports.push_back(name, frwd, offset, oldRva);
 }
 
-static
-bool expSymCmp(cch* frwd, cch* symb)
+int expSymCmp(cch* frwd, cch* symb)
 {
 	for(int i = 0;; i++) { AGAIN:
 		if(!symb[i]) return !frwd[i];
 		if(symb[i] != frwd[i]) {
 			if(symb[i] == '_'){ symb++; goto AGAIN; }
-			if(symb[i] == '@') return !frwd[i];
-			return false;
+			if(symb[i] == '@') return frwd[i];
+			return 1;
 		}
 	}
 }
 
 Symbol* findSymbolExp(const char* Name)
 {
-	fatal_error("exports broken for now\n");
-#if 0
-	if(Name != NULL)
-		LINKER_ENUM_SYMBOLS(symb, 
-			if(symb->Name && expSymCmp(Name, 
-				symb->Name)) { return symb; }
-	);
-#endif
-	return NULL;
+	return symb_find(Name, expSymCmp);
 }
 
 void exports_symbfix()
@@ -132,7 +123,7 @@ bool needSymbol(const char* name)
 	
 	// check matching export
 	for(auto& slot : exports) {
-		if(expSymCmp(slot.frwd, name))
+		if(!expSymCmp(slot.frwd, name))
 			return true; 
 	} return false;
 }

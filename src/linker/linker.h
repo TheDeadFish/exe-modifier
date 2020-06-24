@@ -180,5 +180,8 @@ void link_step1(void);
 void link_step2(void);
 void symTab_build(void);
 
+
+Symbol* symb_find(cch* name, strcmp_t cmp);
+
 }
 #endif

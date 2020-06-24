@@ -52,6 +52,7 @@ void gc_sections(void)
 	mark_reloc({relocs, nRelocs});
 	for(auto& slot : exports) {
 		auto* symb = slot.symbol;
+		if(symb == NULL) continue;
 		mark_section(symb->getSect()); }
 		
 	// kill unreferenced sections

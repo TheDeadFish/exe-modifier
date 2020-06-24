@@ -84,5 +84,7 @@ struct DebugTimer
 	int getms(); void print();
 	u64 total;
 };
-	
+
+typedef int (*strcmp_t)(cch*, cch*);
+
 #endif
