@@ -18,13 +18,15 @@ struct LibraryLoad {
 		int getSize(void) {
 			return atoi(fileSize); }
 		int check(Void fileLimit);
+		Header* next(int size) { 
+			return getData()+size; }
 	};
 
 	const char* fileName;
 	Void fileData;
 	Void fileLimit;
 	
-	void load(void);
+	void load(bool wa);
 	__attribute__((noreturn)) void fileBad(cch* msg, Void addr);
 	void eofErr(Void addr) {
 		fileBad("unexpected end of file", addr); }	
@@ -33,7 +35,8 @@ struct LibraryLoad {
 
 void LibraryLoad::fileBad(cch* msg, Void addr)
 {
-	fatal_error("library:%s:%d: %s\n", addr-fileData, msg);
+	fatal_error("library:%s:%d: %s\n", 
+		fileName, addr-fileData, msg);
 }
 
 cstr LibraryLoad::getName(Header* h, cch* extNames)
@@ -67,26 +70,42 @@ int LibraryLoad::Header::check(Void fileLimit)
 	return fileSize;
 }
 
-void LibraryLoad::load()
+void LibraryLoad::load(bool wa)
 {
 	// check header
 	Header* header = fileData+8;
-	int exportSize = header->check(fileLimit);
+	int fileSize = header->check(fileLimit);
 	if((*(WORD*)header->fileName != 0x202F)
-	||(exportSize < 4)) fileBad("bad export table", header);
+	||(fileSize < 4)) fileBad("bad export table", header);
 		
 	// process exports
 	Void exportData = header->getData();
-	Void exportLimit = exportData + exportSize;
+	Void exportLimit = exportData + fileSize;
 	int exportCount = bswap32(*exportData.ptr<int>()++);
 	char* exportStr = exportData + exportCount*4;
-	
+
 	// check extended names
 	char* extNames = NULL;
-	{ Header* extNames_ = header->getData()+exportSize;
-	if((extNames_->check(fileLimit) > 0)
-	&&(*(DWORD*)extNames_->fileName == 0x20202F2F))
-		extNames = extNames_->getData(); }
+	header = header->next(fileSize);
+	if(((fileSize = header->check(fileLimit)) > 0)
+	&&(*(DWORD*)header->fileName == 0x20202F2F)) {
+		extNames = header->getData();
+		header = header->next(fileSize);
+	}
+	
+	// whole archive
+	if(wa) while(1) {
+		header = Void((size_t(header)+1) & ~1);
+		if(header == fileLimit) break;
+		fileSize = header->check(fileLimit);
+		if(fileSize < 0) fileBad("bad file", header);
+		
+		// load the object
+		cstr objName = getName(header, extNames);
+		object_load(Xstrfmt("%s:%$s", fileName, objName), 
+			header->getData(), fileSize);
+		header = header->next(fileSize);
+	}
 		
 	int lastExport = -1;
 RECHECK_EXPORTS:
@@ -122,8 +141,8 @@ RECHECK_EXPORTS:
 }
 
 void library_load(const char* fileName, 
-	Void fileData, DWORD fileSize)
+	Void fileData, DWORD fileSize, bool wa)
 {
 	LibraryLoad ll = {fileName, fileData,
-		fileData+fileSize}; ll.load();
+		fileData+fileSize}; ll.load(wa);
 }

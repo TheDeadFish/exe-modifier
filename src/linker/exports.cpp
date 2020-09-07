@@ -115,7 +115,7 @@ Symbol* exports_getExpSym(
 	return symb;
 }
 
-bool needSymbol(const char* name)
+int needSymbol(const char* name)
 {
 	// check existing symbol
 	auto* symb = findSymbol(name);

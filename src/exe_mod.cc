@@ -17,6 +17,9 @@ const ArchStr* archStr;
 bool g_noSymFix;
 extern int g_peBlkMode;
 
+struct Libs_t : FileOrMem {
+	bool whole=false; };
+
 int FileOrMem::open(int extra)
 {
 	if(data) return size_;
@@ -31,13 +34,13 @@ void FileOrMem::free(void)
 	if(size_ & INT_MIN) free_ref(data);
 }
 
-void library_load(FileOrMem& fileRef)
+void library_load(Libs_t& fileRef)
 {
 	int size = fileRef.open();
 	if(size < 0) { load_error(
 		"library", fileRef.name); }
 	Linker::library_load(fileRef.name,
-		fileRef.data, size);
+		fileRef.data, size, fileRef.whole);
 	fileRef.free();
 }
 
@@ -64,8 +67,9 @@ void defFile_load(FileOrMem& fileRef)
 struct Arguments
 {
 	bool bindImage, guiMode, dbgInfo;
+	bool whole;
 	xArray<cch*> libPaths;
-	xArray<FileOrMem> libs;
+	xArray<Libs_t> libs;
 	xArray<FileOrMem> objs;
 	xArray<FileOrMem> defs;
 	
@@ -84,8 +88,9 @@ void Arguments::find_library(char* libName)
 
 	for(cch* libPath : libPaths) {
 		char* name = xstrfmt("%j%:lib%s.a", libPath, libName+2);
-		if(!isNeg(getFileAttributes(name))) { libs
-			.push_back(name); return;  } free(name); }
+		if(!isNeg(getFileAttributes(name))) { 
+			libs.push_back(name, release(whole)); 
+			return; } free(name); }
 	fatal_error("library not found: %s", libName);
 }
 
@@ -165,6 +170,7 @@ void Arguments::next(FileOrMem fileRef)
 		if(arg[1] == 'b') { bindImage = true; }
 		ei(arg[1] == 'l') { find_library(arg); }
 		ei(arg[1] == 'g') { dbgInfo = true; }
+		ei(RW(arg,1) == 'aw') { whole = true; }
 		ei(!strncmp(arg, "-mwindows")) guiMode = true;
 		ei(!strncmp(arg, "-nosymfix")) g_noSymFix = true;
 		ei(!strncmp(arg, "-noblk")) g_peBlkMode |= 1;
@@ -181,7 +187,7 @@ void Arguments::next(FileOrMem fileRef)
 		}ei(!strEicmp(arg, ".def"))
 			defs.push_back(fileRef);
 		ei(!strEicmp(arg, ".a"))
-			libs.push_back(fileRef);
+			libs.push_back(fileRef, release(whole)); 
 		else objs.push_back(fileRef);
 		
 	}

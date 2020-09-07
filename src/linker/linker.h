@@ -131,7 +131,7 @@ extern Symbol* symbRoot[SYMB_HASH_SIZE];
 
 // object functions
 void library_load(const char* fileName,
-	Void fileData, DWORD fileSize);
+	Void fileData, DWORD fileSize, bool whole);
 void object_load(const char* fileName, 
 	Void objData, DWORD objSize);
 void imports_parse(void);
@@ -148,7 +148,7 @@ void exports_resolve();
 void exports_addSymb(Symbol* symb, char* importName);
 Symbol* exports_getExpSym(
 	char*& dllNane, char*& importName);
-bool needSymbol(cch* Name);
+int needSymbol(cch* Name);
 
 extern xarray<char*> keep_list;
 static inline
