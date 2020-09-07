@@ -163,3 +163,13 @@ void PeImport::add(cch* dllName, cch* importName)
 		uint(result)-0x80000000);
 	} impDir->push_back(importName, 0);
 }
+
+PeImport::Detatch_t PeImport::detatch()
+{
+	if(mustRebuild()) return {0,0,0};
+	freeLst.Clear(); imports.Clear();
+	u32 impRva = peFile().dataDir(PeFile().IDE_IMPORT).rva;
+	u32 iatRva = peFile().dataDir(peFile().IDE_IATABLE).rva;
+	u32 iatSize = peFile().dataDir(peFile().IDE_IATABLE).size;
+	return {impRva, iatRva, iatRva+iatSize};
+}

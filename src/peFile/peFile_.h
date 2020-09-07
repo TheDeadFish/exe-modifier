@@ -64,5 +64,8 @@ namespace PeFILE {
 	
 	static void setRes(void* data, DWORD size) { peFile.setRes(data, size); }
 	
+	static auto impDetatch(void) { return peImp.detatch(); }
+	
+	
 }
 #endif

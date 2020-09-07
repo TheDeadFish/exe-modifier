@@ -528,7 +528,7 @@ struct ParseDefLine
 	int count() { return val&7; } bool va() { return val<0; }
 	ALWAYS_INLINE int vi(byte a, int i) { return (s8(a)<0)
 		? INT_MIN : (a ? (a<<((i*8)+4))|1 : 0); }
-	ALWAYS_INLINE ArgDef(byte a1, byte a2=0, byte a3=0, byte a4=0) 
+	ALWAYS_INLINE ArgDef(byte a1=0, byte a2=0, byte a3=0, byte a4=0) 
 		: val(vi(a1,0)+vi(a2,1)+vi(a3,2)+vi(a4,3)) { } };
 	enum { None, Num, Raw, SyN, SyN2, SyS, Str, Addr, VArg = -1 };
 	
@@ -597,6 +597,11 @@ void parse_def_file(
 	cstr str = defLine.cp.tokLst.getCall(defLine.argLst);
 	if(!str.slen) { if(str.data) defLine.defBad(
 		__LINE__, str.data); break; }
+		
+	// zero argument fix
+	if((defLine.argLst.getCount() == 1)
+	&&(!defLine.argLst[0].chk()))
+		defLine.argLst.pop_back();
 		
 	// convert args array to string
 	int argc = defLine.argLst.getCount();
@@ -678,6 +683,7 @@ cch* ParseDefLine::processLine()
 	FUNC("SECTPATCH", ArgDef(Addr,Addr,Raw), def_fixSect(a1,a2,a3));
 
 	// import/export functions
+	FUNC("IMPDETATCH", ArgDef(), def_impDetatch())
 	FUNC("IMPORTDEF", ArgDef(Raw), def_import(a1,0))
 	FUNC("IMPORTDEF", ArgDef(Raw,Raw), def_import(a1,a2))
 	FUNC("EXPORTDEF", ArgDef(Raw), def_export(a1,0))

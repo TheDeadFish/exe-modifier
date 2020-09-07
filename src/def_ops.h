@@ -21,7 +21,7 @@ REGCALL(1) cch* strArg_parse(char*& out, char* str);
 
 SHITCALL cch* def_keepSymbol(char* name);
 SHITCALL cch* def_freeBlock(u32 start, u32 end, int offset);
-SHITCALL cch* def_symbol(u32 rva, char* name);
+SHITCALL cch* def_symbol(u32 rva, cch* name);
 SHITCALL cch* def_const(u32 value, char* name);
 SHITCALL cch* def_callPatch(u32 rva, SymbArg& s, bool hookMode);
 
@@ -61,7 +61,7 @@ SHITCALL cch* def_funcKill(u32 start, u32 end, u64* val);
 SHITCALL cch* def_makeRet(u32& rva, u32 sz, u64* val);
 SHITCALL cch* def_trapRet(u32 rva, u32 end, u32 sz, u64* val);
 
-
+SHITCALL cch* def_impDetatch(void);
 
 
 

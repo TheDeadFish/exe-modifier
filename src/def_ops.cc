@@ -195,7 +195,7 @@ cch* def_freeBlock(u32 start,
 	return 0;
 }
 
-cch* def_symbol(u32 rva, char* name)
+cch* def_symbol(u32 rva, cch* name)
 {
 	Linker::addSymbol2(name, Linker::Type_Relocate, 
 		0, rva); return 0;
@@ -748,5 +748,15 @@ WAS_MEMPATCH_HEX:
 	PATCH_CHECK(ptr, rva, data.dataSize);
 	memcpy(ptr, data.dataPtr, data.dataSize);
 	data.free();
+	return NULL;
+}
+
+SHITCALL cch* def_impDetatch(void)
+{
+	auto x = PeFILE::impDetatch();
+	if(x.dir == 0) return "IMPTDETATCH ERROR";
+	def_symbol(x.dir, "_impDetachDir");
+	def_symbol(x.iat, "_impDetacIAT_beg"); 
+	def_symbol(x.iatEnd, "_impDetachIAT_end");
 	return NULL;
 }

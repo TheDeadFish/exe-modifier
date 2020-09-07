@@ -25,6 +25,9 @@ struct PeImport
 	void build(PeBlock* blocks);
 	int find(cch* dllName, cch* importName);
 	void add(cch* dllName, cch* importName);
+	
+	struct Detatch_t { u32 dir, iat, iatEnd; };
+	Detatch_t detatch();
 };	
 
 #endif
