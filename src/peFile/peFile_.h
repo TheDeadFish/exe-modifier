@@ -29,6 +29,8 @@ namespace PeFILE {
 	
 	static void subsysGUI(void) {peFile.Subsystem
 		= IMAGE_SUBSYSTEM_WINDOWS_GUI; }
+	static void subsysCUI(void) {peFile.Subsystem
+		= IMAGE_SUBSYSTEM_WINDOWS_CUI; }
 		
 	static Void patchChk(int addr, int len) { return peFile.patchChk(addr, len); }
 	static DWORD ptrToRva(void* p) { return peFile.ptrToRva(p); }

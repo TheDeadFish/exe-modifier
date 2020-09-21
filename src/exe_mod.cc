@@ -66,7 +66,8 @@ void defFile_load(FileOrMem& fileRef)
 
 struct Arguments
 {
-	bool bindImage, guiMode, dbgInfo;
+	bool bindImage, dbgInfo;
+	char guiMode;
 	bool whole;
 	xArray<cch*> libPaths;
 	xArray<Libs_t> libs;
@@ -172,6 +173,7 @@ void Arguments::next(FileOrMem fileRef)
 		ei(arg[1] == 'g') { dbgInfo = true; }
 		ei(RW(arg,1) == 'aw') { whole = true; }
 		ei(!strncmp(arg, "-mwindows")) guiMode = true;
+		ei(!strncmp(arg, "-mconsole")) guiMode = -1;
 		ei(!strncmp(arg, "-nosymfix")) g_noSymFix = true;
 		ei(!strncmp(arg, "-noblk")) g_peBlkMode |= 1;
 		
@@ -230,7 +232,8 @@ int exe_mod(int argc, char* argv[])
 	int libIndex = args.libs.len;
 	for(int i = 3; i < argc; i++) {
 		args.next(argv[i]); }
-	if(args.guiMode) PeFILE::subsysGUI();
+	if(args.guiMode>0) PeFILE::subsysGUI();
+	if(args.guiMode<0) PeFILE::subsysCUI();
 
 	// load object files
 	dfLink_init();
