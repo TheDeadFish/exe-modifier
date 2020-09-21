@@ -95,7 +95,7 @@ struct FreeSect
 FreeSect::FreeSect(PeFile& pef) : peFile(pef)
 {
 	int extIdx = pef.iSect2(pef.extendSect);
-	sects.xcalloc(extIdx+3);
+	sects.xcalloc(extIdx+4);
 	for(int i = 0; i <= extIdx; i++) {
 		if((pef.sects+i) == pef.pdataSect) continue;
 		sects[i].type = pef.sects[i].type();
@@ -103,6 +103,7 @@ FreeSect::FreeSect(PeFile& pef) : peFile(pef)
 		sects[i].extent = pef.sects[i].extent(pef);
 	} sects[extIdx+1].type = PeSecTyp::Text|PeSecTyp::NoPage;
 	sects[extIdx+2].type = PeSecTyp::Data|PeSecTyp::NoPage;
+	sects[extIdx+3].type = PeSecTyp::Text|PeSecTyp::Data|PeSecTyp::NoPage;
 }
 
 void FreeSect::add(FreeLst& freeLst)
@@ -113,7 +114,7 @@ void FreeSect::add(FreeLst& freeLst)
 
 void FreeSect::finalize() 
 {
-	int iExtendSect = sects.len-3;
+	int iExtendSect = peFile.iSect2(peFile.extendSect);
 	
 	for(int i = 0; i < sects.len; i++) {
 		u32 end = 0x7FFFFFFF;
@@ -219,6 +220,8 @@ void FreeSect::allocSects()
 		peFile.sectCreate2(".text2", sects[extIdx+1].type); }
 	if(sects[extIdx+2].endRva) {
 		peFile.sectCreate2(".data2", sects[extIdx+2].type); }
+	if(sects[extIdx+3].endRva) {
+		peFile.sectCreate2(".wdata", sects[extIdx+3].type); }
 		
 	// resize sections
 	int iSect = 0; 
@@ -274,11 +277,13 @@ void allocBlocks(xarray<PeBlock> blocks, PeFile&
 		if(((block.type & 7) <= 4)) break; }
 		
 	// perform the allocations
-	freeSect.finalize();
+	freeSect.finalize(); freeSect.sects.len--;
 	freeSect.allocBlocks({blocks.data, rdatPos});
 	freeSect.allocBlocks(expBlock);
 	freeSect.allocBlocks(impBlock);
 	freeSect.allocBlocks({rdatPos, blocks.end()});
+	freeSect.sects.len++;
+	freeSect.allocBlocks({blocks.data, blocks.end()});
 	
 	// resolve sections
 	freeSect.allocSects();
