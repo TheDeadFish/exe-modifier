@@ -323,23 +323,23 @@ cch* PeFile::load(cch* fileName)
 	// read the ms-dos header
 	auto data = file_getx(fp, sizeof(IMAGE_DOS_HEADER));
 	int dosSize = peMzChk(data.data, data.len);
-	if(dosSize <= 0) ERR(Corrupt_BadHeader);
+	if(dosSize <= 0) ERR(Corrupt_BadHeader1);
 	file_skip(fp, dosSize);
 
 	// check the pe header
 	data = file_getx(fp, sizeof(IMAGE_NT_HEADERS64));
 	IMAGE_NT_HEADERS64* peHeadr = Void(data.data);
 	int headSize = peHeadChk(peHeadr, dosSize, data.len);
-	if(headSize <= 0) ERR(Corrupt_BadHeader);
+	if(headSize <= 0) ERR(Corrupt_BadHeader2);
 
 	// read complete header
 	rewind(fp); imageData.xcalloc(mappMode ? 
 		peHeadr->OptionalHeader.SizeOfImage : headSize);
 	if(!file_xread(fp, imageData.data, headSize))
-		ERR(Corrupt_BadHeader);
+		ERR(Corrupt_BadHeader3);
 	peHeadr = Void(imageData.data, dosSize);
 	if(peHeadChk2(peHeadr, dosSize))
-		ERR(Corrupt_BadHeader);
+		ERR(Corrupt_BadHeader4);
 
 	// unpack the header
 	IMAGE_SECTION_HEADER* ish = ioh_unpack(peHeadr);
@@ -591,7 +591,17 @@ int PeFile::sectCreate(cch* name, DWORD ch)
 	getSections_(); return insIdx;
 }
 
-int PeFile::sectCreate2(cch* name, int type)
+
+void PeFile::Section::updateType(int type)
+{
+	Characteristics = and_or(
+		Characteristics, getType(type),
+		IMAGE_SCN_CNT_UNINITIALIZED_DATA|
+		IMAGE_SCN_MEM_DISCARDABLE
+	);
+}
+
+DWORD PeFile::Section::getType(int type)
 {
 	DWORD ch = IMAGE_SCN_MEM_READ;
 	if(type & PeSecTyp::Exec) ch |= IMAGE_SCN_MEM_EXECUTE;
@@ -601,7 +611,12 @@ int PeFile::sectCreate2(cch* name, int type)
 	if(!(type & PeSecTyp::Intd)) { ch |= IMAGE_SCN_CNT_UNINITIALIZED_DATA;
 	} else { if(type & type & PeSecTyp::Exec) ch |= IMAGE_SCN_CNT_CODE;
 		else ch |= IMAGE_SCN_CNT_INITIALIZED_DATA; }
-		
+	return ch;
+}
+
+int PeFile::sectCreate2(cch* name, int type)
+{
+	DWORD ch = Section::getType(type);
 	return sectCreate(name, ch);
 }
 

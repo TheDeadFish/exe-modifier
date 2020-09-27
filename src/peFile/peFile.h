@@ -111,6 +111,10 @@ struct PeFile : PeOptHead
 		int type(); SHITSTATIC int type(DWORD ch);
 		SHITSTATIC bool normSect(cch* name);
 		~Section() { if(!noFree) ::free(data); }
+		
+		
+		SHITSTATIC DWORD getType(int type);
+		void updateType(int type);
 	};
 	
 	xArray<byte> imageData;

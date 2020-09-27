@@ -176,6 +176,7 @@ void Arguments::next(FileOrMem fileRef)
 		ei(!strncmp(arg, "-mconsole")) guiMode = -1;
 		ei(!strncmp(arg, "-nosymfix")) g_noSymFix = true;
 		ei(!strncmp(arg, "-noblk")) g_peBlkMode |= 1;
+		ei(!strncmp(arg, "-nosect")) g_peBlkMode |= 2;
 		
 		else fatal_error("bad option '%s'\n", arg);
 	} else {

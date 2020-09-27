@@ -101,9 +101,15 @@ FreeSect::FreeSect(PeFile& pef) : peFile(pef)
 		sects[i].type = pef.sects[i].type();
 		sects[i].endRva = pef.sects[i].len;
 		sects[i].extent = pef.sects[i].extent(pef);
-	} sects[extIdx+1].type = PeSecTyp::Text|PeSecTyp::NoPage;
-	sects[extIdx+2].type = PeSecTyp::Data|PeSecTyp::NoPage;
-	sects[extIdx+3].type = PeSecTyp::Text|PeSecTyp::Data|PeSecTyp::NoPage;
+	} 
+	
+	if(g_peBlkMode & 2) {
+		sects[extIdx].type = PeSecTyp::Text|PeSecTyp::Data|PeSecTyp::NoPage;
+	} else {
+		sects[extIdx+1].type = PeSecTyp::Text|PeSecTyp::NoPage;
+		sects[extIdx+2].type = PeSecTyp::Data|PeSecTyp::NoPage;
+		sects[extIdx+3].type = PeSecTyp::Text|PeSecTyp::Data|PeSecTyp::NoPage;
+	}
 }
 
 void FreeSect::add(FreeLst& freeLst)
@@ -204,9 +210,10 @@ bool FreeSect::resolveBlocks(xarray<PeBlock> blocks)
 		
 		auto& sect = peFile.sects[
 			sects[block.peSect-1].iSect];
+		sect.updateType(block.type);
 		block.data = sect.data+block.baseRva;
 		block.baseRva += sect.baseRva;
-		memset(block.data, 0, block.length);
+		memset(block.data, 0, block.length);		
 	}
 	
 	return true;

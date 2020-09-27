@@ -87,4 +87,8 @@ struct DebugTimer
 
 typedef int (*strcmp_t)(cch*, cch*);
 
+static
+int and_or(int x, int y, int m) { return ((x^m) | (y^m)) ^ m; }
+
+
 #endif
