@@ -124,46 +124,53 @@ int peHeadChkRva(IMAGE_NT_HEADERS64* inh, u32 rva, u32 len)
 	return -1;
 }
 
-int peHeadChk2(IMAGE_NT_HEADERS64* inh, u32 e_lfanew)
+cch* peHeadChk2(IMAGE_NT_HEADERS64* inh, u32 e_lfanew)
 {
 	// validate sections
 	u32 filePos = peHead_fileAlign(inh, inh->OptionalHeader.SizeOfHeaders);
 	u32 virtPos = peHead_sectAlign(inh, inh->OptionalHeader.SizeOfHeaders);
 	for(auto& sect : peHeadSect(inh)) {
 		DWORD vSize = peHead_sectAlign(inh, sect.Misc.VirtualSize);
-		if(virtPos != sect.VirtualAddress) return 1; virtPos += vSize;
+		if(virtPos != sect.VirtualAddress)
+			return "section: VirtualAddress";
+
+		virtPos += vSize;
 		if(sect.PointerToRawData) {
 			if((filePos != sect.PointerToRawData)
-			||(vSize < sect.SizeOfRawData)) return 1;
+			||(vSize < sect.SizeOfRawData))
+				return "section: RawData";
 			filePos += peHead_fileAlign(
 				inh, sect.SizeOfRawData);
 		}
 	}
 	
 	if(virtPos != inh->OptionalHeader.SizeOfImage)
-		return 1;
+		return "optional header: SizeOfImage";
 	
 	// validate symbol table
 	if((inh->FileHeader.PointerToSymbolTable)
 	&&(inh->FileHeader.PointerToSymbolTable != filePos))
-		return 3;
+		return "FileHeader: PointerToSymbolTable";
 	
 	// validate entry point
 	DWORD aoep = inh->OptionalHeader.AddressOfEntryPoint;
 	if((aoep)&&(peHeadChkRva(inh, aoep, 0) < 0))
-		return 2;
+		return "optional header: AddressOfEntryPoint";
 
 	// validate DataDirectory
 	auto dd = peHeadDataDir(inh);
 	FOR_FI(dd,d,i, if(d.rva == 0) continue;
 		if(i == IMAGE_DIRECTORY_ENTRY_SECURITY)	continue;
 		if(i != IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT) {
-			if(peHeadChkRva(inh, d.rva, d.size) < 0) return 2; }
+			if(peHeadChkRva(inh, d.rva, d.size) < 0)
+				return "DataDirectory"; }
 			
 		// validate bound import
-		else { if(d.rva < e_lfanew) return 2; u32 tmp; 
+		else { u32 tmp;
+			if(d.rva < e_lfanew) return "Bound Import";
 			if(ovf_add(tmp, d.rva, d.size)||(tmp>inh
-			->OptionalHeader.SizeOfHeaders)) return 2; }
+			->OptionalHeader.SizeOfHeaders))
+					return "Bound Import"; }
 	)
 
 	return 0;

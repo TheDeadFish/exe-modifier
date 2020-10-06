@@ -338,8 +338,7 @@ cch* PeFile::load(cch* fileName)
 	if(!file_xread(fp, imageData.data, headSize))
 		ERR(Corrupt_BadHeader3);
 	peHeadr = Void(imageData.data, dosSize);
-	if(peHeadChk2(peHeadr, dosSize))
-		ERR(Corrupt_BadHeader4);
+	IFRET(peHeadChk2(peHeadr, dosSize));
 
 	// unpack the header
 	IMAGE_SECTION_HEADER* ish = ioh_unpack(peHeadr);

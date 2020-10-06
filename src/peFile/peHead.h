@@ -68,7 +68,7 @@ struct PeOptHead
 
 SHITCALL int peMzChk(void* data, u32 size);
 SHITCALL int peHeadChk(IMAGE_NT_HEADERS64* inh, u32 e_lfanew, u32 size);
-SHITCALL int peHeadChk2(IMAGE_NT_HEADERS64* inh, u32 e_lfanew);
+SHITCALL cch* peHeadChk2(IMAGE_NT_HEADERS64* inh, u32 e_lfanew);
 SHITCALL int peHeadChkRva(IMAGE_NT_HEADERS64* inh, u32 rva, u32 len);
 SHITCALL int peHeadFinalize(IMAGE_NT_HEADERS64* inh);
 
