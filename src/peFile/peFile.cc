@@ -529,6 +529,19 @@ u32 PeFile::ptrToRva(void* ptr, u32 len) {
 	auto* sect = ptrToSect(ptr, len); if(!sect)
 	return 0; return sect->ptrRva(ptr); }
 
+u32 PeFile::addrToRva(u64 addr) {
+	addr -= ImageBase;
+	if(addr >> 32) return -1;
+	return addr;
+}
+
+Void PeFile::addrToPtr(u64 addr){
+	return rvaToPtr(addr, 0); }
+Void PeFile::addrToPtr(u64 addr, u32 len) {
+	addr -= ImageBase; if(addr >> 32) return 0;
+	return rvaToPtr(addr, len); }
+
+
 xarray<cch> PeFile::chkStr2(u32 rva)
 {
 	auto rng = rvaToPtr2(rva,1); byte* base = rng;

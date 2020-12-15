@@ -22,9 +22,11 @@ namespace PeFILE {
 	static bool chkAddrToRva64(u64& addr) {
 		addr -= baseAddr64(); return !RI(&addr,4); }
 	
-	static DWORD addrToRva(int addr) { return addr-baseAddr(); }
+	static DWORD addrToRva(u64 addr) { return peFile.addrToRva(addr); }
 	static DWORD& entryPoint() { return peFile.AddressOfEntryPoint; }
 	
+	static Void addrToPtr(u64 addr) { return peFile.addrToPtr(addr); }
+	static Void addrToPtr(u64 addr, u32 len) { return peFile.addrToPtr(addr, len); }
 	
 	
 	static void subsysGUI(void) {peFile.Subsystem

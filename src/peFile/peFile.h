@@ -144,6 +144,9 @@ struct PeFile : PeOptHead
 	u32 ptrToRva(void* ptr, u32 len);
 	
 	
+	u32 addrToRva(u64 addr);
+	Void addrToPtr(u64 addr);
+	Void addrToPtr(u64 addr, u32 len);
 	
 	u32 chkStr(void* ptr);
 	xarray<cch> chkStr2(u32 rva);
