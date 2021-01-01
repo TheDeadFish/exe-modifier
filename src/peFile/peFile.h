@@ -208,6 +208,10 @@ struct PeFile : PeOptHead
 	PeSymTab symtab;
 	
 	
+	#define PEFILE_ENUM_RELOCS(peFile, ...) \
+		for(u32 _bi_ = 0; _bi_ < peFile.relocs.size; _bi_++) { \
+		for(u32 rva : peFile.relocs.data[_bi_]) { \
+			rva += _bi_<<12; __VA_ARGS__; }}
 	
 private:
 	void getSections_();
