@@ -1,25 +1,13 @@
 #ifndef _PEFILE_H_
 #define _PEFILE_H_
 #include "peHead.h"
+#include "peReloc.h"
 
 namespace PeSecTyp { enum {	Exec = 1, Write = 2, 
 	Intd = 4, NoDisc = 8, NoPage = 16, Weird = -1,
 	Text = Exec | NoDisc | Intd, Data = Write | NoDisc | Intd,
 	RData = NoDisc | Intd,  Bss = Write | NoDisc, IData = Intd  };
 }
-
-struct PeReloc : xVectorW<xVectorW<u16>>
-{
-	void Add(u32 rva); 
-	bool Find(u32 rva);
-	void Remove(u32 rva);
-	void Remove(u32 rva, u32 length);
-	void Move(u32 rva, u32 length, int delta);
-	
-	bool Load(byte* data, u32 size, bool PE64);
-	u32 build_size(void);
-	void build(byte* data, bool PE64);
-};
 
 struct PeExcept
 {
@@ -206,13 +194,7 @@ struct PeFile : PeOptHead
 	PeReloc relocs;
 	PeExcept pdata;
 	PeSymTab symtab;
-	
-	
-	#define PEFILE_ENUM_RELOCS(peFile, ...) \
-		for(u32 _bi_ = 0; _bi_ < peFile.relocs.size; _bi_++) { \
-		for(u32 rva : peFile.relocs.data[_bi_]) { \
-			rva += _bi_<<12; __VA_ARGS__; }}
-	
+
 private:
 	void getSections_();
 	void symTab_build(PeSymTab::Build_t& sd);
