@@ -2,6 +2,7 @@
 #define _PEFILE_H_
 #include "peHead.h"
 #include "peReloc.h"
+#include "peSymTab.h"
 
 namespace PeSecTyp { enum {	Exec = 1, Write = 2, 
 	Intd = 4, NoDisc = 8, NoPage = 16, Weird = -1,
@@ -23,46 +24,6 @@ struct PeExcept
 	RtFunc* find(u32 rva, u32 len);
 	void kill(u32 rva, u32 len);
 };
-
-struct PeSymTab
-{
-	struct ObjSymbol {
-		union { char* name; char Name[8];
-		struct { DWORD Name1, Name2; }; };
-		DWORD Value; WORD Section;WORD Type;
-		BYTE StorageClass; BYTE NumberOfAuxSymbols;
-	} __attribute__((packed));
-	
-	
-
-	struct Symbol {
-		char* name; u32 rva;
-	};
-	
-	xArray<Symbol> symbol;
-	
-	
-	void add(char* name, u32 rva);
-	
-	
-	struct StrTable {
-		xVector<byte> data;
-		u32 add(char* str);
-	};
-
-	struct Build_t {
-		xArray<ObjSymbol> symData;
-		StrTable strTab;
-		void xwrite(FILE* fp);
-		
-		
-		
-		
-		bool hasData() { return symData.len
-			|| strTab.data.dataSize; }
-	};
-};
-
 
 struct PeFile : PeOptHead
 {
