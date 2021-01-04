@@ -6,65 +6,6 @@ enum { IMAGE_SCN_CNT_DATA =
 };
 
 struct PeDataDir {DWORD rva, size; };
-struct PeDataDirX { DWORD LoaderFlags;
-	DWORD dataDirSize; PeDataDir dataDir[16]; };
-
-struct PeOptHead
-{
-	WORD Machine;
-	WORD Characteristics;
-	DWORD TimeDateStamp;
-	
-	WORD Magic;
-	BYTE MajorLinkerVersion;
-	BYTE MinorLinkerVersion;
-	DWORD AddressOfEntryPoint;
-	ULONGLONG ImageBase;
-	DWORD SectionAlignment;
-	DWORD FileAlignment;
-	WORD MajorOperatingSystemVersion;
-	WORD MinorOperatingSystemVersion;
-	WORD MajorImageVersion;
-	WORD MinorImageVersion;
-	WORD MajorSubsystemVersion;
-	WORD MinorSubsystemVersion;
-	DWORD Win32VersionValue;
-	DWORD CheckSum;
-	WORD Subsystem;
-	WORD DllCharacteristics;
-	ULONGLONG SizeOfStackReserve;
-	ULONGLONG SizeOfStackCommit;
-	ULONGLONG SizeOfHeapReserve;
-	ULONGLONG SizeOfHeapCommit;
-	DWORD LoaderFlags;
-	
-	struct DataDir {DWORD rva, size; };
-	//DataDir dataDir_[IMAGE_NUMBEROF_DIRECTORY_ENTRIES];
-	
-	
-	//u32 ioh_calcSize(void);
-	
-	
-	
-	//void ioh_save(
-	
-	bool PE64() { return u8(Magic>>8) == 2; }
-	u32 ptrSize() { return PE64() ? 8 : 4; }
-	
-	
-	//xarray<byte> build(xarray<byte> dosHead
-	
-	IMAGE_SECTION_HEADER* ioh_pack(IMAGE_NT_HEADERS64* inh);
-	IMAGE_SECTION_HEADER* ioh_unpack(IMAGE_NT_HEADERS64* inh);
-	
-	
-	
-	
-	
-	
-	
-};
-
 
 SHITCALL int peMzChk(void* data, u32 size);
 SHITCALL int peHeadChk(IMAGE_NT_HEADERS64* inh, u32 e_lfanew, u32 size);

@@ -12,11 +12,20 @@ namespace PeSecTyp { enum {	Exec = 1, Write = 2,
 }
 
 
-struct PeFile : PeOptHead
+struct PeFile
 {
+	struct DataDir {DWORD rva, size; };
+
+	IMAGE_NT_HEADERS64* inh;
+	IMAGE_OPTIONAL_HEADER64& ioh() { return inh->OptionalHeader; }
 	
-	auto& dataDir(size_t i) { return dataDir_[i]; }
-	auto& dataDir() { return dataDir_; }
+	u64 ImageBase;
+	
+	bool PE64() { return peHead64(inh); }
+	u32 ptrSize() { return PE64() ? 8 : 4; }
+	
+	DataDir dataDir(size_t i);
+	bool setDataDir(size_t i, DataDir dd);
 	
 	struct Section : xarray<byte> {
 		DWORD allocSize, baseRva;
@@ -134,7 +143,7 @@ struct PeFile : PeOptHead
 	void setRes(void* data, DWORD size);
 	
 	static __fastcall xarray<byte> dataDirSectChk(
-		Section* sect, DataDir* dir, cch* name);
+		Section* sect, DataDir dir, cch* name);
 		
 	
 	

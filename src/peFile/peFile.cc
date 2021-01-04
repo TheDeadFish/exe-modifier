@@ -92,15 +92,15 @@ cch* PeFile::load(cch* fileName)
 
 	// unpack the header
 	this->inh = peHeadr;
-	
-	IMAGE_SECTION_HEADER* ish = ioh_unpack(peHeadr);
+	ImageBase = peHead_imageBase(peHeadr);
+	IMAGE_SECTION_HEADER* ish = peHeadSect(peHeadr);
 	if(dataDir(IDE_BOUNDIMP).rva) {
 		boundImp.xcopy(Void(peHeadr, dataDir(IDE_BOUNDIMP)
 			.rva-dosSize), dataDir(IDE_BOUNDIMP).size); }
 			
 	// load sections
 	sects.xcalloc(peHeadr->FileHeader.NumberOfSections);
-	int virtualPos = SectionAlignment;
+	int virtualPos = ioh().SectionAlignment;
 	for(auto& sect : sects) 
 	{
 		// validate section
@@ -185,12 +185,12 @@ void PeFile::getSections_(void)
 
 u32 PeFile::sectAlign(u32 value)
 {
-	return ALIGN(value, SectionAlignment-1);
+	return peHead_sectAlign(inh, value);
 }
 
 u32 PeFile::fileAlign(u32 value)
 {
-	return ALIGN(value, FileAlignment-1);
+	return peHead_fileAlign(inh, value);
 }
 
 DWORD PeFile::calcExtent(Void buff, DWORD length)

@@ -67,9 +67,9 @@ int PeFile::save(cch* fileName)
 
 	// initialize header
 	PeHeadWr inh(imageData, PE64(), sects.len, dosHeadr,
-		0, FileAlignment);
+		0, ioh().FileAlignment);
 	inh->FileHeader.NumberOfSections = sects.len;
-	IMAGE_SECTION_HEADER* ish = ioh_pack(inh);
+	IMAGE_SECTION_HEADER* ish = peHeadSect(inh);
 	inh.boundImpSet(boundImp);
 
 	// build section headers

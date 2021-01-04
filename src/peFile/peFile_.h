@@ -23,15 +23,15 @@ namespace PeFILE {
 		addr -= baseAddr64(); return !RI(&addr,4); }
 	
 	static DWORD addrToRva(u64 addr) { return peFile.addrToRva(addr); }
-	static DWORD& entryPoint() { return peFile.AddressOfEntryPoint; }
+	static DWORD& entryPoint() { return peFile.ioh().AddressOfEntryPoint; }
 	
 	static Void addrToPtr(u64 addr) { return peFile.addrToPtr(addr); }
 	static Void addrToPtr(u64 addr, u32 len) { return peFile.addrToPtr(addr, len); }
 	
 	
-	static void subsysGUI(void) {peFile.Subsystem
+	static void subsysGUI(void) {peFile.ioh().Subsystem
 		= IMAGE_SUBSYSTEM_WINDOWS_GUI; }
-	static void subsysCUI(void) {peFile.Subsystem
+	static void subsysCUI(void) {peFile.ioh().Subsystem
 		= IMAGE_SUBSYSTEM_WINDOWS_CUI; }
 		
 	static Void patchChk(int addr, int len) { return peFile.patchChk(addr, len); }
