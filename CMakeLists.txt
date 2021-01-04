@@ -14,6 +14,7 @@ add_library(peFile src/peFile/peHead.cc
 	src/peFile/peReloc.cc
 	src/peFile/peSymTab.cc
 	src/peFile/peExcept.cc
+	src/peFile/peFileWr.cc
 	
 	
 	)

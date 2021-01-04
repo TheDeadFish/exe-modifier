@@ -36,8 +36,8 @@ void file_skip(FILE* fp, int size)
 	if(size) fseek(fp, size, SEEK_CUR);
 }
 
-SHITSTATIC
-bool rebaseRsrc(byte* data, u32 size,
+
+bool peFile_rebaseRsrc(byte* data, u32 size,
 	int delta, u32 irdIdx)
 {
 	// peform bounds check
@@ -50,7 +50,7 @@ bool rebaseRsrc(byte* data, u32 size,
 	
 	// process directory entries
 	for(; entry < lastEnt; entry++) {
-		if( entry->DataIsDirectory ) { if(!rebaseRsrc(data,
+		if( entry->DataIsDirectory ) { if(!peFile_rebaseRsrc(data,
 			size, delta, entry->OffsetToDirectory)) return false;
 		} else { if(entry->OffsetToDirectory+4 > size) return false;
 			RI(data+entry->OffsetToDirectory) += delta;
@@ -58,142 +58,8 @@ bool rebaseRsrc(byte* data, u32 size,
 	} return true;
 }
 
-void PeFile::symTab_build(PeSymTab::Build_t& bd)
-{
-	for(auto& ss : symtab.symbol) {
-	
-		// create symbol
-		auto& sd = bd.symData.push_back();
-		sd.StorageClass = 2;
-		
-		// initialize the string
-		int len = strlen(ss.name);
-		if(len <= 8) { strncpy(sd.Name, ss.name, 8);
-		} else { sd.Name2 = bd.strTab.add(ss.name); }
-
-		// lookup the section
-		Section* sect = rvaToSect(ss.rva,0);
-		assert(sect != NULL);
-		sd.Section = iSect(sect)+1;
-		sd.Value = ss.rva-sect->baseRva;
-	}
-}
-
-#define ARGKILL(arg) asm("" : "=m"(arg));
-
-// bit-array manipulation
-#define rBTST(v,i)({bool rbrt_;asm("bt %1, %k2;":"=@ccc"(rbrt_):"ir"(i),"g"(v));rbrt_;})
-#define rBINV(v,i)({bool rbrt_;asm("btc %2, %k1;":"=@ccc"(rbrt_),"+g"(v):"ir"(i));rbrt_;})
-#define rBRST(v,i)({bool rbrt_;asm("btr %2, %k1;":"=@ccc"(rbrt_),"+g"(v):"ir"(i));rbrt_;})
-#define pBSET(v,i)({bool rbrt_;asm("bts %2, %k1;":"=@ccc"(rbrt_),"+g"(v):"ir"(i));rbrt_;})
-	
-static void pe_checkSum(u16& checkSum,
-	byte* data, u32 size)
-{
-	for(int i = 0; i < size; i += 2) {
-		u32 tmp = checkSum + RW(data+i);
-		checkSum = tmp + (tmp>>16); }
-}
-
-int PeFile::save(cch* fileName)
-{
-	assert(this->mappMode == false);
-
-	// rebuild relocs
-	SCOPE_EXIT(sectResize(relocSect, 0));
-	DataDir ddTmp = {0,0};
-	if(relocSect != NULL) { sectResize(
-		relocSect, relocs.build_size());
-		relocs.build(relocSect->data, PE64());
-		ddTmp = relocSect->dataDir();
-	} dataDir(IDE_BASERELOC) = ddTmp;
-	
-	// rebase resources
-	SCOPE_EXIT(if(rsrcSect) rebaseRsrc(rsrcSect->data, 
-		rsrcSect->len, -rsrcSect->baseRva, 0));
-	ddTmp = {0,0};	
-	if(rsrcSect != NULL) { rebaseRsrc(rsrcSect->data, 
-		rsrcSect->len, rsrcSect->baseRva, 0); 
-		ddTmp = rsrcSect->dataDir();
-	} dataDir(IDE_RESOURCE) = ddTmp;
-	
-	// rebase exceptions
-	//if(pdataSect != NULL) { 
-	//	pdata.Rebase(pdataSect->baseRva); }
-	
-	// tmp: reconstruct dos-header
-	xarray<byte> dosHeadr = {imageData.data, 
-		((IMAGE_DOS_HEADER*)imageData.data)->e_lfanew};
-
-	// initialize header
-	PeHeadWr inh(PE64(), sects.len, dosHeadr,
-		boundImp.len, FileAlignment);
-	inh->FileHeader.NumberOfSections = sects.len;
-	IMAGE_SECTION_HEADER* ish = ioh_pack(inh);
-	inh.boundImpSet(boundImp);
-
-	// build section headers
-	IMAGE_SECTION_HEADER *ish0; 
-	ARGKILL(ish0); ish0 = ish; 
-	for(auto& sect : sects) 
-	{
-		strncpy((char*)ish->Name, sect.name, 8);
-		ish->Misc.VirtualSize = sect.len;
-		ish->VirtualAddress = sect.baseRva;
-		ish->Characteristics = sect.Characteristics;
-		ish->SizeOfRawData = sect.extent(*this);
-		INCP(ish);
-	}
-	
-	u32 filePos = peHeadFinalize(inh);
-
-	// existing symbol table
-	if(nSymbols >= 0) {
-		inh->FileHeader.PointerToSymbolTable = filePos;
-		inh->FileHeader.NumberOfSymbols = nSymbols; }
-		
-	// build symbol table
-	PeSymTab::Build_t symData;
-	symTab_build(symData);
-	if(symData.hasData()) {
-		inh->FileHeader.PointerToSymbolTable = filePos;
-		inh->FileHeader.NumberOfSymbols = symData.symData.len;
-	}
-
-	// calculate checksum
-	//u16 checkSum = 0; pe_checkSum(checkSum, 
-	//	headrBuff, headrSize); ish = Void(ish0);
-	//for(auto& sect : sects) { if(sect.data) { pe_checkSum(
-	//	checkSum, sect.data, ish->SizeOfRawData); } ish++; }
-	//pe_checkSum(checkSum, fileExtra.data, fileExtra.size);
-	//inh->OptionalHeader.CheckSum = checkSum + filePos + fileExtra.size;
-	
-	// write sections
-	FILE* fp = xfopen(fileName, "wb");
-	if(!fp) return 1; xfwrite(inh.data, inh.size, fp);
-	ish = Void(ish0);	for(auto& sect : sects) { if(sect.data) {
-		xfwrite(sect.data, ish->SizeOfRawData, fp); } ish++; }
-	symData.xwrite(fp);
-	xfwrite(fileExtra.data, fileExtra.len, fp);
-	
-	fclose(fp); return 0;
-}
-
 PeFile::~PeFile() {}
 void PeFile::Free() { this->~PeFile(); ZINIT; }
-
-
-
-int PeFile::Section::resize(PeFile* This, u32 sz)
-{
-	assert(This->mappMode == false);
-	
-	u32 allocSize2 = This->sectAlign(sz);
-	void* ptr = xrealloc(data, allocSize2);
-	u32 base = min(len, sz); len = sz;
-	memset(ptr+base, 0, allocSize2-base);
-	return allocSize2-::release(allocSize, allocSize2);
-}
 
 cch* PeFile::load(cch* fileName)
 {
@@ -284,7 +150,7 @@ cch* PeFile::load(cch* fileName)
 	//}
 	
 	if(rsrcSect) {
-		if(!rebaseRsrc(rsrcSect->data, rsrcSect->len, 
+		if(!peFile_rebaseRsrc(rsrcSect->data, rsrcSect->len, 
 			-rsrcSect->baseRva, 0)) ERR(Corrupt_Rsrc);
 	}
 	
@@ -314,61 +180,6 @@ void PeFile::getSections_(void)
 	}
 }
 
-void PeFile::sectResize(Section* sect, u32 size)
-{
-	if(sect == NULL) return;
-	int delta = sect->resize(this, size);
-	if(++sect >= sects.end()) return;
-	for(auto& dir : dataDir()) if(dir.rva >=
-		sect->baseRva) dir.rva += delta; 
-	for(; sect < sects.end(); sect++)
-		sect->baseRva += delta;
-}
-
-
-#if 0
-int main()
-{
-	PeFile peFile;
-	cch* ret = peFile.load("user32.dll");
-	printf("!!%s\n", ret);
-	
-	printf("%X\n", peFile.MajorLinkerVersion);
-	printf("%X\n", peFile.MinorLinkerVersion);
-	printf("%X\n", peFile.AddressOfEntryPoint);
-	printf("%I64X\n", peFile.ImageBase);
-	printf("%X\n", peFile.SectionAlignment);
-	printf("%X\n", peFile.FileAlignment);
-	printf("%X\n", peFile.MajorOperatingSystemVersion);
-	printf("%X\n", peFile.MinorOperatingSystemVersion);
-	printf("%X\n", peFile.MajorImageVersion);
-	printf("%X\n", peFile.MinorImageVersion);
-	printf("%X\n", peFile.MajorSubsystemVersion);
-	printf("%X\n", peFile.MinorSubsystemVersion);
-	printf("%X\n", peFile.Win32VersionValue);
-	printf("%X\n", peFile.Subsystem);
-	printf("%I64X\n", peFile.SizeOfStackReserve);
-	printf("%I64X\n", peFile.SizeOfStackCommit);
-	printf("%I64X\n", peFile.SizeOfHeapReserve);
-	printf("%I64X\n", peFile.SizeOfHeapCommit);
-	printf("%X\n\n", peFile.LoaderFlags);
-	
-	for(int i = 0; i < 16; i++) {
-		printf("%X, %X\n", peFile.dataDir[i].rva,
-			peFile.dataDir[i].size); }
-	
-	
-	
-	peFile.save("out.exe");
-
-
-
-
-
-
-}
-
-#endif
 
 u32 PeFile::sectAlign(u32 value)
 {
@@ -433,16 +244,6 @@ xarray<cch> PeFile::chkStr2(u32 rva)
 	if(!rng.fi()) return {(cch*)base, (cch*)rng.data}; }
 }
 
-/*
-bool PeFile::Section::normSect(cch* name)
-{
-	static cch* names[] = {
-	".text", ".rdata", ".data", ".bss",
-	"INIT", "PAGE", ".idata", ".CRT", ".tls" };
-	for(cch* nm) if(strScmp(name, nm)) return true;
-	return false;
-}*/
-
 int PeFile::Section::type(void)
 {
 	return type(Characteristics);
@@ -468,34 +269,6 @@ u32 PeFile::Section::extent(PeFile& peFile)
 		calcExtent(data, len));
 }
 
-int PeFile::sectCreate(cch* name, DWORD ch)
-{
-	assert(this->mappMode == false);
-
-	// perform the insertion
-	int insIdx = iSect2(extendSect)+1;
-	sects.xresize(sects.len+1); 
-	memmove(sects.data+insIdx+1, sects.data+insIdx,
-		(sects.len-(insIdx+1))*sizeof(Section));
-	
-	// initialize section
-	memset(sects+insIdx, 0, sizeof(Section));
-	strcpy(sects[insIdx].name, name);
-	sects[insIdx].Characteristics = ch;
-	if(insIdx > 0) sects[insIdx].baseRva
-		= sects[insIdx-1].endPage();
-	getSections_(); return insIdx;
-}
-
-
-void PeFile::Section::updateType(int type)
-{
-	Characteristics = and_or(
-		Characteristics, getType(type),
-		IMAGE_SCN_CNT_UNINITIALIZED_DATA|
-		IMAGE_SCN_MEM_DISCARDABLE
-	);
-}
 
 DWORD PeFile::Section::getType(int type)
 {
@@ -510,16 +283,3 @@ DWORD PeFile::Section::getType(int type)
 	return ch;
 }
 
-int PeFile::sectCreate2(cch* name, int type)
-{
-	DWORD ch = Section::getType(type);
-	return sectCreate(name, ch);
-}
-
-void PeFile::setRes(void* data, DWORD size)
-{
-	if(rsrcSect == NULL)
-		sectCreate(".rsrc", 0x40000040);
-	sectResize(rsrcSect, size);
-	memcpy(rsrcSect->data, data, size);
-}
