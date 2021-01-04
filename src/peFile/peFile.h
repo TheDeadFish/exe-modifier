@@ -3,6 +3,7 @@
 #include "peHead.h"
 #include "peReloc.h"
 #include "peSymTab.h"
+#include "peExcept.h"
 
 namespace PeSecTyp { enum {	Exec = 1, Write = 2, 
 	Intd = 4, NoDisc = 8, NoPage = 16, Weird = -1,
@@ -10,20 +11,6 @@ namespace PeSecTyp { enum {	Exec = 1, Write = 2,
 	RData = NoDisc | Intd,  Bss = Write | NoDisc, IData = Intd  };
 }
 
-struct PeExcept
-{
-	struct RtFunc {
-		DWORD start, end, addr; };
-	xarray<RtFunc> funcs;
-	
-	bool Load(byte* data, u32 size, u32 rva);
-	void Rebase(u32 rva);
-	
-	
-	
-	RtFunc* find(u32 rva, u32 len);
-	void kill(u32 rva, u32 len);
-};
 
 struct PeFile : PeOptHead
 {
