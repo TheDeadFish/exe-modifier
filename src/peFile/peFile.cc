@@ -91,6 +91,8 @@ cch* PeFile::load(cch* fileName)
 	IFRET(peHeadChk2(peHeadr, dosSize));
 
 	// unpack the header
+	this->inh = peHeadr;
+	
 	IMAGE_SECTION_HEADER* ish = ioh_unpack(peHeadr);
 	if(dataDir(IDE_BOUNDIMP).rva) {
 		boundImp.xcopy(Void(peHeadr, dataDir(IDE_BOUNDIMP)
@@ -137,7 +139,7 @@ cch* PeFile::load(cch* fileName)
 	// load relocations
 	this->getSections_(); 
 	if(relocSect) {
-		auto data = dataDirSectChk(relocSect, &dataDir(IDE_BASERELOC), "reloc");
+		auto data = dataDirSectChk(relocSect, dataDir(IDE_BASERELOC), "reloc");
 		if(!data || !relocs.Load(data, data.len, PE64())) ERR(Corrupt_Relocs);
 		if(!mappMode) sectResize(relocSect, 0);
 	}
@@ -159,13 +161,13 @@ cch* PeFile::load(cch* fileName)
 }
 
 xarray<byte> PeFile::dataDirSectChk(
-	Section* sect, DataDir* dir, cch* name)
+	Section* sect, DataDir dir, cch* name)
 {
-	if((sect->baseRva != dir->rva)||(sect->len < dir->size)) return {0,0};
-	if(sect->len != dir->size) {
-		if(calcExtent(sect->data, sect->len) > dir->size) return {0,0};
+	if((sect->baseRva != dir.rva)||(sect->len < dir.size)) return {0,0};
+	if(sect->len != dir.size) {
+		if(calcExtent(sect->data, sect->len) > dir.size) return {0,0};
 		fprintf(stderr, "warning: %s section oversized\n", name); } 
-	return {sect->data, dir->size};
+	return {sect->data, dir.size};
 }
 
 void PeFile::getSections_(void)
@@ -283,3 +285,17 @@ DWORD PeFile::Section::getType(int type)
 	return ch;
 }
 
+PeFile::DataDir PeFile::dataDir(size_t i)
+{
+	auto dd = peHeadDataDir(inh);
+	if(i >= dd.len) return {0,0};
+	return bit_cast<DataDir>(dd[i]);
+}
+
+bool PeFile::setDataDir(size_t i, DataDir dir)
+{
+	auto dd = peHeadDataDir(inh);
+	if(i >= dd.len) return false;
+	dd[i] = bit_cast<PeDataDir>(dir);
+	return true;
+}

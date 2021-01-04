@@ -101,8 +101,7 @@ void PeImport::build(PeBlock* blocks)
 		dir.FirstThunk = blocks->baseRva; blocks++; }
 
 	// import descriptor
-	peFile().dataDir(peFile().IDE_IMPORT).rva = blocks->baseRva;
-	peFile().dataDir(peFile().IDE_IMPORT).size = blocks->length;
+	peFile().setDataDir(peFile().IDE_IMPORT, {blocks->baseRva, blocks->length});
 	IMAGE_IMPORT_DESCRIPTOR* impDesc = Void(blocks->data);
 	memset(impDesc, 0, blocks->length); blocks++;
 	for(int i = 0; i < imports.len; i++, blocks++) {

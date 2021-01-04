@@ -45,8 +45,14 @@ IMAGE_SECTION_HEADER* PeOptHead::ioh_unpack(IMAGE_NT_HEADERS64* inh)
 		pack_extra(this, (IMAGE_OPTIONAL_HEADER32*)ioh);
 		
 	LoaderFlags = dd->LoaderFlags;
-	return memcpyY(dataDir_, 
-		dd->dataDir, dd->dataDirSize);
+	
+	
+	
+	
+	
+	//return memcpyY(dataDir_, 
+	//	dd->dataDir, dd->dataDirSize);
+	return peHeadSect(inh);
 }
 
 
@@ -68,7 +74,10 @@ IMAGE_SECTION_HEADER* PeOptHead::ioh_pack(IMAGE_NT_HEADERS64* inh)
 	
 	dd->LoaderFlags = LoaderFlags;
 	dd->dataDirSize = 0x10;
-	return memcpyX(dd->dataDir, dataDir_, 16);
+	//return memcpyX(dd->dataDir, dataDir_, 16);
+	
+	return peHeadSect(inh); 
+	
 }
 
 int peMzChk(void* data, u32 size)
@@ -219,4 +228,12 @@ SHITCALL int peHeadFinalize(IMAGE_NT_HEADERS64* inh)
 	}
 		
 	return filePos;
+}
+
+void peFile_adjustDataDir(
+	IMAGE_NT_HEADERS64* inh, u32 rva, u32 delta)
+{
+	auto dd = peHeadDataDir(inh);
+	max_ref(dd.len, IMAGE_NUMBEROF_DIRECTORY_ENTRIES);
+	for(auto& dir : dd) { if(dir.rva >= rva) dir.rva += delta; }
 }

@@ -66,8 +66,8 @@ int PeFile::save(cch* fileName)
 		((IMAGE_DOS_HEADER*)imageData.data)->e_lfanew};
 
 	// initialize header
-	PeHeadWr inh(PE64(), sects.len, dosHeadr,
-		boundImp.len, FileAlignment);
+	PeHeadWr inh(imageData, PE64(), sects.len, dosHeadr,
+		0, FileAlignment);
 	inh->FileHeader.NumberOfSections = sects.len;
 	IMAGE_SECTION_HEADER* ish = ioh_pack(inh);
 	inh.boundImpSet(boundImp);
@@ -135,8 +135,9 @@ void PeFile::sectResize(Section* sect, u32 size)
 	if(sect == NULL) return;
 	int delta = sect->resize(this, size);
 	if(++sect >= sects.end()) return;
-	for(auto& dir : dataDir()) if(dir.rva >=
-		sect->baseRva) dir.rva += delta; 
+	
+	peFile_adjustDataDir(inh, sect->baseRva, delta);
+
 	for(; sect < sects.end(); sect++)
 		sect->baseRva += delta;
 }
