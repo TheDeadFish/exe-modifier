@@ -94,9 +94,6 @@ cch* PeFile::load(cch* fileName)
 	this->inh = peHeadr;
 	ImageBase = peHead_imageBase(peHeadr);
 	IMAGE_SECTION_HEADER* ish = peHeadSect(peHeadr);
-	if(dataDir(IDE_BOUNDIMP).rva) {
-		boundImp.xcopy(Void(peHeadr, dataDir(IDE_BOUNDIMP)
-			.rva-dosSize), dataDir(IDE_BOUNDIMP).size); }
 			
 	// load sections
 	sects.xcalloc(peHeadr->FileHeader.NumberOfSections);

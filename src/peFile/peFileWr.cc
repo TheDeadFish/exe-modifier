@@ -61,16 +61,11 @@ int PeFile::save(cch* fileName)
 	//if(pdataSect != NULL) { 
 	//	pdata.Rebase(pdataSect->baseRva); }
 	
-	// tmp: reconstruct dos-header
-	xarray<byte> dosHeadr = {imageData.data, 
-		((IMAGE_DOS_HEADER*)imageData.data)->e_lfanew};
-
 	// initialize header
-	PeHeadWr inh(imageData, PE64(), sects.len, dosHeadr,
-		0, ioh().FileAlignment);
+	//size = peHead_fileAlign(inh, peHeadSize(inh, nSects) + dosHeadr.len);
+	//inh->OptionalHeader.SizeOfHeaders = size;
 	inh->FileHeader.NumberOfSections = sects.len;
 	IMAGE_SECTION_HEADER* ish = peHeadSect(inh);
-	inh.boundImpSet(boundImp);
 
 	// build section headers
 	IMAGE_SECTION_HEADER *ish0; 
@@ -110,7 +105,8 @@ int PeFile::save(cch* fileName)
 	
 	// write sections
 	FILE* fp = xfopen(fileName, "wb");
-	if(!fp) return 1; xfwrite(inh.data, inh.size, fp);
+	u32 size = fileAlign(ioh().SizeOfHeaders);
+	if(!fp) return 1; xfwrite(imageData.data, size, fp);
 	ish = Void(ish0);	for(auto& sect : sects) { if(sect.data) {
 		xfwrite(sect.data, ish->SizeOfRawData, fp); } ish++; }
 	symData.xwrite(fp);

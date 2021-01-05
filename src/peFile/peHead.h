@@ -58,6 +58,7 @@ int peHeadSkip(IMAGE_NT_HEADERS64* inh)
 		SizeOfHeaders)-inh->OptionalHeader.SizeOfHeaders;
 }
 
+#if 0
 static inline
 int peHeadSize(bool PE64, int nSects)
 {
@@ -65,47 +66,7 @@ int peHeadSize(bool PE64, int nSects)
 		: sizeof(IMAGE_NT_HEADERS32))
 		+ sizeof(IMAGE_SECTION_HEADER)*nSects;
 }
-
-struct PeHeadWr
-{
-	byte* data; 
-	IMAGE_NT_HEADERS64* inh;
-	u32 size, boundImpOfs;
-	
-	operator IMAGE_NT_HEADERS64*()  { return inh; }
-	IMAGE_NT_HEADERS64* operator->(){ return inh; }
-	PeDataDir& dd(int i) { return peHeadDataDir(inh)[i]; }
-	
-	//~PeHeadWr() { free(data); }
-
-	PeHeadWr(byte* data_, bool PE64, u32 nSects, xarray<byte> dosHeadr,
-		u32 boundImpSz, u32 fileAlign)
-	{
-		boundImpOfs = peHeadSize(PE64, nSects) + dosHeadr.len;
-		size = ALIGN(boundImpOfs+boundImpSz, fileAlign-1);	
-		//data = xcalloc(size);
-		data = data_;
-		
-		//inh = memcpyX(data, dosHeadr.data, dosHeadr.len);
-		
-		inh = Void(data + dosHeadr.len);
-		
-		
-		
-		
-		
-		inh->OptionalHeader.SizeOfHeaders = size;
-	}
-	
-	void boundImpSet(xarray<byte> boundImp) 
-	{
-		//u32 rva = boundImp.len ? boundImpOfs : 0;
-		dd(IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT).size = 0;
-		dd(IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT).rva = 0;
-		//memcpyX(data+boundImpOfs, boundImp.data, boundImp.len);
-	}
-	
-};
+#endif
 
 __thiscall
 void peFile_adjustDataDir(

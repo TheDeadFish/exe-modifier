@@ -63,7 +63,7 @@ struct PeFile
 	};
 	
 	xArray<byte> imageData;
-	xarray<byte> boundImp;
+	
 	xArray<byte> fileExtra;
 	int nSymbols;
 	
@@ -144,6 +144,10 @@ struct PeFile
 	
 	static __fastcall xarray<byte> dataDirSectChk(
 		Section* sect, DataDir dir, cch* name);
+		
+	void boundImp_clear() {
+		setDataDir(IDE_BOUNDIMP, {}); 
+	}
 		
 	
 	

@@ -96,7 +96,7 @@ xarray<PeBlock> PeImport::getBlocks(void)
 void PeImport::build(PeBlock* blocks)
 {
 	// import address table
-	if(blocks == NULL) return; peFile().boundImp.Clear();
+	if(blocks == NULL) return; peFile().boundImp_clear();
 	for(auto& dir : imports) if(dir.FirstThunk == 0) {
 		dir.FirstThunk = blocks->baseRva; blocks++; }
 
