@@ -17,6 +17,7 @@ struct PeFile
 	struct DataDir {DWORD rva, size; };
 
 	IMAGE_NT_HEADERS64* inh;
+
 	IMAGE_OPTIONAL_HEADER64& ioh() { return inh->OptionalHeader; }
 	
 	u64 ImageBase;
@@ -29,8 +30,11 @@ struct PeFile
 	
 	struct Section : xarray<byte> {
 		DWORD allocSize, baseRva;
-		DWORD Characteristics;
-		char name[9]; bool noFree;
+		
+		IMAGE_SECTION_HEADER* ish;
+		
+
+		bool noFree;
 		
 		
 		DWORD endRva() { return baseRva+len; }
@@ -39,6 +43,10 @@ struct PeFile
 		Void rvaPtr(u32 rva) { return data+(rva-baseRva); }
 		u32 ptrRva(void* p) { return PTRDIFF(p,data)+baseRva; }
 		u32 extent(PeFile& peFile);
+		
+		
+		int namecmp(cch* name);
+		
 		
 		
 		

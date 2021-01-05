@@ -106,8 +106,8 @@ cch* PeFile::load(cch* fileName)
 			ERR(Unsupported_SectDbgInfo);
 			
 		// read section info
-		strncpy(sect.name, (char*)ish->Name, 8);
-		sect.Characteristics = ish->Characteristics;			
+
+
 		sect.baseRva = ish->VirtualAddress;
 			
 		// allocate section
@@ -170,11 +170,15 @@ xarray<byte> PeFile::dataDirSectChk(
 void PeFile::getSections_(void)
 {
 	rsrcSect = NULL; relocSect = NULL;
+	
+	IMAGE_SECTION_HEADER* ish = peHeadSect(inh);
 	for(auto& sect : sects) {
+		sect.ish = ish++;
+	
 		//if(!strcmp(sect.name, ".pdata")) pdataSect = &sect;
-		if(!strcmp(sect.name, ".rsrc")) rsrcSect = &sect;
-		ei(!strcmp(sect.name, ".reloc")) relocSect = &sect;
-		ei((strcmp(sect.name, ".debug") && !rsrcSect
+		if(!sect.namecmp(".rsrc")) rsrcSect = &sect;
+		ei(!sect.namecmp(".reloc")) relocSect = &sect;
+		ei((sect.namecmp(".debug") && !rsrcSect
 			&& !relocSect)) extendSect = &sect;	
 	}
 }
@@ -245,7 +249,7 @@ xarray<cch> PeFile::chkStr2(u32 rva)
 
 int PeFile::Section::type(void)
 {
-	return type(Characteristics);
+	return type(ish->Characteristics);
 }
 
 int PeFile::Section::type(DWORD ch)
@@ -295,4 +299,9 @@ bool PeFile::setDataDir(size_t i, DataDir dir)
 	if(i >= dd.len) return false;
 	dd[i] = bit_cast<PeDataDir>(dir);
 	return true;
+}
+
+int PeFile::Section::namecmp(cch* name)
+{
+	return strncmp((char*)ish->Name, name, 8);
 }

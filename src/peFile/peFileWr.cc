@@ -72,10 +72,8 @@ int PeFile::save(cch* fileName)
 	ARGKILL(ish0); ish0 = ish; 
 	for(auto& sect : sects) 
 	{
-		strncpy((char*)ish->Name, sect.name, 8);
 		ish->Misc.VirtualSize = sect.len;
 		ish->VirtualAddress = sect.baseRva;
-		ish->Characteristics = sect.Characteristics;
 		ish->SizeOfRawData = sect.extent(*this);
 		INCP(ish);
 	}
@@ -138,7 +136,6 @@ void PeFile::sectResize(Section* sect, u32 size)
 		sect->baseRva += delta;
 }
 
-
 int PeFile::sectCreate(cch* name, DWORD ch)
 {
 	assert(this->mappMode == false);
@@ -148,11 +145,19 @@ int PeFile::sectCreate(cch* name, DWORD ch)
 	sects.xresize(sects.len+1); 
 	memmove(sects.data+insIdx+1, sects.data+insIdx,
 		(sects.len-(insIdx+1))*sizeof(Section));
+		
+	// perform the insertion
+	IMAGE_SECTION_HEADER* ish = peHeadSect(inh);
+	u32 size = PTRDIFF(ish + inh->FileHeader.NumberOfSections + 1, imageData.data);
+	
+	
+	inh->FileHeader.NumberOfSections += 1;
+	ish = Void(array_insclr(imageData+size, ish+insIdx, sizeof(*ish)));
+	ish->Characteristics = ch;
+	strncpy((char*)ish->Name, name, 8);
 	
 	// initialize section
 	memset(sects+insIdx, 0, sizeof(Section));
-	strcpy(sects[insIdx].name, name);
-	sects[insIdx].Characteristics = ch;
 	if(insIdx > 0) sects[insIdx].baseRva
 		= sects[insIdx-1].endPage();
 	getSections_(); return insIdx;
@@ -161,8 +166,8 @@ int PeFile::sectCreate(cch* name, DWORD ch)
 
 void PeFile::Section::updateType(int type)
 {
-	Characteristics = and_or(
-		Characteristics, getType(type),
+	ish->Characteristics = and_or(
+		ish->Characteristics, getType(type),
 		IMAGE_SCN_CNT_UNINITIALIZED_DATA|
 		IMAGE_SCN_MEM_DISCARDABLE
 	);
