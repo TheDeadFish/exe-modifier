@@ -29,19 +29,25 @@ struct PeFile
 	bool setDataDir(size_t i, DataDir dd);
 	
 	struct Section : xarray<byte> {
-		DWORD allocSize, baseRva;
+		DWORD allocSize;
 		
 		IMAGE_SECTION_HEADER* ish;
+		
+		DWORD& baseRva() { return ish->VirtualAddress; }
 		
 
 		bool noFree;
 		
 		
-		DWORD endRva() { return baseRva+len; }
-		DWORD endPage() { return baseRva+allocSize; }
-		DataDir dataDir() { return {baseRva,len}; }
-		Void rvaPtr(u32 rva) { return data+(rva-baseRva); }
-		u32 ptrRva(void* p) { return PTRDIFF(p,data)+baseRva; }
+		
+		
+		
+		
+		DWORD endRva() { return baseRva()+len; }
+		DWORD endPage() { return baseRva()+allocSize; }
+		DataDir dataDir() { return {baseRva(),len}; }
+		Void rvaPtr(u32 rva) { return data+(rva-baseRva()); }
+		u32 ptrRva(void* p) { return PTRDIFF(p,data)+baseRva(); }
 		u32 extent(PeFile& peFile);
 		
 		

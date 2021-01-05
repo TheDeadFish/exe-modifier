@@ -21,7 +21,7 @@ void PeFile::symTab_build(PeSymTab::Build_t& bd)
 		Section* sect = rvaToSect(ss.rva,0);
 		assert(sect != NULL);
 		sd.Section = iSect(sect)+1;
-		sd.Value = ss.rva-sect->baseRva;
+		sd.Value = ss.rva-sect->baseRva();
 	}
 }
 
@@ -50,10 +50,10 @@ int PeFile::save(cch* fileName)
 	
 	// rebase resources
 	SCOPE_EXIT(if(rsrcSect) peFile_rebaseRsrc(rsrcSect->data, 
-		rsrcSect->len, -rsrcSect->baseRva, 0));
+		rsrcSect->len, -rsrcSect->baseRva(), 0));
 	ddTmp = {0,0};	
 	if(rsrcSect != NULL) { peFile_rebaseRsrc(rsrcSect->data, 
-		rsrcSect->len, rsrcSect->baseRva, 0); 
+		rsrcSect->len, rsrcSect->baseRva(), 0); 
 		ddTmp = rsrcSect->dataDir();
 	} dataDir(IDE_RESOURCE) = ddTmp;
 	
@@ -73,7 +73,6 @@ int PeFile::save(cch* fileName)
 	for(auto& sect : sects) 
 	{
 		ish->Misc.VirtualSize = sect.len;
-		ish->VirtualAddress = sect.baseRva;
 		ish->SizeOfRawData = sect.extent(*this);
 		INCP(ish);
 	}
@@ -130,10 +129,10 @@ void PeFile::sectResize(Section* sect, u32 size)
 	int delta = sect->resize(this, size);
 	if(++sect >= sects.end()) return;
 	
-	peFile_adjustDataDir(inh, sect->baseRva, delta);
+	peFile_adjustDataDir(inh, sect->baseRva(), delta);
 
 	for(; sect < sects.end(); sect++)
-		sect->baseRva += delta;
+		sect->baseRva() += delta;
 }
 
 int PeFile::sectCreate(cch* name, DWORD ch)
@@ -158,7 +157,7 @@ int PeFile::sectCreate(cch* name, DWORD ch)
 	
 	// initialize section
 	memset(sects+insIdx, 0, sizeof(Section));
-	if(insIdx > 0) sects[insIdx].baseRva
+	if(insIdx > 0) ish->VirtualAddress
 		= sects[insIdx-1].endPage();
 	getSections_(); return insIdx;
 }

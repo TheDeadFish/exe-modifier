@@ -59,7 +59,7 @@ Void FreeLst::mark(u32 rva, u32 len, u32 align) {
 Void FreeLst::mark(u32 rva, u32 len, u32 align, bool doMark)
 {
 	auto* sect = peFile->rvaToSect(rva, len); 
-	if(!sect) return NULL; rva -= sect->baseRva; 
+	if(!sect) return NULL; rva -= sect->baseRva(); 
 	FreeLst2_t::mark(this, sizeof(FreeLst2_t), 
 		rva, rva+len, align, sect-peFile->sects);
 	return sect->data + rva;
@@ -212,7 +212,7 @@ bool FreeSect::resolveBlocks(xarray<PeBlock> blocks)
 			sects[block.peSect-1].iSect];
 		sect.updateType(block.type);
 		block.data = sect.data+block.baseRva;
-		block.baseRva += sect.baseRva;
+		block.baseRva += sect.baseRva();
 		memset(block.data, 0, block.length);		
 	}
 	

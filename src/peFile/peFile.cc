@@ -104,15 +104,10 @@ cch* PeFile::load(cch* fileName)
 		if(ish->PointerToRelocations || ish->PointerToLinenumbers
 		|| ish->NumberOfRelocations ||ish->NumberOfLinenumbers )
 			ERR(Unsupported_SectDbgInfo);
-			
-		// read section info
 
-
-		sect.baseRva = ish->VirtualAddress;
-			
 		// allocate section
 		if(mappMode) { sect.noFree = true;
-			sect.init(imageData+sect.baseRva, ish->Misc.VirtualSize);
+			sect.init(imageData+ish->VirtualAddress, ish->Misc.VirtualSize);
 		} else { sect.resize(this, ish->Misc.VirtualSize); }
 		
 		// read section data
@@ -150,7 +145,7 @@ cch* PeFile::load(cch* fileName)
 	
 	if(rsrcSect) {
 		if(!peFile_rebaseRsrc(rsrcSect->data, rsrcSect->len, 
-			-rsrcSect->baseRva, 0)) ERR(Corrupt_Rsrc);
+			-rsrcSect->baseRva(), 0)) ERR(Corrupt_Rsrc);
 	}
 	
 
@@ -160,7 +155,7 @@ cch* PeFile::load(cch* fileName)
 xarray<byte> PeFile::dataDirSectChk(
 	Section* sect, DataDir dir, cch* name)
 {
-	if((sect->baseRva != dir.rva)||(sect->len < dir.size)) return {0,0};
+	if((sect->baseRva() != dir.rva)||(sect->len < dir.size)) return {0,0};
 	if(sect->len != dir.size) {
 		if(calcExtent(sect->data, sect->len) > dir.size) return {0,0};
 		fprintf(stderr, "warning: %s section oversized\n", name); } 
@@ -207,7 +202,7 @@ PeFile::Section* PeFile::ptrToSect(void* ptr, u32 len) {
 	for(auto& sect : sects) { if((sect.data <= (byte*)ptr)
 	  &&( sect.end() >= (byte*)ptr+len)) return &sect; } return 0; }
 PeFile::Section* PeFile::rvaToSect(u32 rva, u32 len) {
-	FOR_REV(auto& sect, sects, if(( sect.baseRva <= rva ) 
+	FOR_REV(auto& sect, sects, if(( sect.baseRva() <= rva ) 
 	  &&( sect.endRva() >= (rva+len))) return &sect; ) return 0; }
 	  
 Void PeFile::patchChk(u64 addr, u32 len) {
