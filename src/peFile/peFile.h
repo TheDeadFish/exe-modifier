@@ -37,6 +37,7 @@ struct PeFile
 		DWORD& baseRva() { return ish->VirtualAddress; }
 		DWORD& len() { return ish->Misc.VirtualSize; }
 		
+		xarray<byte> xa() { return { data, len() }; }
 
 		bool noFree;
 		
