@@ -64,7 +64,6 @@ int PeFile::save(cch* fileName)
 	// initialize header
 	//size = peHead_fileAlign(inh, peHeadSize(inh, nSects) + dosHeadr.len);
 	//inh->OptionalHeader.SizeOfHeaders = size;
-	inh->FileHeader.NumberOfSections = sects.len;
 	IMAGE_SECTION_HEADER* ish = peHeadSect(inh);
 
 	// build section headers
@@ -137,25 +136,26 @@ void PeFile::sectResize(Section* sect, u32 size)
 int PeFile::sectCreate(cch* name, DWORD ch)
 {
 	assert(this->mappMode == false);
-
-	// perform the insertion
-	int insIdx = iSect2(extendSect)+1;
-	sects.xresize(sects.len+1); 
-	memmove(sects.data+insIdx+1, sects.data+insIdx,
-		(sects.len-(insIdx+1))*sizeof(Section));
-		
-	// perform the insertion
 	IMAGE_SECTION_HEADER* ish = peHeadSect(inh);
-	u32 size = PTRDIFF(ish + inh->FileHeader.NumberOfSections + 1, imageData.data);
+	int insIdx = iSect2(extendSect)+1;
+
+	// check the size
+	u32 size = PTRDIFF(ish + sects.len + 1, imageData.data);
+	//if(size > imageData.len) return -1;
+	assert(size <= imageData.len); // FIXME
+	if(size > ioh().SizeOfHeaders)
+		ioh().SizeOfHeaders = fileAlign(size);
+	boundImp_clear();
 	
-	
+	// perform the insertion
+	sects.xresize(sects.len+1);
+	array_insclr(sects.end(), sects.data+insIdx, sizeof(Section));
 	inh->FileHeader.NumberOfSections += 1;
 	ish = Void(array_insclr(imageData+size, ish+insIdx, sizeof(*ish)));
-	ish->Characteristics = ch;
-	strncpy((char*)ish->Name, name, 8);
 	
 	// initialize section
-	memset(sects+insIdx, 0, sizeof(Section));
+	ish->Characteristics = ch;
+	strncpy((char*)ish->Name, name, 8);
 	if(insIdx > 0) ish->VirtualAddress
 		= sects[insIdx-1].endPage();
 	getSections_(); return insIdx;
