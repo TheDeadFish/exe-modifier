@@ -100,15 +100,13 @@ cch* PeFile::load(cch* fileName)
 	int virtualPos = ioh().SectionAlignment;
 	for(auto& sect : sects) 
 	{
-		// validate section
-		if(ish->PointerToRelocations || ish->PointerToLinenumbers
-		|| ish->NumberOfRelocations ||ish->NumberOfLinenumbers )
-			ERR(Unsupported_SectDbgInfo);
-
 		// allocate section
+		sect.allocSize = sectAlign(ish->Misc.VirtualSize);
 		if(mappMode) { sect.noFree = true;
-			sect.init(imageData+ish->VirtualAddress, ish->Misc.VirtualSize);
-		} else { sect.resize(this, ish->Misc.VirtualSize); }
+			sect.data = imageData+ish->VirtualAddress;
+		} else {
+			sect.data = xCalloc(sect.allocSize);
+		}
 		
 		// read section data
 		if(ish->SizeOfRawData) {
@@ -144,7 +142,7 @@ cch* PeFile::load(cch* fileName)
 	//}
 	
 	if(rsrcSect) {
-		if(!peFile_rebaseRsrc(rsrcSect->data, rsrcSect->len, 
+		if(!peFile_rebaseRsrc(rsrcSect->data, rsrcSect->len(), 
 			-rsrcSect->baseRva(), 0)) ERR(Corrupt_Rsrc);
 	}
 	
@@ -155,9 +153,9 @@ cch* PeFile::load(cch* fileName)
 xarray<byte> PeFile::dataDirSectChk(
 	Section* sect, DataDir dir, cch* name)
 {
-	if((sect->baseRva() != dir.rva)||(sect->len < dir.size)) return {0,0};
-	if(sect->len != dir.size) {
-		if(calcExtent(sect->data, sect->len) > dir.size) return {0,0};
+	if((sect->baseRva() != dir.rva)||(sect->len() < dir.size)) return {0,0};
+	if(sect->len() != dir.size) {
+		if(calcExtent(sect->data, sect->len()) > dir.size) return {0,0};
 		fprintf(stderr, "warning: %s section oversized\n", name); } 
 	return {sect->data, dir.size};
 }
@@ -264,7 +262,7 @@ int PeFile::Section::type(DWORD ch)
 u32 PeFile::Section::extent(PeFile& peFile)
 {
 	return peFile.fileAlign(peFile.
-		calcExtent(data, len));
+		calcExtent(data, len()));
 }
 
 

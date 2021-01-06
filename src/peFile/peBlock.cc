@@ -99,7 +99,7 @@ FreeSect::FreeSect(PeFile& pef) : peFile(pef)
 	for(int i = 0; i <= extIdx; i++) {
 		if((pef.sects+i) == pef.pdataSect) continue;
 		sects[i].type = pef.sects[i].type();
-		sects[i].endRva = pef.sects[i].len;
+		sects[i].endRva = pef.sects[i].len();
 		sects[i].extent = pef.sects[i].extent(pef);
 	} 
 	
@@ -234,7 +234,7 @@ void FreeSect::allocSects()
 	int iSect = 0; 
 	for(auto& sect : sects) { 
 		sect.iSect = iSect; if(sect.endRva) { 
-		if(peFile.sects[iSect].len < sect.endRva) 
+		if(peFile.sects[iSect].len() < sect.endRva) 
 			peFile.sectResize(peFile.sects+iSect, sect.endRva);
 		iSect++; }
 	}

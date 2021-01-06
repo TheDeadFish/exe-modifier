@@ -50,10 +50,10 @@ int PeFile::save(cch* fileName)
 	
 	// rebase resources
 	SCOPE_EXIT(if(rsrcSect) peFile_rebaseRsrc(rsrcSect->data, 
-		rsrcSect->len, -rsrcSect->baseRva(), 0));
+		rsrcSect->len(), -rsrcSect->baseRva(), 0));
 	ddTmp = {0,0};	
 	if(rsrcSect != NULL) { peFile_rebaseRsrc(rsrcSect->data, 
-		rsrcSect->len, rsrcSect->baseRva(), 0); 
+		rsrcSect->len(), rsrcSect->baseRva(), 0); 
 		ddTmp = rsrcSect->dataDir();
 	} dataDir(IDE_RESOURCE) = ddTmp;
 	
@@ -72,7 +72,6 @@ int PeFile::save(cch* fileName)
 	ARGKILL(ish0); ish0 = ish; 
 	for(auto& sect : sects) 
 	{
-		ish->Misc.VirtualSize = sect.len;
 		ish->SizeOfRawData = sect.extent(*this);
 		INCP(ish);
 	}
@@ -118,7 +117,7 @@ int PeFile::Section::resize(PeFile* This, u32 sz)
 	
 	u32 allocSize2 = This->sectAlign(sz);
 	void* ptr = xrealloc(data, allocSize2);
-	u32 base = min(len, sz); len = sz;
+	u32 base = min(len(), sz); len() = sz;
 	memset(ptr+base, 0, allocSize2-base);
 	return allocSize2-::release(allocSize, allocSize2);
 }
