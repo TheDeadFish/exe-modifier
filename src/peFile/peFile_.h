@@ -11,6 +11,8 @@ namespace PeFILE {
 	extern PeImport peImp;
 	extern PeExport peExp;
 	
+	static bool PE64() { return peFile.PE64(); }
+	static u32 ptrSize() { return peFile.ptrSize(); }
 
 	static DWORD baseAddr(void) { return peFile.ImageBase; }
 	static DWORD rvaToAddr(int rva) { return rva+baseAddr(); }

@@ -17,6 +17,10 @@ SHITCALL int peHeadFinalize(IMAGE_NT_HEADERS64* inh);
 static inline 
 bool peHead64(IMAGE_NT_HEADERS64* inh) {
 	return u8(inh->OptionalHeader.Magic>>8) == 2; };
+static inline
+u32 peHead_ptrSz(IMAGE_NT_HEADERS64* inh) {
+	return u8(inh->OptionalHeader.Magic>>8)*4; };
+
 	
 static inline
 DWORD peHead_sectAlign(IMAGE_NT_HEADERS64* inh, DWORD v) {

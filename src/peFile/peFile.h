@@ -23,7 +23,7 @@ struct PeFile
 	u64 ImageBase;
 	
 	bool PE64() { return peHead64(inh); }
-	u32 ptrSize() { return PE64() ? 8 : 4; }
+	u32 ptrSize() { return peHead_ptrSz(inh); }
 	
 	DataDir dataDir(size_t i);
 	bool setDataDir(size_t i, DataDir dd);
